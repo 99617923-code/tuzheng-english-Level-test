@@ -11,6 +11,13 @@ import { useAuth } from "@/contexts/AuthContext";
 const LOGO = "https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/tuzheng-logo-icon-C98gq5asJFpo7UzBQvohka.webp";
 const AI_AVATAR = "https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/ai-teacher-avatar-dLw5RzBDM3AJWaRxiMxYoU.webp";
 
+// 快速淡入动画 - 减少延迟让内容立即可见
+const fadeIn = (delay = 0) => ({
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.35, delay, ease: "easeOut" as const },
+});
+
 export default function Home() {
   const [, navigate] = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
@@ -34,12 +41,7 @@ export default function Home() {
       {/* Content */}
       <div className="relative z-10 min-h-screen flex flex-col px-6 py-6">
         {/* Header: Logo + Auth */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="flex items-center justify-between"
-        >
+        <motion.div {...fadeIn(0)} className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img src={LOGO} alt="途正英语" className="w-9 h-9 rounded-xl" />
             <span style={{ color: "#1a1a2e" }} className="text-base font-bold">途正英语</span>
@@ -69,9 +71,9 @@ export default function Home() {
         <div className="flex-1 flex flex-col items-center justify-center -mt-4">
           {/* AI Teacher Avatar */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
+            initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.7, delay: 0.2 }}
+            transition={{ duration: 0.4, delay: 0.05 }}
             className="mb-5"
           >
             <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-xl" style={{ boxShadow: "0 8px 30px rgba(232, 93, 74, 0.15)" }}>
@@ -80,12 +82,7 @@ export default function Home() {
           </motion.div>
 
           {/* Welcome Text */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="text-center mb-6"
-          >
+          <motion.div {...fadeIn(0.1)} className="text-center mb-6">
             {isAuthenticated && user ? (
               <p className="text-sm font-medium mb-2" style={{ color: "oklch(0.68 0.19 25)" }}>
                 Hi, {user.nickname || "同学"} 👋
@@ -102,40 +99,27 @@ export default function Home() {
           </motion.div>
 
           {/* Feature Cards */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-            className="w-full max-w-[320px] space-y-3 mb-6"
-          >
+          <motion.div {...fadeIn(0.15)} className="w-full max-w-[320px] space-y-3 mb-6">
             <FeatureItem
               icon={<Headphones className="w-5 h-5" />}
               title="听力测试"
               desc="AI外教用英语向你提问"
-              delay={0.7}
             />
             <FeatureItem
               icon={<Mic className="w-5 h-5" />}
               title="口语回答"
               desc="用语音回答，AI实时评估"
-              delay={0.8}
             />
             <FeatureItem
               icon={<MessageCircle className="w-5 h-5" />}
               title="智能定级"
               desc="自适应出题，精准匹配你的水平"
-              delay={0.9}
             />
           </motion.div>
         </div>
 
         {/* CTA Button */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 1 }}
-          className="pb-6"
-        >
+        <motion.div {...fadeIn(0.2)} className="pb-6">
           <button
             onClick={handleStart}
             className="w-full h-14 rounded-2xl text-lg font-bold shadow-lg transition-all duration-300 active:scale-[0.98]"
@@ -160,18 +144,13 @@ function FeatureItem({
   icon,
   title,
   desc,
-  delay,
 }: {
   icon: React.ReactNode;
   title: string;
   desc: string;
-  delay: number;
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.5, delay }}
+    <div
       className="flex items-center gap-4 bg-white/80 backdrop-blur-sm rounded-2xl p-4"
       style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}
     >
@@ -185,6 +164,6 @@ function FeatureItem({
         <h3 className="font-bold text-sm" style={{ color: "#1a1a2e" }}>{title}</h3>
         <p className="text-xs" style={{ color: "#868e96" }}>{desc}</p>
       </div>
-    </motion.div>
+    </div>
   );
 }

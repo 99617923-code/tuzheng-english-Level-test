@@ -5,11 +5,24 @@
  */
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Phone, ArrowRight, RefreshCw, ShieldCheck } from "lucide-react";
+import { Phone, ArrowRight, RefreshCw, ShieldCheck, Bug } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { sendSmsCode, smsLogin } from "@/lib/api";
+import { sendSmsCode, smsLogin, setTokens, saveUserInfo, type UserInfo } from "@/lib/api";
+
+// 开发环境判断
+const IS_DEV = import.meta.env.DEV;
+
+// 开发环境mock用户数据
+const DEV_MOCK_USER: UserInfo = {
+  user_id: "dev_user_001",
+  nickname: "开发测试用户",
+  avatar: "",
+  phone: "13800000000",
+  role: "user",
+  status: "active",
+};
 
 const AI_AVATAR = "https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/ai-teacher-avatar-dLw5RzBDM3AJWaRxiMxYoU.webp";
 const LOGO_TEXT = "https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/tuzheng-logo-transparent_4a301562.png";
@@ -265,6 +278,34 @@ export default function Login() {
           <p className="mt-4 text-center text-xs" style={{ color: "#b0b8c5" }}>
             登录即表示同意《用户服务协议》和《隐私政策》
           </p>
+
+          {/* 开发环境旁路登录 */}
+          {IS_DEV && (
+            <div className="mt-5 pt-4" style={{ borderTop: "1px dashed rgba(27,63,145,0.15)" }}>
+              <button
+                onClick={() => {
+                  // 生成mock token并保存
+                  setTokens("dev_mock_biz_token_" + Date.now(), "dev_mock_refresh_token");
+                  saveUserInfo(DEV_MOCK_USER);
+                  setUser(DEV_MOCK_USER);
+                  toast.success("开发模式：已跳过验证直接登录");
+                  navigate("/");
+                }}
+                className="w-full py-2.5 rounded-xl text-xs font-medium flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                style={{
+                  background: "rgba(131,186,18,0.10)",
+                  color: "#5a8a10",
+                  border: "1px dashed rgba(131,186,18,0.4)",
+                }}
+              >
+                <Bug className="w-3.5 h-3.5" />
+                开发模式：跳过验证直接登录
+              </button>
+              <p className="text-center text-[10px] mt-1.5" style={{ color: "#b0b8c5" }}>
+                仅开发环境可见，生产环境自动隐藏
+              </p>
+            </div>
+          )}
         </motion.div>
 
         {/* 底部品牌 */}

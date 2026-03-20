@@ -76,3 +76,7 @@
 ## Bug修复 - 开发模式旁路登录被踢回
 - [x] 修复mock token触发AUTH_EXPIRED自动跳转登录页的问题
 - [x] 开发模式下API 401错误不触发自动跳转
+
+## 移除开发模式旁路登录
+- [x] 移除Login页面的旁路登录按钮和mock用户数据
+- [x] 移除AuthContext中的mock token判断逻辑

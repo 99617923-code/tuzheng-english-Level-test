@@ -59,9 +59,10 @@ export interface UserInfo {
 }
 
 export interface LoginResponse {
-  user_info: UserInfo;
+  user: UserInfo;
   biz_token: string;
   refresh_token: string;
+  is_new_user?: boolean;
   im_auth?: {
     app_key: string;
     accid: string;
@@ -71,7 +72,11 @@ export interface LoginResponse {
 
 export interface CaptchaResponse {
   captchaId: string;
-  captchaImage: string; // data:image/svg+xml;base64,... 格式
+  captchaImage: string;
+}
+
+export interface SendSmsCodeResponse {
+  expires_in: number;
 }
 
 export interface ApiResponse<T> {
@@ -183,6 +188,9 @@ export interface TestHistoryResponse {
 
 // ============ 请求封装 ============
 
+let isRefreshing = false;
+let refreshPromise: Promise<boolean> | null = null;
+
 async function request<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -209,9 +217,17 @@ async function request<T>(
 
   const data = await response.json();
 
-  // Token过期，尝试刷新
-  if (data.code === 401) {
-    const refreshed = await tryRefreshToken();
+  // Token过期，尝试刷新（防止并发刷新）
+  if (data.code === 401 || data.code === 10001) {
+    if (!isRefreshing) {
+      isRefreshing = true;
+      refreshPromise = tryRefreshToken().finally(() => {
+        isRefreshing = false;
+        refreshPromise = null;
+      });
+    }
+
+    const refreshed = await (refreshPromise || tryRefreshToken());
     if (refreshed) {
       // 重试原请求
       headers["Authorization"] = `Bearer ${getToken()}`;
@@ -222,6 +238,8 @@ async function request<T>(
       return retryResponse.json();
     } else {
       clearTokens();
+      // 触发全局认证错误事件
+      window.dispatchEvent(new CustomEvent("auth-error", { detail: "AUTH_EXPIRED" }));
       throw new Error("AUTH_EXPIRED");
     }
   }
@@ -256,9 +274,44 @@ async function tryRefreshToken(): Promise<boolean> {
   }
 }
 
-// ============ 认证接口（对接客户真实API）============
+// ============ 认证接口 ============
 
-/** 获取图形验证码 */
+/** 发送短信验证码 */
+export async function sendSmsCode(params: {
+  phone: string;
+  purpose?: "login" | "register" | "reset_password";
+}): Promise<SendSmsCodeResponse> {
+  const res = await request<SendSmsCodeResponse>("/api/v1/auth/send-sms-code", {
+    method: "POST",
+    body: JSON.stringify({
+      phone: params.phone,
+      purpose: params.purpose || "login",
+    }),
+  });
+  if (res.code !== 200) throw new Error(res.msg);
+  return res.data;
+}
+
+/** 短信验证码登录（未注册自动创建账号） */
+export async function smsLogin(params: {
+  phone: string;
+  code: string;
+  deviceInfo?: string;
+}): Promise<LoginResponse> {
+  const res = await request<LoginResponse>("/api/v1/auth/sms-login", {
+    method: "POST",
+    body: JSON.stringify(params),
+  });
+  if (res.code !== 200) throw new Error(res.msg);
+
+  // 保存token和用户信息
+  setTokens(res.data.biz_token, res.data.refresh_token);
+  saveUserInfo(res.data.user);
+
+  return res.data;
+}
+
+/** 获取图形验证码（保留备用） */
 export async function getCaptcha(): Promise<CaptchaResponse> {
   const res = await request<CaptchaResponse>("/api/v1/auth/captcha", {
     method: "GET",
@@ -267,7 +320,7 @@ export async function getCaptcha(): Promise<CaptchaResponse> {
   return res.data;
 }
 
-/** 用户登录 */
+/** 用户登录（密码登录，保留备用） */
 export async function login(params: {
   phone: string;
   password: string;
@@ -282,7 +335,7 @@ export async function login(params: {
 
   // 保存token和用户信息
   setTokens(res.data.biz_token, res.data.refresh_token);
-  saveUserInfo(res.data.user_info);
+  saveUserInfo(res.data.user);
 
   return res.data;
 }
@@ -319,7 +372,7 @@ export async function logout(): Promise<void> {
   }
 }
 
-// ============ 测评接口（对接客户真实API）============
+// ============ 测评接口 ============
 
 /** 创建测评会话 - POST /api/v1/test/start */
 export async function startTest(): Promise<StartTestResponse> {

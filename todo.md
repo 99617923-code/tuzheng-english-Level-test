@@ -45,3 +45,13 @@
 - [x] 对接新增API到前端，替换模拟数据（start/evaluate/upload-audio/transcribe/tts/terminate/history/result）
 - [x] 完善前端交互体验（录音→上传→ASR→评估→TTS完整链路）
 - [x] 全流程测试验证（未登录正确返回AUTH_EXPIRED，登录后可正常测评）
+
+## Bug修复
+- [ ] 排查登录接口返回400错误
+- [ ] 修复测评初始化失败问题
+
+## 登录改为手机号+短信验证码
+- [x] 检查后端是否有短信验证码接口（send-sms-code + sms-login）
+- [x] 重写登录页为手机号+短信验证码模式（去掉图形验证码和密码）
+- [x] 修复token传递问题（增强AUTH_EXPIRED全局处理+并发刷新保护）
+- [x] 验证完整流程（vitest测试10个用例全部通过）

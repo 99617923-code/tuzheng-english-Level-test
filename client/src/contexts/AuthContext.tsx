@@ -1,6 +1,7 @@
 /**
  * 途正英语 - 认证上下文
  * 基于客户后端API的登录状态管理
+ * 支持token自动刷新和AUTH_EXPIRED全局处理
  */
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import {
@@ -11,6 +12,7 @@ import {
   logout as apiLogout,
   clearTokens,
 } from "@/lib/api";
+import { useLocation } from "wouter";
 
 interface AuthState {
   user: UserInfo | null;
@@ -27,6 +29,7 @@ interface AuthContextValue extends AuthState {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const [, navigate] = useLocation();
   const [state, setState] = useState<AuthState>({
     user: getSavedUserInfo(),
     loading: !!getToken(),
@@ -49,19 +52,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           isAuthenticated: true,
         });
       })
-      .catch(() => {
+      .catch((err) => {
+        console.warn("[Auth] Token validation failed:", err.message);
         clearTokens();
         setState({ user: null, loading: false, isAuthenticated: false });
       });
   }, []);
+
+  // 全局监听AUTH_EXPIRED错误，自动跳转登录页
+  useEffect(() => {
+    const handleAuthError = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail === "AUTH_EXPIRED") {
+        clearTokens();
+        setState({ user: null, loading: false, isAuthenticated: false });
+        navigate("/login");
+      }
+    };
+
+    window.addEventListener("auth-error", handleAuthError);
+    return () => window.removeEventListener("auth-error", handleAuthError);
+  }, [navigate]);
 
   const logout = useCallback(async () => {
     try {
       await apiLogout();
     } finally {
       setState({ user: null, loading: false, isAuthenticated: false });
+      navigate("/login");
     }
-  }, []);
+  }, [navigate]);
 
   const refresh = useCallback(async () => {
     try {

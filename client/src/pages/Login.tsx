@@ -1,15 +1,15 @@
 /**
  * 途正英语AI分级测评 - 登录页
- * 对接客户后端API: 手机号+密码+图形验证码
+ * 手机号 + 短信验证码登录（未注册自动创建账号）
  */
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Phone, Lock, Eye, EyeOff, RefreshCw, ArrowRight, UserPlus } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
+import { Phone, MessageSquare, ArrowRight, RefreshCw, ShieldCheck } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { getCaptcha, login, type CaptchaResponse } from "@/lib/api";
+import { sendSmsCode, smsLogin } from "@/lib/api";
 
 const AI_AVATAR = "https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/ai-teacher-avatar-dLw5RzBDM3AJWaRxiMxYoU.webp";
 const LOGO = "https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/tuzheng-logo-icon-C98gq5asJFpo7UzBQvohka.webp";
@@ -19,66 +19,93 @@ export default function Login() {
   const { setUser, isAuthenticated } = useAuth();
 
   const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
-  const [captchaCode, setCaptchaCode] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [captcha, setCaptcha] = useState<CaptchaResponse | null>(null);
+  const [smsCode, setSmsCode] = useState("");
   const [loading, setLoading] = useState(false);
-  const [loadingCaptcha, setLoadingCaptcha] = useState(false);
+  const [sendingCode, setSendingCode] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // 已登录则跳转首页
   useEffect(() => {
     if (isAuthenticated) navigate("/");
   }, [isAuthenticated, navigate]);
 
-  const loadCaptcha = useCallback(async () => {
-    setLoadingCaptcha(true);
-    try {
-      const data = await getCaptcha();
-      setCaptcha(data);
-      setCaptchaCode("");
-    } catch {
-      toast.error("获取验证码失败，请稍后重试");
-    } finally {
-      setLoadingCaptcha(false);
-    }
-  }, []);
-
+  // 倒计时管理
   useEffect(() => {
-    loadCaptcha();
-  }, [loadCaptcha]);
+    if (countdown > 0) {
+      countdownRef.current = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            if (countdownRef.current) clearInterval(countdownRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (countdownRef.current) clearInterval(countdownRef.current);
+    };
+  }, [countdown]);
 
+  // 发送短信验证码
+  const handleSendCode = useCallback(async () => {
+    if (!phone.trim()) {
+      toast.error("请输入手机号");
+      return;
+    }
+    if (!/^1\d{10}$/.test(phone.trim())) {
+      toast.error("请输入正确的11位手机号");
+      return;
+    }
+    if (countdown > 0) return;
+
+    setSendingCode(true);
+    try {
+      await sendSmsCode({ phone: phone.trim(), purpose: "login" });
+      toast.success("验证码已发送，请查看短信");
+      setCountdown(60);
+    } catch (err: any) {
+      toast.error(err.message || "发送验证码失败，请稍后重试");
+    } finally {
+      setSendingCode(false);
+    }
+  }, [phone, countdown]);
+
+  // 登录
   const handleLogin = async () => {
     if (!phone.trim()) {
       toast.error("请输入手机号");
       return;
     }
     if (!/^1\d{10}$/.test(phone.trim())) {
-      toast.error("请输入正确的手机号");
+      toast.error("请输入正确的11位手机号");
       return;
     }
-    if (!password.trim()) {
-      toast.error("请输入密码");
+    if (!smsCode.trim()) {
+      toast.error("请输入短信验证码");
       return;
     }
-    if (captcha && !captchaCode.trim()) {
-      toast.error("请输入验证码");
+    if (smsCode.trim().length < 4) {
+      toast.error("请输入完整的验证码");
       return;
     }
 
     setLoading(true);
     try {
-      const data = await login({
+      const data = await smsLogin({
         phone: phone.trim(),
-        password: password.trim(),
-        captchaId: captcha?.captchaId,
-        captchaCode: captchaCode.trim(),
+        code: smsCode.trim(),
       });
-      setUser(data.user_info);
-      toast.success("登录成功！");
+      setUser(data.user);
+      if (data.is_new_user) {
+        toast.success("注册成功，已自动登录！");
+      } else {
+        toast.success("登录成功！");
+      }
       navigate("/");
     } catch (err: any) {
-      toast.error(err.message || "登录失败，请检查账号密码");
-      loadCaptcha();
+      toast.error(err.message || "登录失败，请检查验证码是否正确");
     } finally {
       setLoading(false);
     }
@@ -132,19 +159,25 @@ export default function Login() {
           className="bg-white rounded-3xl p-6 shadow-xl"
           style={{ boxShadow: "0 8px 30px rgba(0,0,0,0.08)" }}
         >
-          <h2 style={{ color: "#1a1a2e" }} className="text-lg font-extrabold mb-6 text-center">
-            登录账号
+          <h2 style={{ color: "#1a1a2e" }} className="text-lg font-extrabold mb-2 text-center">
+            手机号快捷登录
           </h2>
+          <p style={{ color: "#adb5bd" }} className="text-xs text-center mb-6">
+            未注册的手机号将自动创建账号
+          </p>
 
           {/* 手机号 */}
           <div className="mb-4">
-            <div className="flex items-center gap-3 rounded-2xl px-4 py-3.5 border transition-all focus-within:ring-2 focus-within:ring-coral/30 focus-within:border-coral/30" style={{ backgroundColor: "#f8f9fa", borderColor: "#e9ecef" }}>
+            <div
+              className="flex items-center gap-3 rounded-2xl px-4 py-3.5 border transition-all focus-within:ring-2 focus-within:ring-coral/30 focus-within:border-coral/30"
+              style={{ backgroundColor: "#f8f9fa", borderColor: "#e9ecef" }}
+            >
               <Phone className="w-5 h-5 shrink-0" style={{ color: "#adb5bd" }} />
               <input
                 type="tel"
                 placeholder="请输入手机号"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
                 maxLength={11}
                 className="flex-1 bg-transparent outline-none text-sm"
                 style={{ color: "#1a1a2e" }}
@@ -152,39 +185,20 @@ export default function Login() {
             </div>
           </div>
 
-          {/* 密码 */}
-          <div className="mb-4">
-            <div className="flex items-center gap-3 rounded-2xl px-4 py-3.5 border transition-all focus-within:ring-2 focus-within:ring-coral/30 focus-within:border-coral/30" style={{ backgroundColor: "#f8f9fa", borderColor: "#e9ecef" }}>
-              <Lock className="w-5 h-5 shrink-0" style={{ color: "#adb5bd" }} />
-              <input
-                type={showPassword ? "text" : "password"}
-                placeholder="请输入密码"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="flex-1 bg-transparent outline-none text-sm"
-                style={{ color: "#1a1a2e" }}
-                onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{ color: "#adb5bd" }}
-                className="hover:opacity-70 transition-opacity"
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-
-          {/* 图形验证码 */}
+          {/* 短信验证码 */}
           <div className="mb-6">
             <div className="flex items-center gap-3">
-              <div className="flex-1 flex items-center gap-3 rounded-2xl px-4 py-3.5 border transition-all focus-within:ring-2 focus-within:ring-coral/30 focus-within:border-coral/30" style={{ backgroundColor: "#f8f9fa", borderColor: "#e9ecef" }}>
+              <div
+                className="flex-1 flex items-center gap-3 rounded-2xl px-4 py-3.5 border transition-all focus-within:ring-2 focus-within:ring-coral/30 focus-within:border-coral/30"
+                style={{ backgroundColor: "#f8f9fa", borderColor: "#e9ecef" }}
+              >
+                <ShieldCheck className="w-5 h-5 shrink-0" style={{ color: "#adb5bd" }} />
                 <input
                   type="text"
+                  inputMode="numeric"
                   placeholder="请输入验证码"
-                  value={captchaCode}
-                  onChange={(e) => setCaptchaCode(e.target.value)}
+                  value={smsCode}
+                  onChange={(e) => setSmsCode(e.target.value.replace(/\D/g, ""))}
                   maxLength={6}
                   className="flex-1 bg-transparent outline-none text-sm"
                   style={{ color: "#1a1a2e" }}
@@ -192,21 +206,21 @@ export default function Login() {
                 />
               </div>
               <button
-                onClick={loadCaptcha}
-                disabled={loadingCaptcha}
-                className="h-[50px] min-w-[120px] rounded-2xl overflow-hidden flex items-center justify-center hover:opacity-80 transition-opacity border"
-                style={{ backgroundColor: "#f8f9fa", borderColor: "#e9ecef" }}
+                onClick={handleSendCode}
+                disabled={sendingCode || countdown > 0}
+                className="h-[50px] min-w-[110px] rounded-2xl text-sm font-semibold transition-all active:scale-[0.97] disabled:opacity-60 shrink-0"
+                style={{
+                  backgroundColor: countdown > 0 ? "#f1f3f5" : "oklch(0.68 0.19 25)",
+                  color: countdown > 0 ? "#868e96" : "#ffffff",
+                  boxShadow: countdown > 0 ? "none" : "0 2px 8px rgba(232, 93, 74, 0.2)",
+                }}
               >
-                {loadingCaptcha ? (
-                  <RefreshCw className="w-5 h-5 animate-spin" style={{ color: "#adb5bd" }} />
-                ) : captcha?.captchaImage ? (
-                  <img
-                    src={captcha.captchaImage}
-                    alt="验证码"
-                    className="h-full w-full object-contain"
-                  />
+                {sendingCode ? (
+                  <RefreshCw className="w-4 h-4 animate-spin mx-auto" />
+                ) : countdown > 0 ? (
+                  `${countdown}s 后重发`
                 ) : (
-                  <span className="text-xs" style={{ color: "#adb5bd" }}>加载中...</span>
+                  "获取验证码"
                 )}
               </button>
             </div>
@@ -231,17 +245,10 @@ export default function Login() {
             {loading ? "登录中..." : "登录"}
           </button>
 
-          {/* 注册入口 */}
-          <div className="mt-5 text-center">
-            <button
-              onClick={() => navigate("/register")}
-              className="text-sm transition-colors inline-flex items-center gap-1 hover:opacity-70"
-              style={{ color: "#6c757d" }}
-            >
-              <UserPlus className="w-3.5 h-3.5" />
-              还没有账号？立即注册
-            </button>
-          </div>
+          {/* 协议提示 */}
+          <p className="mt-4 text-center text-xs" style={{ color: "#ced4da" }}>
+            登录即表示同意《用户服务协议》和《隐私政策》
+          </p>
         </motion.div>
 
         {/* 底部品牌 */}

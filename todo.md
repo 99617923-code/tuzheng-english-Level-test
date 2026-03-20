@@ -85,3 +85,7 @@
 - [x] 排查Test页面测评初始化失败原因（字段映射不匹配）
 - [x] 修复refresh-token 401循环错误
 - [x] 修复sms-login 400 Bad Request错误（字段映射全面修正）
+
+## Bug修复 - 录音无法结束 + upload-audio 500
+- [x] 修复移动端录音按钮松开后无法停止录音的问题（用MediaRecorder.state替代React状态判断）
+- [x] 修复upload-audio接口返回500错误（代理层改为raw body直接透传multipart/form-data）

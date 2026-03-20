@@ -33,39 +33,77 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
-  // Configure body parser with larger size limit for file uploads
-  app.use(express.json({ limit: "50mb" }));
-  app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
   // API Proxy: forward /api/tz/* to customer backend
+  // MUST be registered BEFORE body parsers so multipart/form-data is forwarded raw
   app.all("/api/tz/*", async (req, res) => {
     try {
       const targetPath = req.originalUrl.replace("/api/tz", "");
       const targetUrl = `${BACKEND_BASE_URL}${targetPath}`;
-      const headers: Record<string, string> = {
-        "Content-Type": req.headers["content-type"] || "application/json",
-      };
+      const contentType = req.headers["content-type"] || "application/json";
+      const isMultipart = contentType.includes("multipart/form-data");
+
+      const headers: Record<string, string> = {};
+      // For multipart, forward Content-Type with boundary intact
+      if (isMultipart) {
+        headers["Content-Type"] = contentType;
+      } else {
+        headers["Content-Type"] = contentType;
+      }
       if (req.headers["x-app-key"]) headers["X-App-Key"] = req.headers["x-app-key"] as string;
       if (req.headers["authorization"]) headers["Authorization"] = req.headers["authorization"] as string;
+
+      let requestData: any;
+      if (isMultipart) {
+        // For multipart requests, pipe raw body directly
+        const chunks: Buffer[] = [];
+        await new Promise<void>((resolve, reject) => {
+          req.on("data", (chunk: Buffer) => chunks.push(chunk));
+          req.on("end", () => resolve());
+          req.on("error", reject);
+        });
+        requestData = Buffer.concat(chunks);
+      } else {
+        // For JSON requests, parse body first
+        requestData = await new Promise<any>((resolve, reject) => {
+          let body = "";
+          req.on("data", (chunk: string) => { body += chunk; });
+          req.on("end", () => {
+            try {
+              resolve(body ? JSON.parse(body) : undefined);
+            } catch {
+              resolve(body);
+            }
+          });
+          req.on("error", reject);
+        });
+      }
 
       const response = await axios({
         method: req.method as any,
         url: targetUrl,
-        data: req.body,
+        data: requestData,
         headers,
-        timeout: 15000,
+        timeout: 30000,
+        maxContentLength: 50 * 1024 * 1024,
+        maxBodyLength: 50 * 1024 * 1024,
         validateStatus: () => true,
         responseType: "arraybuffer",
       });
 
       // Forward response headers
-      const contentType = response.headers["content-type"];
-      if (contentType) res.setHeader("Content-Type", contentType);
+      const respContentType = response.headers["content-type"];
+      if (respContentType) res.setHeader("Content-Type", respContentType);
       res.status(response.status).send(response.data);
     } catch (err: any) {
       console.error("[API Proxy Error]", err.message);
       res.status(502).json({ error: "Backend proxy error", message: err.message });
     }
   });
+
+  // Configure body parser AFTER proxy routes
+  app.use(express.json({ limit: "50mb" }));
+  app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);

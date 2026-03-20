@@ -204,7 +204,8 @@ export default function Test() {
   }, [isAiSpeaking, isAiThinking, isProcessing, isFinished]);
 
   const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && isRecording) {
+    // Use MediaRecorder.state instead of React state to avoid closure issues
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       if (timerRef.current) {
@@ -212,7 +213,7 @@ export default function Test() {
         timerRef.current = null;
       }
     }
-  }, [isRecording]);
+  }, []);
 
   /** 处理录音：上传 → ASR转文字 → 提交评估 */
   const processRecording = async () => {
@@ -516,8 +517,10 @@ export default function Test() {
               <button
                 onMouseDown={startRecording}
                 onMouseUp={stopRecording}
+                onMouseLeave={stopRecording}
                 onTouchStart={(e) => { e.preventDefault(); startRecording(); }}
                 onTouchEnd={(e) => { e.preventDefault(); stopRecording(); }}
+                onTouchCancel={(e) => { e.preventDefault(); stopRecording(); }}
                 disabled={isAiSpeaking || isAiThinking || isProcessing}
                 style={isRecording ? { background: "linear-gradient(135deg, #1B3F91, #2B5BA0)", boxShadow: "0 8px 25px rgba(27,63,145,0.4)" } : !(isAiSpeaking || isAiThinking || isProcessing) ? { background: "linear-gradient(135deg, #1B3F91, #2B5BA0)", boxShadow: "0 6px 20px rgba(27,63,145,0.3)" } : {}}
                 className={`relative w-16 h-16 rounded-full flex items-center justify-center transition-all duration-200 ${

@@ -89,3 +89,13 @@
 ## Bug修复 - 录音无法结束 + upload-audio 500
 - [x] 修复移动端录音按钮松开后无法停止录音的问题（用MediaRecorder.state替代React状态判断）
 - [x] 修复upload-audio接口返回500错误（代理层改为raw body直接透传multipart/form-data）
+
+## Bug修复 - upload-audio 500 (Storage proxy credentials missing)
+- [x] 排查processRecording中是否误用了Manus存储服务（确认代理层正常转发）
+- [x] 确保录音上传走途正后端upload-audio接口而非Manus S3（curl测试确认代理正常）
+
+## 新增文字输入模式
+- [x] 在Test页面底部添加文字输入框和发送按钮
+- [x] 实现文字输入直接提交评估（跳过录音上传和ASR转写，直接发送transcription字段）
+- [x] 保留录音按钮，用户可以选择语音或文字输入（麦克风图标切换）
+- [x] 测试文字输入完整测评流程（vitest 10个用例全通过）

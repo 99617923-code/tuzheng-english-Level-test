@@ -1,12 +1,13 @@
 /**
  * 途正英语AI分级测评 - 核心测评对话页
  * 对接后端API: start → evaluate → upload-audio → transcribe → tts
+ * 支持两种输入模式：语音录音 / 文字输入
  * 设计风格：聊天式对话布局，AI在左，学员在右
  */
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, Volume2, Loader2, ChevronLeft, AlertCircle, Square } from "lucide-react";
+import { Mic, Volume2, Loader2, ChevronLeft, AlertCircle, Square, Send, Keyboard, MessageSquare } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import {
@@ -22,6 +23,7 @@ import {
 const AI_AVATAR = "https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/ai-teacher-avatar-dLw5RzBDM3AJWaRxiMxYoU.webp";
 
 type MessageRole = "ai" | "user" | "system";
+type InputMode = "voice" | "text";
 
 interface ChatMessage {
   id: string;
@@ -29,7 +31,6 @@ interface ChatMessage {
   text: string;
   hint?: string;
   timestamp: number;
-  isPlaying?: boolean;
 }
 
 export default function Test() {
@@ -45,12 +46,15 @@ export default function Test() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [inputMode, setInputMode] = useState<InputMode>("text"); // 默认文字输入
+  const [textInput, setTextInput] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const startTimeRef = useRef<number>(0);
+  const textInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -66,19 +70,15 @@ export default function Test() {
       try {
         const data = await startTest();
         setSessionId(data.sessionId);
-        // 后端返回 firstQuestion（含 text 字段），totalQuestions 在顶层
         const q = data.firstQuestion;
         setCurrentQuestion(q);
         setQuestionNumber(1);
         setTotalQuestions(data.totalQuestions);
 
-        // 等一下再显示第一道题
         await delay(1500);
         setIsAiThinking(false);
 
-        // 后端题目用 text 字段
         addMessage("ai", q.text);
-        // 播放TTS音频或降级到Web Speech API
         await playQuestionAudio(q.text, q.audioUrl);
       } catch (err: unknown) {
         setIsAiThinking(false);
@@ -108,18 +108,14 @@ export default function Test() {
   const playQuestionAudio = async (text: string, audioUrl?: string | null) => {
     setIsAiSpeaking(true);
 
-    // 1. 如果后端已提供audioUrl，直接播放
     if (audioUrl) {
       try {
         await playAudioUrl(audioUrl);
         setIsAiSpeaking(false);
         return;
-      } catch {
-        // 降级到方案2
-      }
+      } catch { /* 降级 */ }
     }
 
-    // 2. 尝试调用后端TTS接口
     try {
       const ttsData = await textToSpeech({ text, speed: 0.85 });
       if (ttsData.audioUrl) {
@@ -127,11 +123,8 @@ export default function Test() {
         setIsAiSpeaking(false);
         return;
       }
-    } catch {
-      // 降级到方案3
-    }
+    } catch { /* 降级 */ }
 
-    // 3. 降级到浏览器Web Speech API
     if ("speechSynthesis" in window) {
       await new Promise<void>((resolve) => {
         window.speechSynthesis.cancel();
@@ -139,13 +132,11 @@ export default function Test() {
         utterance.lang = "en-US";
         utterance.rate = 0.85;
         utterance.pitch = 1.0;
-
         const voices = window.speechSynthesis.getVoices();
         const englishVoice = voices.find(
           (v) => v.lang.startsWith("en") && v.name.toLowerCase().includes("female")
         ) || voices.find((v) => v.lang.startsWith("en"));
         if (englishVoice) utterance.voice = englishVoice;
-
         utterance.onend = () => resolve();
         utterance.onerror = () => resolve();
         window.speechSynthesis.speak(utterance);
@@ -155,12 +146,9 @@ export default function Test() {
     setIsAiSpeaking(false);
   };
 
-  /** 播放音频URL */
   const playAudioUrl = (url: string): Promise<void> => {
     return new Promise((resolve, reject) => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
+      if (audioRef.current) audioRef.current.pause();
       const audio = new Audio(url);
       audioRef.current = audio;
       audio.onended = () => resolve();
@@ -169,6 +157,7 @@ export default function Test() {
     });
   };
 
+  // ========== 语音录音模式 ==========
   const startRecording = useCallback(async () => {
     if (isAiSpeaking || isAiThinking || isProcessing || isFinished) return;
 
@@ -204,7 +193,6 @@ export default function Test() {
   }, [isAiSpeaking, isAiThinking, isProcessing, isFinished]);
 
   const stopRecording = useCallback(() => {
-    // Use MediaRecorder.state instead of React state to avoid closure issues
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
@@ -226,74 +214,24 @@ export default function Test() {
     setIsAiThinking(true);
 
     try {
-      // 1. 上传录音
       const uploadResult = await uploadAudio({
         file: audioBlob,
         sessionId,
         questionId: currentQuestion.questionId,
       });
 
-      // 2. ASR转文字
       const transcription = await transcribeAudio({
         audioUrl: uploadResult.audioUrl,
         language: "en",
       });
 
-      // 显示用户回答
       addMessage("user", transcription.text);
 
-      // 3. 提交评估 — 后端参数: transcription, audioUrl, answerDuration
-      const evalResult = await evaluateAnswer({
-        sessionId,
-        questionId: currentQuestion.questionId,
-        transcription: transcription.text,
-        audioUrl: uploadResult.audioUrl,
-        answerDuration,
-      });
-
-      setIsAiThinking(false);
-
-      // 4. 显示AI反馈
-      if (evalResult.evaluation?.feedback) {
-        addMessage("ai", evalResult.evaluation.feedback);
-        // 朗读反馈
-        await playQuestionAudio(evalResult.evaluation.feedback);
-      }
-
-      // 5. 判断是否完成 — 后端用 nextAction 而非 isComplete
-      const isComplete = evalResult.nextAction === "complete" || evalResult.nextAction === "finish";
-      if (isComplete) {
-        setIsFinished(true);
-        addMessage(
-          "ai",
-          "Great job! You've done really well. Based on our conversation, I've completed your English level assessment. Let me prepare your detailed report now."
-        );
-        await playQuestionAudio(
-          "Great job! Your assessment is complete. Let me show you your result."
-        );
-
-        // 跳转到结果页
-        setTimeout(() => {
-          if (evalResult.result) {
-            const r = evalResult.result;
-            navigate(
-              `/result?sessionId=${r.sessionId}&level=${r.finalLevel}&name=${encodeURIComponent(r.levelLabel || "")}&label=${encodeURIComponent(r.levelName || "")}&questions=${r.questionCount}`
-            );
-          } else {
-            // 没有result对象时，用sessionId跳转
-            navigate(`/result?sessionId=${sessionId}`);
-          }
-        }, 2000);
-      } else if (evalResult.nextQuestion) {
-        // 6. 显示下一题
-        const nextQ = evalResult.nextQuestion;
-        setCurrentQuestion(nextQ);
-        setQuestionNumber((prev) => prev + 1);
-
-        await delay(800);
-        addMessage("ai", nextQ.text);
-        await playQuestionAudio(nextQ.text, nextQ.audioUrl);
-      }
+      await handleEvaluateResult(
+        transcription.text,
+        uploadResult.audioUrl,
+        answerDuration
+      );
     } catch (err: unknown) {
       setIsAiThinking(false);
       const errMsg = err instanceof Error ? err.message : "处理失败";
@@ -301,6 +239,96 @@ export default function Test() {
       addMessage("system", "处理失败，请重新回答");
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  // ========== 文字输入模式 ==========
+  const handleTextSubmit = async () => {
+    const text = textInput.trim();
+    if (!text || !sessionId || !currentQuestion) return;
+    if (isProcessing || isAiThinking || isFinished) return;
+
+    // 显示用户消息
+    addMessage("user", text);
+    setTextInput("");
+
+    setIsProcessing(true);
+    setIsAiThinking(true);
+
+    try {
+      await handleEvaluateResult(text);
+    } catch (err: unknown) {
+      setIsAiThinking(false);
+      const errMsg = err instanceof Error ? err.message : "处理失败";
+      toast.error(`处理回答失败: ${errMsg}`);
+      addMessage("system", "处理失败，请重新回答");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  /** 键盘回车提交 */
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleTextSubmit();
+    }
+  };
+
+  // ========== 共用评估结果处理 ==========
+  const handleEvaluateResult = async (
+    transcription: string,
+    audioUrl?: string,
+    answerDuration?: number
+  ) => {
+    if (!sessionId || !currentQuestion) return;
+
+    const evalResult = await evaluateAnswer({
+      sessionId,
+      questionId: currentQuestion.questionId,
+      transcription,
+      audioUrl,
+      answerDuration,
+    });
+
+    setIsAiThinking(false);
+
+    // 显示AI反馈
+    if (evalResult.evaluation?.feedback) {
+      addMessage("ai", evalResult.evaluation.feedback);
+      await playQuestionAudio(evalResult.evaluation.feedback);
+    }
+
+    // 判断是否完成
+    const isComplete = evalResult.nextAction === "complete" || evalResult.nextAction === "finish";
+    if (isComplete) {
+      setIsFinished(true);
+      addMessage(
+        "ai",
+        "Great job! You've done really well. Based on our conversation, I've completed your English level assessment. Let me prepare your detailed report now."
+      );
+      await playQuestionAudio(
+        "Great job! Your assessment is complete. Let me show you your result."
+      );
+
+      setTimeout(() => {
+        if (evalResult.result) {
+          const r = evalResult.result;
+          navigate(
+            `/result?sessionId=${r.sessionId}&level=${r.finalLevel}&name=${encodeURIComponent(r.levelLabel || "")}&label=${encodeURIComponent(r.levelName || "")}&questions=${r.questionCount}`
+          );
+        } else {
+          navigate(`/result?sessionId=${sessionId}`);
+        }
+      }, 2000);
+    } else if (evalResult.nextQuestion) {
+      const nextQ = evalResult.nextQuestion;
+      setCurrentQuestion(nextQ);
+      setQuestionNumber((prev) => prev + 1);
+
+      await delay(800);
+      addMessage("ai", nextQ.text);
+      await playQuestionAudio(nextQ.text, nextQ.audioUrl);
     }
   };
 
@@ -314,44 +342,7 @@ export default function Test() {
     addMessage("user", "I don't understand the question.");
 
     try {
-      // 后端参数: transcription 而非 answerText
-      const evalResult = await evaluateAnswer({
-        sessionId,
-        questionId: currentQuestion.questionId,
-        transcription: "I don't understand the question.",
-        answerDuration: 0,
-      });
-
-      setIsAiThinking(false);
-
-      if (evalResult.evaluation?.feedback) {
-        addMessage("ai", evalResult.evaluation.feedback);
-        await playQuestionAudio(evalResult.evaluation.feedback);
-      }
-
-      const isComplete = evalResult.nextAction === "complete" || evalResult.nextAction === "finish";
-      if (isComplete) {
-        setIsFinished(true);
-        addMessage("ai", "Thank you for trying! Let me prepare your result.");
-        setTimeout(() => {
-          if (evalResult.result) {
-            const r = evalResult.result;
-            navigate(
-              `/result?sessionId=${r.sessionId}&level=${r.finalLevel}&name=${encodeURIComponent(r.levelLabel || "")}&label=${encodeURIComponent(r.levelName || "")}&questions=${r.questionCount}`
-            );
-          } else {
-            navigate(`/result?sessionId=${sessionId}`);
-          }
-        }, 2000);
-      } else if (evalResult.nextQuestion) {
-        const nextQ = evalResult.nextQuestion;
-        setCurrentQuestion(nextQ);
-        setQuestionNumber((prev) => prev + 1);
-
-        await delay(800);
-        addMessage("ai", nextQ.text);
-        await playQuestionAudio(nextQ.text, nextQ.audioUrl);
-      }
+      await handleEvaluateResult("I don't understand the question.", undefined, 0);
     } catch (err: unknown) {
       setIsAiThinking(false);
       const errMsg = err instanceof Error ? err.message : "处理失败";
@@ -366,9 +357,7 @@ export default function Test() {
     if (sessionId) {
       try {
         await terminateTest({ sessionId, reason: "user_quit" });
-      } catch {
-        // 忽略终止错误
-      }
+      } catch { /* 忽略 */ }
     }
     window.speechSynthesis?.cancel();
     if (audioRef.current) audioRef.current.pause();
@@ -376,6 +365,7 @@ export default function Test() {
   };
 
   const progress = Math.min(100, (questionNumber / totalQuestions) * 100);
+  const isDisabled = isAiSpeaking || isAiThinking || isProcessing || isFinished;
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "linear-gradient(160deg, #e8eef8 0%, #f0f4f8 30%, #eef6e8 70%, #f5f8f0 100%)" }}>
@@ -420,7 +410,7 @@ export default function Test() {
               {msg.role === "ai" ? (
                 <AiBubble text={msg.text} hint={msg.hint} />
               ) : msg.role === "user" ? (
-                <UserBubble text={msg.text} />
+                <UserBubble text={msg.text} inputMode={inputMode} />
               ) : (
                 <SystemBubble text={msg.text} />
               )}
@@ -449,8 +439,8 @@ export default function Test() {
         <div ref={chatEndRef} />
       </div>
 
-      {/* Recording Controls */}
-      <div className="bg-white/90 backdrop-blur-md border-t border-border/50 px-4 py-4 pb-8">
+      {/* Bottom Controls */}
+      <div className="bg-white/90 backdrop-blur-md border-t border-border/50 px-4 py-3 pb-6">
         {isFinished ? (
           <div className="text-center py-2">
             <div className="flex items-center justify-center gap-2" style={{ color: "#6a9a10" }}>
@@ -465,7 +455,72 @@ export default function Test() {
               <span className="text-sm font-medium">正在处理你的回答...</span>
             </div>
           </div>
+        ) : inputMode === "text" ? (
+          /* ========== 文字输入模式 ========== */
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <div className="flex-1 relative">
+                <input
+                  ref={textInputRef}
+                  type="text"
+                  value={textInput}
+                  onChange={(e) => setTextInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Type your answer in English..."
+                  disabled={isDisabled}
+                  className="w-full h-11 pl-4 pr-12 rounded-full border border-border/60 bg-white text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-[#1B3F91]/30 focus:border-[#1B3F91]/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                />
+                <button
+                  onClick={handleTextSubmit}
+                  disabled={isDisabled || !textInput.trim()}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center transition-all disabled:opacity-30"
+                  style={
+                    !isDisabled && textInput.trim()
+                      ? { background: "linear-gradient(135deg, #1B3F91, #2B5BA0)" }
+                      : {}
+                  }
+                >
+                  <Send className={`w-4 h-4 ${!isDisabled && textInput.trim() ? "text-white" : "text-muted-foreground/40"}`} />
+                </button>
+              </div>
+              {/* 切换到语音模式 */}
+              <button
+                onClick={() => setInputMode("voice")}
+                disabled={isDisabled}
+                className="w-11 h-11 rounded-full flex items-center justify-center border border-border/60 bg-white hover:bg-muted/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                title="切换到语音模式"
+              >
+                <Mic className="w-5 h-5 text-muted-foreground" />
+              </button>
+            </div>
+
+            {/* AI说话状态提示 */}
+            {isAiSpeaking && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex items-center justify-center gap-2 rounded-full px-4 py-1.5" style={{ backgroundColor: "rgba(131,186,18,0.10)" }}
+              >
+                <Volume2 className="w-3.5 h-3.5" style={{ color: "#6a9a10" }} />
+                <span className="text-xs font-medium" style={{ color: "#6a9a10" }}>AI正在说话，请仔细听...</span>
+              </motion.div>
+            )}
+
+            {/* 听不懂按钮 */}
+            {!isDisabled && questionNumber > 0 && (
+              <div className="flex justify-center">
+                <button
+                  onClick={handleCantUnderstand}
+                  className="flex items-center gap-1.5 text-xs transition-colors hover:opacity-80" style={{ color: "#8a95a5" }}
+                >
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  听不懂？点这里
+                </button>
+              </div>
+            )}
+          </div>
         ) : (
+          /* ========== 语音录音模式 ========== */
           <div className="flex flex-col items-center gap-3">
             {/* Recording Status */}
             {isRecording && (
@@ -506,37 +561,53 @@ export default function Test() {
               </motion.div>
             )}
 
-            {/* Mic Button */}
-            <div className="relative">
-              {isRecording && (
-                <>
-                  <div className="absolute inset-[-4px] rounded-full animate-pulse-ring" style={{ backgroundColor: "rgba(27,63,145,0.15)" }} />
-                  <div className="absolute inset-[-12px] rounded-full animate-pulse-ring" style={{ animationDelay: "0.5s", backgroundColor: "rgba(27,63,145,0.08)" }} />
-                </>
-              )}
+            {/* Mic Button + Switch to Text */}
+            <div className="flex items-center gap-4">
+              {/* 切换到文字模式 */}
               <button
-                onMouseDown={startRecording}
-                onMouseUp={stopRecording}
-                onMouseLeave={stopRecording}
-                onTouchStart={(e) => { e.preventDefault(); startRecording(); }}
-                onTouchEnd={(e) => { e.preventDefault(); stopRecording(); }}
-                onTouchCancel={(e) => { e.preventDefault(); stopRecording(); }}
-                disabled={isAiSpeaking || isAiThinking || isProcessing}
-                style={isRecording ? { background: "linear-gradient(135deg, #1B3F91, #2B5BA0)", boxShadow: "0 8px 25px rgba(27,63,145,0.4)" } : !(isAiSpeaking || isAiThinking || isProcessing) ? { background: "linear-gradient(135deg, #1B3F91, #2B5BA0)", boxShadow: "0 6px 20px rgba(27,63,145,0.3)" } : {}}
-                className={`relative w-16 h-16 rounded-full flex items-center justify-center transition-all duration-200 ${
-                  isRecording
-                    ? "text-white scale-110 shadow-xl"
-                    : isAiSpeaking || isAiThinking || isProcessing
-                    ? "bg-muted text-warm-gray"
-                    : "text-white shadow-lg active:scale-95"
-                }`}
+                onClick={() => setInputMode("text")}
+                disabled={isDisabled || isRecording}
+                className="w-11 h-11 rounded-full flex items-center justify-center border border-border/60 bg-white hover:bg-muted/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                title="切换到文字模式"
               >
-                {isRecording ? (
-                  <Square className="w-6 h-6 fill-white" />
-                ) : (
-                  <Mic className="w-7 h-7" />
-                )}
+                <Keyboard className="w-5 h-5 text-muted-foreground" />
               </button>
+
+              {/* Mic Button */}
+              <div className="relative">
+                {isRecording && (
+                  <>
+                    <div className="absolute inset-[-4px] rounded-full animate-pulse-ring" style={{ backgroundColor: "rgba(27,63,145,0.15)" }} />
+                    <div className="absolute inset-[-12px] rounded-full animate-pulse-ring" style={{ animationDelay: "0.5s", backgroundColor: "rgba(27,63,145,0.08)" }} />
+                  </>
+                )}
+                <button
+                  onMouseDown={startRecording}
+                  onMouseUp={stopRecording}
+                  onMouseLeave={stopRecording}
+                  onTouchStart={(e) => { e.preventDefault(); startRecording(); }}
+                  onTouchEnd={(e) => { e.preventDefault(); stopRecording(); }}
+                  onTouchCancel={(e) => { e.preventDefault(); stopRecording(); }}
+                  disabled={isDisabled}
+                  style={isRecording ? { background: "linear-gradient(135deg, #1B3F91, #2B5BA0)", boxShadow: "0 8px 25px rgba(27,63,145,0.4)" } : !isDisabled ? { background: "linear-gradient(135deg, #1B3F91, #2B5BA0)", boxShadow: "0 6px 20px rgba(27,63,145,0.3)" } : {}}
+                  className={`relative w-16 h-16 rounded-full flex items-center justify-center transition-all duration-200 ${
+                    isRecording
+                      ? "text-white scale-110 shadow-xl"
+                      : isDisabled
+                      ? "bg-muted text-warm-gray"
+                      : "text-white shadow-lg active:scale-95"
+                  }`}
+                >
+                  {isRecording ? (
+                    <Square className="w-6 h-6 fill-white" />
+                  ) : (
+                    <Mic className="w-7 h-7" />
+                  )}
+                </button>
+              </div>
+
+              {/* 占位保持居中 */}
+              <div className="w-11 h-11" />
             </div>
 
             <p className="text-xs text-warm-gray">
@@ -550,10 +621,10 @@ export default function Test() {
             </p>
 
             {/* Can't understand button */}
-            {!isRecording && !isAiSpeaking && !isAiThinking && !isProcessing && questionNumber > 0 && (
+            {!isRecording && !isDisabled && questionNumber > 0 && (
               <button
                 onClick={handleCantUnderstand}
-                className="flex items-center gap-1.5 text-xs text-warm-gray/60 transition-colors mt-1 hover:opacity-80" style={{ color: "#8a95a5" }}
+                className="flex items-center gap-1.5 text-xs transition-colors mt-1 hover:opacity-80" style={{ color: "#8a95a5" }}
               >
                 <AlertCircle className="w-3.5 h-3.5" />
                 听不懂？点这里
@@ -582,11 +653,15 @@ function AiBubble({ text, hint }: { text: string; hint?: string }) {
   );
 }
 
-function UserBubble({ text }: { text: string }) {
+function UserBubble({ text, inputMode }: { text: string; inputMode?: InputMode }) {
   return (
     <div className="flex items-start gap-2.5 max-w-[85%] ml-auto flex-row-reverse">
       <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 shadow-sm" style={{ background: "linear-gradient(135deg, #1B3F91, #2B5BA0)" }}>
-        <Mic className="w-4 h-4 text-white" />
+        {inputMode === "text" ? (
+          <MessageSquare className="w-4 h-4 text-white" />
+        ) : (
+          <Mic className="w-4 h-4 text-white" />
+        )}
       </div>
       <div className="text-white rounded-2xl rounded-tr-md px-4 py-3 shadow-sm" style={{ background: "linear-gradient(135deg, #1B3F91, #2B5BA0)" }}>
         <p className="text-sm leading-relaxed">{text}</p>

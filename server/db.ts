@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, courseGroupQrcodes, InsertCourseGroupQrcode, CourseGroupQrcode } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +89,52 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// ============ 口语营群二维码管理 ============
+
+/** 获取所有等级的群二维码配置 */
+export async function getAllQrcodes(): Promise<CourseGroupQrcode[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(courseGroupQrcodes).orderBy(courseGroupQrcodes.level);
+}
+
+/** 根据等级获取已启用的群二维码 */
+export async function getQrcodeByLevel(level: number): Promise<CourseGroupQrcode | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(courseGroupQrcodes)
+    .where(and(eq(courseGroupQrcodes.level, level), eq(courseGroupQrcodes.enabled, 1)))
+    .limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+/** 创建或更新群二维码配置（按level upsert） */
+export async function upsertQrcode(data: InsertCourseGroupQrcode): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.insert(courseGroupQrcodes).values(data).onDuplicateKeyUpdate({
+    set: {
+      levelName: data.levelName,
+      qrcodeUrl: data.qrcodeUrl,
+      groupName: data.groupName ?? null,
+      enabled: data.enabled ?? 1,
+    },
+  });
+}
+
+/** 删除群二维码配置 */
+export async function deleteQrcode(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(courseGroupQrcodes).where(eq(courseGroupQrcodes.id, id));
+}
+
+/** 切换群二维码启用状态 */
+export async function toggleQrcodeEnabled(id: number, enabled: boolean): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(courseGroupQrcodes)
+    .set({ enabled: enabled ? 1 : 0 })
+    .where(eq(courseGroupQrcodes.id, id));
+}

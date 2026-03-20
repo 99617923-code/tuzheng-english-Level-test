@@ -15,6 +15,7 @@ import Result from "./pages/Result";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import History from "./pages/History";
+import AdminQrcodes from "./pages/AdminQrcodes";
 
 function Router() {
   return (
@@ -26,6 +27,7 @@ function Router() {
       <Route path={"/test"} component={Test} />
       <Route path={"/result"} component={Result} />
       <Route path={"/history"} component={History} />
+      <Route path={"/admin/qrcodes"} component={AdminQrcodes} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

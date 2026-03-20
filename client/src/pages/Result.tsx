@@ -2,10 +2,11 @@
  * 途正英语AI分级测评 - 结果展示页
  * 对接后端API: GET /api/v1/test/result/:sessionId
  * 蓝绿品牌色 + 透明毛玻璃风格
+ * 新增：点击"加入X级口语营"弹出群二维码弹窗
  */
 import { Button } from "@/components/ui/button";
 import { useLocation, useSearch } from "wouter";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Star,
   BookOpen,
@@ -17,10 +18,13 @@ import {
   ChevronRight,
   Loader2,
   History,
+  X,
+  QrCode,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { getTestResult, type TestResultDetail } from "@/lib/api";
+import { trpc } from "@/lib/trpc";
 
 const LOGO_TEXT = "https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/tuzheng-logo-transparent_4a301562.png";
 
@@ -85,6 +89,168 @@ const LEVEL_CONFIG: Record<
   },
 };
 
+/** 群二维码弹窗组件 */
+function QrcodeModal({
+  open,
+  onClose,
+  level,
+  levelName,
+}: {
+  open: boolean;
+  onClose: () => void;
+  level: number;
+  levelName: string;
+}) {
+  const { data: qrcodeData, isLoading } = trpc.qrcode.getByLevel.useQuery(
+    { level },
+    { enabled: open }
+  );
+
+  const config = LEVEL_CONFIG[level] || LEVEL_CONFIG[1];
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+            onClick={onClose}
+          />
+          {/* Modal */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 max-w-sm mx-auto"
+          >
+            <div
+              className="rounded-3xl overflow-hidden"
+              style={{
+                backgroundColor: "rgba(255,255,255,0.95)",
+                boxShadow: "0 20px 60px rgba(27,63,145,0.25)",
+                border: "1px solid rgba(255,255,255,0.5)",
+              }}
+            >
+              {/* Header */}
+              <div
+                className="relative px-5 pt-5 pb-4 text-center"
+                style={{
+                  background: `linear-gradient(135deg, ${config.color}15 0%, ${config.color}08 100%)`,
+                }}
+              >
+                <button
+                  onClick={onClose}
+                  className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-colors"
+                  style={{ backgroundColor: "rgba(0,0,0,0.06)" }}
+                >
+                  <X className="w-4 h-4" style={{ color: "#5a6a7a" }} />
+                </button>
+                <div
+                  className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3"
+                  style={{ backgroundColor: `${config.color}15` }}
+                >
+                  <Users className="w-6 h-6" style={{ color: config.color }} />
+                </div>
+                <h3
+                  className="text-lg font-bold mb-1"
+                  style={{ color: "#1a2340" }}
+                >
+                  加入{levelName}口语营
+                </h3>
+                <p className="text-xs" style={{ color: "#7a8a9a" }}>
+                  长按识别二维码，加入对应等级的口语训练营
+                </p>
+              </div>
+
+              {/* QR Code */}
+              <div className="px-5 py-6">
+                {isLoading ? (
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <Loader2
+                      className="w-8 h-8 animate-spin mb-3"
+                      style={{ color: "#1B3F91" }}
+                    />
+                    <p className="text-xs" style={{ color: "#7a8a9a" }}>
+                      加载中...
+                    </p>
+                  </div>
+                ) : qrcodeData?.qrcodeUrl ? (
+                  <div className="flex flex-col items-center">
+                    <div
+                      className="w-56 h-56 rounded-2xl overflow-hidden mb-4"
+                      style={{
+                        border: "2px solid rgba(27,63,145,0.08)",
+                        backgroundColor: "#fff",
+                        boxShadow: "0 4px 16px rgba(27,63,145,0.06)",
+                      }}
+                    >
+                      <img
+                        src={qrcodeData.qrcodeUrl}
+                        alt={`${levelName}口语营群二维码`}
+                        className="w-full h-full object-contain p-2"
+                      />
+                    </div>
+                    {qrcodeData.groupName && (
+                      <p
+                        className="text-sm font-medium mb-1"
+                        style={{ color: "#3a4a5a" }}
+                      >
+                        {qrcodeData.groupName}
+                      </p>
+                    )}
+                    <p className="text-xs" style={{ color: "#adb5bd" }}>
+                      请使用微信扫一扫或长按识别
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center py-6">
+                    <div
+                      className="w-16 h-16 rounded-2xl flex items-center justify-center mb-3"
+                      style={{ backgroundColor: "rgba(27,63,145,0.06)" }}
+                    >
+                      <QrCode
+                        className="w-8 h-8"
+                        style={{ color: "#adb5bd" }}
+                      />
+                    </div>
+                    <p
+                      className="text-sm font-medium mb-1"
+                      style={{ color: "#5a6a7a" }}
+                    >
+                      暂未配置群二维码
+                    </p>
+                    <p className="text-xs" style={{ color: "#adb5bd" }}>
+                      请联系管理员添加{levelName}口语营群二维码
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="px-5 pb-5">
+                <Button
+                  onClick={onClose}
+                  className="w-full h-11 rounded-xl text-white text-sm font-medium"
+                  style={{
+                    background: `linear-gradient(135deg, ${config.color} 0%, ${config.color}cc 100%)`,
+                  }}
+                >
+                  我知道了
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+
 export default function Result() {
   const [, navigate] = useLocation();
   const searchStr = useSearch();
@@ -95,6 +261,7 @@ export default function Result() {
 
   const [resultData, setResultData] = useState<TestResultDetail | null>(null);
   const [loading, setLoading] = useState(!!sessionId);
+  const [showQrcode, setShowQrcode] = useState(false);
 
   useEffect(() => {
     if (!sessionId) return;
@@ -117,6 +284,7 @@ export default function Result() {
   const description = resultData?.recommendation || config.description;
   const recommendation = config.recommendation;
   const scores = resultData?.scores;
+  const levelName = resultData?.levelName || config.name;
 
   if (loading) {
     return (
@@ -181,7 +349,7 @@ export default function Result() {
               className="text-3xl font-extrabold mb-1"
               style={{ color: "#1a2340" }}
             >
-              {resultData?.levelName || config.name}
+              {levelName}
             </motion.h1>
             <motion.p
               initial={{ opacity: 0 }}
@@ -378,9 +546,9 @@ export default function Result() {
           transition={{ delay: 1.2 }}
           className="space-y-3 mt-auto pb-6"
         >
-          {/* Join Group */}
+          {/* Join Group - 弹出群二维码 */}
           <Button
-            onClick={() => toast("功能即将上线")}
+            onClick={() => setShowQrcode(true)}
             className="w-full h-14 rounded-2xl text-white text-base font-bold shadow-lg transition-all active:scale-[0.98]"
             style={{
               background: "linear-gradient(135deg, #1B3F91 0%, #2B5BA0 100%)",
@@ -388,7 +556,7 @@ export default function Result() {
             }}
           >
             <Users className="w-5 h-5 mr-2" />
-            加入{resultData?.levelName || config.name}口语营
+            加入{levelName}口语营
             <ChevronRight className="w-4 h-4 ml-1" />
           </Button>
 
@@ -437,13 +605,21 @@ export default function Result() {
               </div>
               <div className="text-left">
                 <p className="text-sm font-bold" style={{ color: "#1a2340" }}>查看课程详情</p>
-                <p className="text-xs" style={{ color: "#7a8a9a" }}>了解{resultData?.levelName || config.name}口语营课程内容</p>
+                <p className="text-xs" style={{ color: "#7a8a9a" }}>了解{levelName}口语营课程内容</p>
               </div>
             </div>
             <ChevronRight className="w-4 h-4" style={{ color: "#adb5bd" }} />
           </button>
         </motion.div>
       </div>
+
+      {/* 群二维码弹窗 */}
+      <QrcodeModal
+        open={showQrcode}
+        onClose={() => setShowQrcode(false)}
+        level={level}
+        levelName={levelName}
+      />
     </div>
   );
 }

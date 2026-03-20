@@ -5,7 +5,7 @@
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Mic, MessageCircle, Headphones, LogIn, LogOut } from "lucide-react";
+import { Mic, MessageCircle, Headphones, LogIn, LogOut, History } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 const LOGO = "https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/tuzheng-logo-icon-C98gq5asJFpo7UzBQvohka.webp";
@@ -118,8 +118,27 @@ export default function Home() {
           </motion.div>
         </div>
 
-        {/* CTA Button */}
-        <motion.div {...fadeIn(0.2)} className="pb-6">
+          {/* History Link (authenticated users) */}
+          {isAuthenticated && (
+            <motion.div {...fadeIn(0.18)} className="w-full max-w-[320px] mx-auto mb-4">
+              <button
+                onClick={() => navigate("/history")}
+                className="w-full flex items-center justify-between bg-white/80 backdrop-blur-sm rounded-2xl p-4"
+                style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: "rgba(120, 190, 165, 0.1)" }}>
+                    <History className="w-4.5 h-4.5 text-mint-dark" />
+                  </div>
+                  <span className="text-sm font-medium" style={{ color: "#495057" }}>查看测评记录</span>
+                </div>
+                <span className="text-xs" style={{ color: "#adb5bd" }}>→</span>
+              </button>
+            </motion.div>
+          )}
+
+          {/* CTA Button */}
+          <motion.div {...fadeIn(0.2)} className="pb-6">
           <button
             onClick={handleStart}
             className="w-full h-14 rounded-2xl text-lg font-bold shadow-lg transition-all duration-300 active:scale-[0.98]"

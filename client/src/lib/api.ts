@@ -80,6 +80,107 @@ export interface ApiResponse<T> {
   data: T;
 }
 
+// ============ 测评相关类型 ============
+
+export interface TestQuestion {
+  questionId: string;
+  type: string;
+  level: number;
+  prompt: string;
+  audioUrl?: string | null;
+  maxDuration: number;
+  questionNumber: number;
+  totalQuestions: number;
+}
+
+export interface StartTestResponse {
+  sessionId: string;
+  currentQuestion: TestQuestion;
+  status: string;
+}
+
+export interface EvaluationDetail {
+  questionId: string;
+  score: number;
+  feedback: string;
+  detectedLevel: number;
+}
+
+export interface TestScores {
+  overall: number;
+  comprehension: number;
+  grammar: number;
+  vocabulary: number;
+  pronunciation: number;
+  fluency: number;
+}
+
+export interface TestResultData {
+  sessionId: string;
+  finalLevel: number;
+  levelName: string;
+  levelLabel: string;
+  questionCount: number;
+  totalDuration: number;
+  scores: TestScores;
+}
+
+export interface EvaluateResponse {
+  evaluation: EvaluationDetail;
+  nextQuestion: TestQuestion | null;
+  isComplete: boolean;
+  status: string;
+  result?: TestResultData;
+}
+
+export interface TestResultDetail extends TestResultData {
+  userId: string;
+  questions: Array<{
+    questionId: string;
+    prompt: string;
+    answerText: string;
+    score: number;
+    feedback: string;
+  }>;
+  recommendation: string;
+  completedAt: string;
+}
+
+export interface UploadAudioResponse {
+  audioUrl: string;
+  duration: number;
+  fileSize: number;
+}
+
+export interface TranscribeResponse {
+  text: string;
+  confidence: number;
+  language: string;
+  duration: number;
+}
+
+export interface TTSResponse {
+  audioUrl: string | null;
+  duration: number;
+  format: string;
+}
+
+export interface TestHistoryItem {
+  sessionId: string;
+  finalLevel: number;
+  levelName: string;
+  levelLabel: string;
+  questionCount: number;
+  totalDuration: number;
+  completedAt: string;
+  status: string;
+}
+
+export interface TestHistoryResponse {
+  total: number;
+  list: TestHistoryItem[];
+}
+
 // ============ 请求封装 ============
 
 async function request<T>(
@@ -88,10 +189,14 @@ async function request<T>(
 ): Promise<ApiResponse<T>> {
   const token = getToken();
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
     "X-App-Key": APP_KEY,
     ...(options.headers as Record<string, string>),
   };
+
+  // 只有非FormData请求才设置Content-Type
+  if (!(options.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+  }
 
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
@@ -214,80 +319,115 @@ export async function logout(): Promise<void> {
   }
 }
 
-// ============ 测评接口（Mock，后续对接后端）============
+// ============ 测评接口（对接客户真实API）============
 
-export interface TestQuestion {
-  id: string;
-  level: number;
-  text: string;
-  audioUrl?: string;
+/** 创建测评会话 - POST /api/v1/test/start */
+export async function startTest(): Promise<StartTestResponse> {
+  const res = await request<StartTestResponse>("/api/v1/test/start", {
+    method: "POST",
+  });
+  if (res.code !== 200) throw new Error(res.msg);
+  return res.data;
 }
 
-export interface TestEvaluation {
-  score: number;
-  nextLevel: number;
-  feedback: string;
-  shouldTerminate: boolean;
-  finalLevel?: number;
-}
-
-export interface TestResult {
-  level: number;
-  levelName: string;
-  levelLabel: string;
-  questionCount: number;
-  scores: number[];
-  recommendation: string;
-}
-
-/**
- * 开始测评（Mock）
- * 后续对接: POST /api/v1/test/start
- */
-export async function startTest(): Promise<{ sessionId: string; firstQuestion: TestQuestion }> {
-  // Mock: 返回模拟数据
-  return {
-    sessionId: `session_${Date.now()}`,
-    firstQuestion: {
-      id: "q1",
-      level: 1,
-      text: "Hello! What is your name? Can you tell me a little about yourself?",
-    },
-  };
-}
-
-/**
- * 提交回答并获取评估（Mock）
- * 后续对接: POST /api/v1/test/evaluate
- */
-export async function submitAnswer(_params: {
+/** 提交回答并获取AI评估 - POST /api/v1/test/evaluate */
+export async function evaluateAnswer(params: {
   sessionId: string;
   questionId: string;
+  answerText: string;
   audioUrl?: string;
-  transcription?: string;
-}): Promise<TestEvaluation> {
-  // Mock: 随机评估
-  await new Promise((r) => setTimeout(r, 800));
-  return {
-    score: Math.floor(Math.random() * 4),
-    nextLevel: Math.floor(Math.random() * 4),
-    feedback: "Good. Let me ask you another question.",
-    shouldTerminate: false,
-  };
+  duration?: number;
+}): Promise<EvaluateResponse> {
+  const res = await request<EvaluateResponse>("/api/v1/test/evaluate", {
+    method: "POST",
+    body: JSON.stringify(params),
+  });
+  if (res.code !== 200) throw new Error(res.msg);
+  return res.data;
 }
 
-/**
- * 获取测评结果（Mock）
- * 后续对接: GET /api/v1/test/result/:sessionId
- */
-export async function getTestResult(_sessionId: string): Promise<TestResult> {
-  // Mock
-  return {
-    level: 1,
-    levelName: "一级",
-    levelLabel: "初中水平",
-    questionCount: 6,
-    scores: [1, 1, 2, 1, 1, 1],
-    recommendation: "推荐加入初级口语营",
-  };
+/** 获取测评结果详情 - GET /api/v1/test/result/:sessionId */
+export async function getTestResult(sessionId: string): Promise<TestResultDetail> {
+  const res = await request<TestResultDetail>(`/api/v1/test/result/${sessionId}`);
+  if (res.code !== 200) throw new Error(res.msg);
+  return res.data;
+}
+
+/** 上传测评录音 - POST /api/v1/test/upload-audio */
+export async function uploadAudio(params: {
+  file: Blob;
+  sessionId: string;
+  questionId: string;
+}): Promise<UploadAudioResponse> {
+  const formData = new FormData();
+  formData.append("file", params.file, "recording.webm");
+  formData.append("sessionId", params.sessionId);
+  formData.append("questionId", params.questionId);
+
+  const res = await request<UploadAudioResponse>("/api/v1/test/upload-audio", {
+    method: "POST",
+    body: formData,
+  });
+  if (res.code !== 200) throw new Error(res.msg);
+  return res.data;
+}
+
+/** 语音转文字（ASR）- POST /api/v1/test/transcribe */
+export async function transcribeAudio(params: {
+  audioUrl: string;
+  language?: string;
+}): Promise<TranscribeResponse> {
+  const res = await request<TranscribeResponse>("/api/v1/test/transcribe", {
+    method: "POST",
+    body: JSON.stringify({ audioUrl: params.audioUrl, language: params.language || "en" }),
+  });
+  if (res.code !== 200) throw new Error(res.msg);
+  return res.data;
+}
+
+/** 终止测评会话 - POST /api/v1/test/terminate */
+export async function terminateTest(params: {
+  sessionId: string;
+  reason?: string;
+}): Promise<{ terminated: boolean }> {
+  const res = await request<{ terminated: boolean }>("/api/v1/test/terminate", {
+    method: "POST",
+    body: JSON.stringify(params),
+  });
+  if (res.code !== 200) throw new Error(res.msg);
+  return res.data;
+}
+
+/** 查询测评历史 - GET /api/v1/test/history */
+export async function getTestHistory(params?: {
+  page?: number;
+  pageSize?: number;
+}): Promise<TestHistoryResponse> {
+  const searchParams = new URLSearchParams();
+  if (params?.page) searchParams.set("page", String(params.page));
+  if (params?.pageSize) searchParams.set("pageSize", String(params.pageSize));
+  const query = searchParams.toString();
+  const endpoint = `/api/v1/test/history${query ? `?${query}` : ""}`;
+
+  const res = await request<TestHistoryResponse>(endpoint);
+  if (res.code !== 200) throw new Error(res.msg);
+  return res.data;
+}
+
+/** 文本转语音（TTS）- POST /api/v1/test/tts */
+export async function textToSpeech(params: {
+  text: string;
+  voice?: string;
+  speed?: number;
+}): Promise<TTSResponse> {
+  const res = await request<TTSResponse>("/api/v1/test/tts", {
+    method: "POST",
+    body: JSON.stringify({
+      text: params.text,
+      voice: params.voice || "en-US-female",
+      speed: params.speed || 0.85,
+    }),
+  });
+  if (res.code !== 200) throw new Error(res.msg);
+  return res.data;
 }

@@ -39,3 +39,9 @@
 
 ## 交付文档
 - [x] 输出后端API需求文档给后端工程师
+
+## 对接更新后的API完善前端
+- [x] 查看更新后的API文档，记录新增8个测评接口
+- [x] 对接新增API到前端，替换模拟数据（start/evaluate/upload-audio/transcribe/tts/terminate/history/result）
+- [x] 完善前端交互体验（录音→上传→ASR→评估→TTS完整链路）
+- [x] 全流程测试验证（未登录正确返回AUTH_EXPIRED，登录后可正常测评）

@@ -1,6 +1,6 @@
 /**
  * 途正英语AI分级测评 - 注册页
- * 对接客户后端API: 手机号+密码+昵称
+ * 蓝绿品牌色 + 透明毛玻璃风格
  */
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
@@ -10,7 +10,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { register } from "@/lib/api";
 
-const LOGO = "https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/tuzheng-logo-icon-C98gq5asJFpo7UzBQvohka.webp";
+const LOGO_TEXT = "https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/tuzheng-logo-transparent_4a301562.png";
 
 export default function Register() {
   const [, navigate] = useLocation();
@@ -57,10 +57,14 @@ export default function Register() {
     }
   };
 
-  const inputClass = "flex items-center gap-3 bg-gray-50 rounded-2xl px-4 py-3.5 border border-gray-100 focus-within:ring-2 focus-within:ring-coral/30 focus-within:border-coral/30 transition-all";
+  const inputClass =
+    "flex items-center gap-3 rounded-2xl px-4 py-3.5 border transition-all focus-within:ring-2 focus-within:border-transparent";
 
   return (
-    <div className="min-h-screen bg-cream flex flex-col">
+    <div
+      className="min-h-screen flex flex-col"
+      style={{ background: "linear-gradient(160deg, #e8eef8 0%, #f0f4f8 30%, #eef6e8 70%, #f5f8f0 100%)" }}
+    >
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -69,11 +73,11 @@ export default function Register() {
       >
         <button
           onClick={() => navigate("/login")}
-          className="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-white/60 transition-colors"
+          className="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-white/40 transition-colors"
         >
-          <ChevronLeft className="w-5 h-5 text-gray-700" />
+          <ChevronLeft className="w-5 h-5" style={{ color: "#3a4a5a" }} />
         </button>
-        <h2 className="flex-1 text-center font-extrabold text-lg text-gray-800 pr-10">
+        <h2 className="flex-1 text-center font-extrabold text-lg pr-10" style={{ color: "#1a2340" }}>
           注册账号
         </h2>
       </motion.div>
@@ -84,56 +88,86 @@ export default function Register() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white rounded-3xl p-6 shadow-xl shadow-black/8"
+          className="backdrop-blur-xl rounded-3xl p-6"
+          style={{
+            backgroundColor: "rgba(255,255,255,0.70)",
+            boxShadow: "0 8px 32px rgba(27,63,145,0.10)",
+            border: "1px solid rgba(255,255,255,0.4)",
+          }}
         >
           {/* 昵称 */}
           <div className="mb-4">
-            <label className="text-xs text-gray-500 mb-1.5 block ml-1 font-medium">昵称（选填）</label>
-            <div className={inputClass}>
-              <User className="w-5 h-5 text-gray-400 shrink-0" />
+            <label className="text-xs mb-1.5 block ml-1 font-medium" style={{ color: "#7a8a9a" }}>昵称（选填）</label>
+            <div
+              className={inputClass}
+              style={{
+                backgroundColor: "rgba(255,255,255,0.6)",
+                borderColor: "rgba(27,63,145,0.12)",
+                "--tw-ring-color": "rgba(27,63,145,0.20)",
+              } as any}
+            >
+              <User className="w-5 h-5 shrink-0" style={{ color: "#8a95a5" }} />
               <input
                 type="text"
                 placeholder="你的英文名或昵称"
                 value={nickname}
                 onChange={(e) => setNickname(e.target.value)}
                 maxLength={20}
-                className="flex-1 bg-transparent outline-none text-gray-800 text-sm placeholder:text-gray-400"
+                className="flex-1 bg-transparent outline-none text-sm"
+                style={{ color: "#1a2340" }}
               />
             </div>
           </div>
 
           {/* 手机号 */}
           <div className="mb-4">
-            <label className="text-xs text-gray-500 mb-1.5 block ml-1 font-medium">手机号</label>
-            <div className={inputClass}>
-              <Phone className="w-5 h-5 text-gray-400 shrink-0" />
+            <label className="text-xs mb-1.5 block ml-1 font-medium" style={{ color: "#7a8a9a" }}>手机号</label>
+            <div
+              className={inputClass}
+              style={{
+                backgroundColor: "rgba(255,255,255,0.6)",
+                borderColor: "rgba(27,63,145,0.12)",
+                "--tw-ring-color": "rgba(27,63,145,0.20)",
+              } as any}
+            >
+              <Phone className="w-5 h-5 shrink-0" style={{ color: "#8a95a5" }} />
               <input
                 type="tel"
                 placeholder="请输入手机号"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 maxLength={11}
-                className="flex-1 bg-transparent outline-none text-gray-800 text-sm placeholder:text-gray-400"
+                className="flex-1 bg-transparent outline-none text-sm"
+                style={{ color: "#1a2340" }}
               />
             </div>
           </div>
 
           {/* 密码 */}
           <div className="mb-4">
-            <label className="text-xs text-gray-500 mb-1.5 block ml-1 font-medium">密码</label>
-            <div className={inputClass}>
-              <Lock className="w-5 h-5 text-gray-400 shrink-0" />
+            <label className="text-xs mb-1.5 block ml-1 font-medium" style={{ color: "#7a8a9a" }}>密码</label>
+            <div
+              className={inputClass}
+              style={{
+                backgroundColor: "rgba(255,255,255,0.6)",
+                borderColor: "rgba(27,63,145,0.12)",
+                "--tw-ring-color": "rgba(27,63,145,0.20)",
+              } as any}
+            >
+              <Lock className="w-5 h-5 shrink-0" style={{ color: "#8a95a5" }} />
               <input
                 type={showPassword ? "text" : "password"}
                 placeholder="请设置密码（至少6位）"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="flex-1 bg-transparent outline-none text-gray-800 text-sm placeholder:text-gray-400"
+                className="flex-1 bg-transparent outline-none text-sm"
+                style={{ color: "#1a2340" }}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="transition-colors"
+                style={{ color: "#8a95a5" }}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -142,16 +176,24 @@ export default function Register() {
 
           {/* 确认密码 */}
           <div className="mb-6">
-            <label className="text-xs text-gray-500 mb-1.5 block ml-1 font-medium">确认密码</label>
-            <div className={inputClass}>
-              <Lock className="w-5 h-5 text-gray-400 shrink-0" />
+            <label className="text-xs mb-1.5 block ml-1 font-medium" style={{ color: "#7a8a9a" }}>确认密码</label>
+            <div
+              className={inputClass}
+              style={{
+                backgroundColor: "rgba(255,255,255,0.6)",
+                borderColor: "rgba(27,63,145,0.12)",
+                "--tw-ring-color": "rgba(27,63,145,0.20)",
+              } as any}
+            >
+              <Lock className="w-5 h-5 shrink-0" style={{ color: "#8a95a5" }} />
               <input
                 type={showPassword ? "text" : "password"}
                 placeholder="请再次输入密码"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleRegister()}
-                className="flex-1 bg-transparent outline-none text-gray-800 text-sm placeholder:text-gray-400"
+                className="flex-1 bg-transparent outline-none text-sm"
+                style={{ color: "#1a2340" }}
               />
             </div>
           </div>
@@ -160,7 +202,11 @@ export default function Register() {
           <Button
             onClick={handleRegister}
             disabled={loading}
-            className="w-full h-13 rounded-2xl bg-coral hover:bg-coral-dark text-white text-base font-bold shadow-lg shadow-coral/30 transition-all active:scale-[0.98] disabled:opacity-60"
+            className="w-full h-13 rounded-2xl text-white text-base font-bold shadow-lg transition-all active:scale-[0.98] disabled:opacity-60"
+            style={{
+              background: "linear-gradient(135deg, #1B3F91 0%, #2B5BA0 100%)",
+              boxShadow: "0 4px 15px rgba(27,63,145,0.30)",
+            }}
           >
             {loading ? (
               <RefreshCw className="w-5 h-5 animate-spin mr-2" />
@@ -174,7 +220,8 @@ export default function Register() {
           <div className="mt-5 text-center">
             <button
               onClick={() => navigate("/login")}
-              className="text-sm text-gray-500 hover:text-coral transition-colors"
+              className="text-sm transition-colors hover:opacity-80"
+              style={{ color: "#1B3F91" }}
             >
               已有账号？返回登录
             </button>
@@ -188,8 +235,7 @@ export default function Register() {
           transition={{ delay: 0.4 }}
           className="flex items-center justify-center gap-2 mt-8 mb-6"
         >
-          <img src={LOGO} alt="" className="w-5 h-5 rounded-md opacity-50" />
-          <span className="text-xs text-gray-400">途正英语</span>
+          <img src={LOGO_TEXT} alt="" className="h-4 object-contain opacity-30" />
         </motion.div>
       </div>
     </div>

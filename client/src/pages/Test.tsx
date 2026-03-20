@@ -365,7 +365,7 @@ export default function Test() {
   const progress = Math.min(100, (questionNumber / totalQuestions) * 100);
 
   return (
-    <div className="min-h-screen bg-cream flex flex-col">
+    <div className="min-h-screen flex flex-col" style={{ background: "linear-gradient(160deg, #e8eef8 0%, #f0f4f8 30%, #eef6e8 70%, #f5f8f0 100%)" }}>
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-md border-b border-border/50 px-4 py-3 sticky top-0 z-20">
         <div className="flex items-center justify-between">
@@ -386,7 +386,7 @@ export default function Test() {
         {/* Progress Bar */}
         <div className="mt-2 h-1.5 bg-muted rounded-full overflow-hidden">
           <motion.div
-            className="h-full bg-gradient-to-r from-coral to-coral-light rounded-full"
+            className="h-full rounded-full" style={{ background: "linear-gradient(90deg, #1B3F91, #83BA12)" }}
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.5 }}
@@ -425,9 +425,9 @@ export default function Test() {
             <img src={AI_AVATAR} alt="" className="w-9 h-9 rounded-full shrink-0 border-2 border-white shadow-sm" />
             <div className="bg-white rounded-2xl rounded-tl-md px-4 py-3 shadow-sm">
               <div className="flex gap-1.5">
-                <span className="w-2 h-2 bg-coral/40 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                <span className="w-2 h-2 bg-coral/40 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                <span className="w-2 h-2 bg-coral/40 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                <span className="w-2 h-2 rounded-full animate-bounce" style={{ animationDelay: "0ms", backgroundColor: "rgba(27,63,145,0.4)" }} />
+                <span className="w-2 h-2 rounded-full animate-bounce" style={{ animationDelay: "150ms", backgroundColor: "rgba(27,63,145,0.4)" }} />
+                <span className="w-2 h-2 rounded-full animate-bounce" style={{ animationDelay: "300ms", backgroundColor: "rgba(27,63,145,0.4)" }} />
               </div>
             </div>
           </motion.div>
@@ -440,14 +440,14 @@ export default function Test() {
       <div className="bg-white/90 backdrop-blur-md border-t border-border/50 px-4 py-4 pb-8">
         {isFinished ? (
           <div className="text-center py-2">
-            <div className="flex items-center justify-center gap-2 text-mint-dark">
+            <div className="flex items-center justify-center gap-2" style={{ color: "#6a9a10" }}>
               <Loader2 className="w-4 h-4 animate-spin" />
               <span className="text-sm font-medium">正在生成测评报告...</span>
             </div>
           </div>
         ) : isProcessing && !isAiThinking ? (
           <div className="text-center py-2">
-            <div className="flex items-center justify-center gap-2 text-coral">
+            <div className="flex items-center justify-center gap-2" style={{ color: "#1B3F91" }}>
               <Loader2 className="w-4 h-4 animate-spin" />
               <span className="text-sm font-medium">正在处理你的回答...</span>
             </div>
@@ -459,13 +459,13 @@ export default function Test() {
               <motion.div
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-3 bg-coral/5 rounded-full px-4 py-2"
+                className="flex items-center gap-3 rounded-full px-4 py-2" style={{ backgroundColor: "rgba(27,63,145,0.05)" }}
               >
                 <div className="flex items-end gap-0.5 h-5">
                   {[0, 1, 2, 3, 4, 5, 6].map((i) => (
                     <motion.div
                       key={i}
-                      className="w-0.5 bg-coral rounded-full"
+                      className="w-0.5 rounded-full" style={{ backgroundColor: "#1B3F91" }}
                       animate={{ height: [3, Math.random() * 18 + 3, 3] }}
                       transition={{
                         duration: 0.4 + Math.random() * 0.3,
@@ -475,10 +475,10 @@ export default function Test() {
                     />
                   ))}
                 </div>
-                <span className="text-sm font-medium text-coral">
+                <span className="text-sm font-medium" style={{ color: "#1B3F91" }}>
                   {recordingTime}s
                 </span>
-                <div className="w-2 h-2 rounded-full bg-coral animate-pulse" />
+                <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: "#1B3F91" }} />
               </motion.div>
             )}
 
@@ -486,10 +486,10 @@ export default function Test() {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex items-center gap-2 bg-mint/10 rounded-full px-4 py-2"
+                className="flex items-center gap-2 rounded-full px-4 py-2" style={{ backgroundColor: "rgba(131,186,18,0.10)" }}
               >
-                <Volume2 className="w-4 h-4 text-mint-dark" />
-                <span className="text-sm font-medium text-mint-dark">AI正在说话，请仔细听...</span>
+                <Volume2 className="w-4 h-4" style={{ color: "#6a9a10" }} />
+                <span className="text-sm font-medium" style={{ color: "#6a9a10" }}>AI正在说话，请仔细听...</span>
               </motion.div>
             )}
 
@@ -497,8 +497,8 @@ export default function Test() {
             <div className="relative">
               {isRecording && (
                 <>
-                  <div className="absolute inset-[-4px] rounded-full bg-coral/15 animate-pulse-ring" />
-                  <div className="absolute inset-[-12px] rounded-full bg-coral/8 animate-pulse-ring" style={{ animationDelay: "0.5s" }} />
+                  <div className="absolute inset-[-4px] rounded-full animate-pulse-ring" style={{ backgroundColor: "rgba(27,63,145,0.15)" }} />
+                  <div className="absolute inset-[-12px] rounded-full animate-pulse-ring" style={{ animationDelay: "0.5s", backgroundColor: "rgba(27,63,145,0.08)" }} />
                 </>
               )}
               <button
@@ -507,12 +507,13 @@ export default function Test() {
                 onTouchStart={(e) => { e.preventDefault(); startRecording(); }}
                 onTouchEnd={(e) => { e.preventDefault(); stopRecording(); }}
                 disabled={isAiSpeaking || isAiThinking || isProcessing}
+                style={isRecording ? { background: "linear-gradient(135deg, #1B3F91, #2B5BA0)", boxShadow: "0 8px 25px rgba(27,63,145,0.4)" } : !(isAiSpeaking || isAiThinking || isProcessing) ? { background: "linear-gradient(135deg, #1B3F91, #2B5BA0)", boxShadow: "0 6px 20px rgba(27,63,145,0.3)" } : {}}
                 className={`relative w-16 h-16 rounded-full flex items-center justify-center transition-all duration-200 ${
                   isRecording
-                    ? "bg-coral text-white scale-110 shadow-xl shadow-coral/40"
+                    ? "text-white scale-110 shadow-xl"
                     : isAiSpeaking || isAiThinking || isProcessing
                     ? "bg-muted text-warm-gray"
-                    : "bg-coral text-white shadow-lg shadow-coral/30 active:scale-95"
+                    : "text-white shadow-lg active:scale-95"
                 }`}
               >
                 {isRecording ? (
@@ -537,7 +538,7 @@ export default function Test() {
             {!isRecording && !isAiSpeaking && !isAiThinking && !isProcessing && questionNumber > 0 && (
               <button
                 onClick={handleCantUnderstand}
-                className="flex items-center gap-1.5 text-xs text-warm-gray/60 hover:text-coral transition-colors mt-1"
+                className="flex items-center gap-1.5 text-xs text-warm-gray/60 transition-colors mt-1 hover:opacity-80" style={{ color: "#8a95a5" }}
               >
                 <AlertCircle className="w-3.5 h-3.5" />
                 听不懂？点这里
@@ -569,10 +570,10 @@ function AiBubble({ text, hint }: { text: string; hint?: string }) {
 function UserBubble({ text }: { text: string }) {
   return (
     <div className="flex items-start gap-2.5 max-w-[85%] ml-auto flex-row-reverse">
-      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-coral to-coral-light flex items-center justify-center shrink-0 shadow-sm">
+      <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 shadow-sm" style={{ background: "linear-gradient(135deg, #1B3F91, #2B5BA0)" }}>
         <Mic className="w-4 h-4 text-white" />
       </div>
-      <div className="bg-coral text-white rounded-2xl rounded-tr-md px-4 py-3 shadow-sm">
+      <div className="text-white rounded-2xl rounded-tr-md px-4 py-3 shadow-sm" style={{ background: "linear-gradient(135deg, #1B3F91, #2B5BA0)" }}>
         <p className="text-sm leading-relaxed">{text}</p>
       </div>
     </div>

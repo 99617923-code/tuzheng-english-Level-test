@@ -1,18 +1,18 @@
 /**
  * 途正英语AI分级测评 - 登录页
  * 手机号 + 短信验证码登录（未注册自动创建账号）
+ * 蓝绿品牌色 + 透明毛玻璃风格
  */
-import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Phone, MessageSquare, ArrowRight, RefreshCw, ShieldCheck } from "lucide-react";
+import { Phone, ArrowRight, RefreshCw, ShieldCheck } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { sendSmsCode, smsLogin } from "@/lib/api";
 
 const AI_AVATAR = "https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/ai-teacher-avatar-dLw5RzBDM3AJWaRxiMxYoU.webp";
-const LOGO = "https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/tuzheng-logo-icon-C98gq5asJFpo7UzBQvohka.webp";
+const LOGO_TEXT = "https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/tuzheng-logo-transparent_4a301562.png";
 
 export default function Login() {
   const [, navigate] = useLocation();
@@ -25,12 +25,10 @@ export default function Login() {
   const [countdown, setCountdown] = useState(0);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // 已登录则跳转首页
   useEffect(() => {
     if (isAuthenticated) navigate("/");
   }, [isAuthenticated, navigate]);
 
-  // 倒计时管理
   useEffect(() => {
     if (countdown > 0) {
       countdownRef.current = setInterval(() => {
@@ -48,7 +46,6 @@ export default function Login() {
     };
   }, [countdown]);
 
-  // 发送短信验证码
   const handleSendCode = useCallback(async () => {
     if (!phone.trim()) {
       toast.error("请输入手机号");
@@ -72,7 +69,6 @@ export default function Login() {
     }
   }, [phone, countdown]);
 
-  // 登录
   const handleLogin = async () => {
     if (!phone.trim()) {
       toast.error("请输入手机号");
@@ -112,67 +108,83 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-cream flex flex-col">
+    <div
+      className="min-h-screen flex flex-col"
+      style={{ background: "linear-gradient(160deg, #e8eef8 0%, #f0f4f8 30%, #eef6e8 70%, #f5f8f0 100%)" }}
+    >
       {/* 顶部渐变装饰区 */}
       <div className="relative h-52 overflow-hidden shrink-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-coral via-coral-light to-mint" />
+        <div
+          className="absolute inset-0"
+          style={{ background: "linear-gradient(135deg, #1B3F91 0%, #2B5BA0 50%, #4a8a30 100%)" }}
+        />
+        {/* 装饰圆形 */}
+        <div className="absolute top-[-20px] right-[-20px] w-32 h-32 rounded-full" style={{ background: "rgba(131,186,18,0.15)" }} />
+        <div className="absolute bottom-[-10px] left-[-15px] w-24 h-24 rounded-full" style={{ background: "rgba(255,255,255,0.08)" }} />
+
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
           >
-            <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white/40 shadow-xl mb-3">
+            <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white/30 shadow-xl mb-3">
               <img src={AI_AVATAR} alt="" className="w-full h-full object-cover" />
             </div>
           </motion.div>
-          <motion.h1
+          <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            style={{ color: "#ffffff", textShadow: "0 2px 8px rgba(0,0,0,0.3)" }}
-            className="text-xl font-extrabold"
           >
-            途正英语
-          </motion.h1>
+            <img src={LOGO_TEXT} alt="途正英语" className="h-7 object-contain brightness-0 invert" style={{ filter: "brightness(0) invert(1)" }} />
+          </motion.div>
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            style={{ color: "rgba(255,255,255,0.9)", textShadow: "0 1px 4px rgba(0,0,0,0.2)" }}
-            className="text-sm mt-1 font-medium"
+            className="text-sm mt-2 font-medium"
+            style={{ color: "rgba(255,255,255,0.85)" }}
           >
             AI智能英语水平测评
           </motion.p>
         </div>
         <svg className="absolute bottom-0 left-0 w-full" viewBox="0 0 1440 60" fill="none">
-          <path d="M0,40 C360,80 720,0 1440,40 L1440,60 L0,60 Z" fill="oklch(0.98 0.01 80)" />
+          <path d="M0,40 C360,80 720,0 1440,40 L1440,60 L0,60 Z" fill="#edf0f5" />
         </svg>
       </div>
 
-      {/* 登录表单 */}
+      {/* 登录表单 - 毛玻璃卡片 */}
       <div className="flex-1 px-6 -mt-2">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white rounded-3xl p-6 shadow-xl"
-          style={{ boxShadow: "0 8px 30px rgba(0,0,0,0.08)" }}
+          className="backdrop-blur-xl rounded-3xl p-6"
+          style={{
+            backgroundColor: "rgba(255,255,255,0.70)",
+            boxShadow: "0 8px 32px rgba(27,63,145,0.10), inset 0 1px 0 rgba(255,255,255,0.5)",
+            border: "1px solid rgba(255,255,255,0.4)",
+          }}
         >
-          <h2 style={{ color: "#1a1a2e" }} className="text-lg font-extrabold mb-2 text-center">
+          <h2 className="text-lg font-extrabold mb-2 text-center" style={{ color: "#1a2340" }}>
             手机号快捷登录
           </h2>
-          <p style={{ color: "#adb5bd" }} className="text-xs text-center mb-6">
+          <p className="text-xs text-center mb-6" style={{ color: "#8a95a5" }}>
             未注册的手机号将自动创建账号
           </p>
 
           {/* 手机号 */}
           <div className="mb-4">
             <div
-              className="flex items-center gap-3 rounded-2xl px-4 py-3.5 border transition-all focus-within:ring-2 focus-within:ring-coral/30 focus-within:border-coral/30"
-              style={{ backgroundColor: "#f8f9fa", borderColor: "#e9ecef" }}
+              className="flex items-center gap-3 rounded-2xl px-4 py-3.5 border transition-all focus-within:ring-2 focus-within:border-transparent"
+              style={{
+                backgroundColor: "rgba(255,255,255,0.6)",
+                borderColor: "rgba(27,63,145,0.12)",
+                "--tw-ring-color": "rgba(27,63,145,0.20)",
+              } as any}
             >
-              <Phone className="w-5 h-5 shrink-0" style={{ color: "#adb5bd" }} />
+              <Phone className="w-5 h-5 shrink-0" style={{ color: "#8a95a5" }} />
               <input
                 type="tel"
                 placeholder="请输入手机号"
@@ -180,7 +192,7 @@ export default function Login() {
                 onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
                 maxLength={11}
                 className="flex-1 bg-transparent outline-none text-sm"
-                style={{ color: "#1a1a2e" }}
+                style={{ color: "#1a2340" }}
               />
             </div>
           </div>
@@ -189,10 +201,14 @@ export default function Login() {
           <div className="mb-6">
             <div className="flex items-center gap-3">
               <div
-                className="flex-1 flex items-center gap-3 rounded-2xl px-4 py-3.5 border transition-all focus-within:ring-2 focus-within:ring-coral/30 focus-within:border-coral/30"
-                style={{ backgroundColor: "#f8f9fa", borderColor: "#e9ecef" }}
+                className="flex-1 flex items-center gap-3 rounded-2xl px-4 py-3.5 border transition-all focus-within:ring-2 focus-within:border-transparent"
+                style={{
+                  backgroundColor: "rgba(255,255,255,0.6)",
+                  borderColor: "rgba(27,63,145,0.12)",
+                  "--tw-ring-color": "rgba(27,63,145,0.20)",
+                } as any}
               >
-                <ShieldCheck className="w-5 h-5 shrink-0" style={{ color: "#adb5bd" }} />
+                <ShieldCheck className="w-5 h-5 shrink-0" style={{ color: "#8a95a5" }} />
                 <input
                   type="text"
                   inputMode="numeric"
@@ -201,7 +217,7 @@ export default function Login() {
                   onChange={(e) => setSmsCode(e.target.value.replace(/\D/g, ""))}
                   maxLength={6}
                   className="flex-1 bg-transparent outline-none text-sm"
-                  style={{ color: "#1a1a2e" }}
+                  style={{ color: "#1a2340" }}
                   onKeyDown={(e) => e.key === "Enter" && handleLogin()}
                 />
               </div>
@@ -210,9 +226,9 @@ export default function Login() {
                 disabled={sendingCode || countdown > 0}
                 className="h-[50px] min-w-[110px] rounded-2xl text-sm font-semibold transition-all active:scale-[0.97] disabled:opacity-60 shrink-0"
                 style={{
-                  backgroundColor: countdown > 0 ? "#f1f3f5" : "oklch(0.68 0.19 25)",
-                  color: countdown > 0 ? "#868e96" : "#ffffff",
-                  boxShadow: countdown > 0 ? "none" : "0 2px 8px rgba(232, 93, 74, 0.2)",
+                  background: countdown > 0 ? "rgba(240,242,245,0.8)" : "linear-gradient(135deg, #1B3F91, #2B5BA0)",
+                  color: countdown > 0 ? "#8a95a5" : "#ffffff",
+                  boxShadow: countdown > 0 ? "none" : "0 2px 8px rgba(27,63,145,0.25)",
                 }}
               >
                 {sendingCode ? (
@@ -232,9 +248,9 @@ export default function Login() {
             disabled={loading}
             className="w-full h-13 rounded-2xl text-base font-bold shadow-lg transition-all active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-2"
             style={{
-              backgroundColor: "oklch(0.68 0.19 25)",
+              background: "linear-gradient(135deg, #1B3F91 0%, #2B5BA0 100%)",
               color: "#ffffff",
-              boxShadow: "0 4px 15px rgba(232, 93, 74, 0.3)",
+              boxShadow: "0 4px 15px rgba(27,63,145,0.30)",
             }}
           >
             {loading ? (
@@ -246,7 +262,7 @@ export default function Login() {
           </button>
 
           {/* 协议提示 */}
-          <p className="mt-4 text-center text-xs" style={{ color: "#ced4da" }}>
+          <p className="mt-4 text-center text-xs" style={{ color: "#b0b8c5" }}>
             登录即表示同意《用户服务协议》和《隐私政策》
           </p>
         </motion.div>
@@ -258,8 +274,7 @@ export default function Login() {
           transition={{ delay: 0.6 }}
           className="flex items-center justify-center gap-2 mt-8 mb-6"
         >
-          <img src={LOGO} alt="" className="w-5 h-5 rounded-md opacity-50" />
-          <span className="text-xs" style={{ color: "#adb5bd" }}>途正英语</span>
+          <img src={LOGO_TEXT} alt="" className="h-4 object-contain opacity-30" />
         </motion.div>
       </div>
     </div>

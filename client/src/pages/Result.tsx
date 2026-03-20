@@ -328,7 +328,7 @@ export default function Result() {
         </motion.div>
 
         {/* Question Details */}
-        {resultData?.questions && resultData.questions.length > 0 && (
+        {resultData?.questionDetails && resultData.questionDetails.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -345,7 +345,7 @@ export default function Result() {
               <h3 className="font-bold text-sm" style={{ color: "#1a2340" }}>答题详情</h3>
             </div>
             <div className="space-y-4">
-              {resultData.questions.map((q, idx) => (
+              {resultData.questionDetails.map((q: { questionId: string; text?: string; transcription?: string; score?: number; feedback?: string }, idx: number) => (
                 <div key={q.questionId} className="border-b pb-3 last:border-0 last:pb-0" style={{ borderColor: "rgba(27,63,145,0.06)" }}>
                   <div className="flex items-start gap-2 mb-1">
                     <span
@@ -354,11 +354,11 @@ export default function Result() {
                     >
                       {idx + 1}
                     </span>
-                    <p className="text-xs font-medium leading-relaxed" style={{ color: "#3a4a5a" }}>{q.prompt}</p>
+                    <p className="text-xs font-medium leading-relaxed" style={{ color: "#3a4a5a" }}>{q.text}</p>
                   </div>
                   <div className="ml-7">
                     <p className="text-xs mb-1" style={{ color: "#7a8a9a" }}>
-                      <span style={{ color: "#adb5bd" }}>回答：</span>{q.answerText}
+                      <span style={{ color: "#adb5bd" }}>回答：</span>{q.transcription}
                     </p>
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-bold" style={{ color: "#1B3F91" }}>{q.score}分</span>

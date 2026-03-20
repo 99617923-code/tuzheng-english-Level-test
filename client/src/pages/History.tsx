@@ -101,7 +101,7 @@ export default function History() {
           <div className="space-y-3">
             <p className="text-xs mb-2" style={{ color: "#8a95a5" }}>共 {total} 条记录</p>
             {records.map((record, idx) => {
-              const colors = LEVEL_COLORS[record.finalLevel] || LEVEL_COLORS[1];
+              const colors = LEVEL_COLORS[record.finalLevel ?? 0] || LEVEL_COLORS[1];
               return (
                 <motion.div
                   key={record.sessionId}
@@ -110,7 +110,7 @@ export default function History() {
                   transition={{ delay: idx * 0.05 }}
                   onClick={() =>
                     navigate(
-                      `/result?sessionId=${record.sessionId}&level=${record.finalLevel}&name=${encodeURIComponent(record.levelLabel)}&label=${encodeURIComponent(record.levelName)}&questions=${record.questionCount}`
+                      `/result?sessionId=${record.sessionId}&level=${record.finalLevel ?? 0}&name=${encodeURIComponent(record.levelLabel ?? '')}&label=${encodeURIComponent(record.levelName ?? '')}&questions=${record.questionCount}`
                     )
                   }
                   className="backdrop-blur-md rounded-2xl p-4 active:scale-[0.98] transition-transform cursor-pointer"
@@ -151,7 +151,7 @@ export default function History() {
                           </>
                         )}
                         <span>·</span>
-                        <span>{formatDate(record.completedAt)}</span>
+                        <span>{formatDate(record.completedAt ?? '')}</span>
                       </div>
                     </div>
                     <ChevronRight className="w-4 h-4 shrink-0" style={{ color: "#c0c8d5" }} />

@@ -93,7 +93,7 @@ export default function Login() {
         phone: phone.trim(),
         code: smsCode.trim(),
       });
-      setUser(data.user);
+      setUser(data.user_info);
       if (data.is_new_user) {
         toast.success("注册成功，已自动登录！");
       } else {

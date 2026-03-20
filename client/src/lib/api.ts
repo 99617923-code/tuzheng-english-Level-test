@@ -58,8 +58,9 @@ export interface UserInfo {
   status?: string;
 }
 
+/** 后端sms-login / login 返回的data结构 */
 export interface LoginResponse {
-  user: UserInfo;
+  user_info: UserInfo;
   biz_token: string;
   refresh_token: string;
   is_new_user?: boolean;
@@ -87,28 +88,30 @@ export interface ApiResponse<T> {
 
 // ============ 测评相关类型 ============
 
+/** 后端返回的题目结构（firstQuestion / nextQuestion） */
 export interface TestQuestion {
   questionId: string;
-  type: string;
   level: number;
-  prompt: string;
+  text: string;        // 后端用 text，不是 prompt
   audioUrl?: string | null;
-  maxDuration: number;
-  questionNumber: number;
-  totalQuestions: number;
 }
 
+/** 后端 test/start 返回的data结构 */
 export interface StartTestResponse {
   sessionId: string;
-  currentQuestion: TestQuestion;
-  status: string;
+  firstQuestion: TestQuestion;
+  totalQuestions: number;
+  expiresAt: string;
 }
 
+/** 后端 test/evaluate 返回的 evaluation 结构 */
 export interface EvaluationDetail {
-  questionId: string;
   score: number;
+  comprehension: number;
+  grammar: number;
+  vocabulary: number;
+  fluency: number;
   feedback: string;
-  detectedLevel: number;
 }
 
 export interface TestScores {
@@ -116,7 +119,7 @@ export interface TestScores {
   comprehension: number;
   grammar: number;
   vocabulary: number;
-  pronunciation: number;
+  pronunciation?: number;
   fluency: number;
 }
 
@@ -130,24 +133,26 @@ export interface TestResultData {
   scores: TestScores;
 }
 
+/** 后端 test/evaluate 返回的data结构 */
 export interface EvaluateResponse {
   evaluation: EvaluationDetail;
   nextQuestion: TestQuestion | null;
-  isComplete: boolean;
-  status: string;
+  nextAction: string;  // "continue" | "complete" 等
   result?: TestResultData;
 }
 
 export interface TestResultDetail extends TestResultData {
   userId: string;
-  questions: Array<{
+  questionDetails?: Array<{
     questionId: string;
-    prompt: string;
-    answerText: string;
-    score: number;
-    feedback: string;
+    text?: string;
+    transcription?: string;
+    score?: number;
+    feedback?: string;
   }>;
   recommendation: string;
+  courseGroupUrl?: string;
+  courseGroupQrCode?: string;
   completedAt: string;
 }
 
@@ -172,12 +177,12 @@ export interface TTSResponse {
 
 export interface TestHistoryItem {
   sessionId: string;
-  finalLevel: number;
-  levelName: string;
-  levelLabel: string;
+  finalLevel: number | null;
+  levelName: string | null;
+  levelLabel: string | null;
   questionCount: number;
   totalDuration: number;
-  completedAt: string;
+  completedAt: string | null;
   status: string;
 }
 
@@ -304,9 +309,11 @@ export async function smsLogin(params: {
   });
   if (res.code !== 200) throw new Error(res.msg);
 
-  // 保存token和用户信息
+  // 保存token和用户信息 — 后端返回的是 user_info
   setTokens(res.data.biz_token, res.data.refresh_token);
-  saveUserInfo(res.data.user);
+  if (res.data.user_info) {
+    saveUserInfo(res.data.user_info);
+  }
 
   return res.data;
 }
@@ -333,9 +340,11 @@ export async function login(params: {
   });
   if (res.code !== 200) throw new Error(res.msg);
 
-  // 保存token和用户信息
+  // 保存token和用户信息 — 后端返回的是 user_info
   setTokens(res.data.biz_token, res.data.refresh_token);
-  saveUserInfo(res.data.user);
+  if (res.data.user_info) {
+    saveUserInfo(res.data.user_info);
+  }
 
   return res.data;
 }
@@ -383,13 +392,15 @@ export async function startTest(): Promise<StartTestResponse> {
   return res.data;
 }
 
-/** 提交回答并获取AI评估 - POST /api/v1/test/evaluate */
+/** 提交回答并获取AI评估 - POST /api/v1/test/evaluate
+ *  后端参数: sessionId, questionId, audioUrl?, transcription?, answerDuration?
+ */
 export async function evaluateAnswer(params: {
   sessionId: string;
   questionId: string;
-  answerText: string;
+  transcription?: string;
   audioUrl?: string;
-  duration?: number;
+  answerDuration?: number;
 }): Promise<EvaluateResponse> {
   const res = await request<EvaluateResponse>("/api/v1/test/evaluate", {
     method: "POST",

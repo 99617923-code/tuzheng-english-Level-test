@@ -66,18 +66,20 @@ export default function Test() {
       try {
         const data = await startTest();
         setSessionId(data.sessionId);
-        setCurrentQuestion(data.currentQuestion);
-        setQuestionNumber(data.currentQuestion.questionNumber);
-        setTotalQuestions(data.currentQuestion.totalQuestions);
+        // 后端返回 firstQuestion（含 text 字段），totalQuestions 在顶层
+        const q = data.firstQuestion;
+        setCurrentQuestion(q);
+        setQuestionNumber(1);
+        setTotalQuestions(data.totalQuestions);
 
         // 等一下再显示第一道题
         await delay(1500);
         setIsAiThinking(false);
 
-        const q = data.currentQuestion;
-        addMessage("ai", q.prompt);
+        // 后端题目用 text 字段
+        addMessage("ai", q.text);
         // 播放TTS音频或降级到Web Speech API
-        await playQuestionAudio(q.prompt, q.audioUrl);
+        await playQuestionAudio(q.text, q.audioUrl);
       } catch (err: unknown) {
         setIsAiThinking(false);
         const errMsg = err instanceof Error ? err.message : "未知错误";
@@ -217,7 +219,7 @@ export default function Test() {
     if (!sessionId || !currentQuestion) return;
 
     const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-    const duration = Date.now() - startTimeRef.current;
+    const answerDuration = Date.now() - startTimeRef.current;
 
     setIsProcessing(true);
     setIsAiThinking(true);
@@ -239,26 +241,27 @@ export default function Test() {
       // 显示用户回答
       addMessage("user", transcription.text);
 
-      // 3. 提交评估
+      // 3. 提交评估 — 后端参数: transcription, audioUrl, answerDuration
       const evalResult = await evaluateAnswer({
         sessionId,
         questionId: currentQuestion.questionId,
-        answerText: transcription.text,
+        transcription: transcription.text,
         audioUrl: uploadResult.audioUrl,
-        duration,
+        answerDuration,
       });
 
       setIsAiThinking(false);
 
       // 4. 显示AI反馈
-      if (evalResult.evaluation.feedback) {
+      if (evalResult.evaluation?.feedback) {
         addMessage("ai", evalResult.evaluation.feedback);
         // 朗读反馈
         await playQuestionAudio(evalResult.evaluation.feedback);
       }
 
-      // 5. 判断是否完成
-      if (evalResult.isComplete && evalResult.result) {
+      // 5. 判断是否完成 — 后端用 nextAction 而非 isComplete
+      const isComplete = evalResult.nextAction === "complete" || evalResult.nextAction === "finish";
+      if (isComplete) {
         setIsFinished(true);
         addMessage(
           "ai",
@@ -270,21 +273,25 @@ export default function Test() {
 
         // 跳转到结果页
         setTimeout(() => {
-          const r = evalResult.result!;
-          navigate(
-            `/result?sessionId=${r.sessionId}&level=${r.finalLevel}&name=${encodeURIComponent(r.levelLabel)}&label=${encodeURIComponent(r.levelName)}&questions=${r.questionCount}`
-          );
+          if (evalResult.result) {
+            const r = evalResult.result;
+            navigate(
+              `/result?sessionId=${r.sessionId}&level=${r.finalLevel}&name=${encodeURIComponent(r.levelLabel || "")}&label=${encodeURIComponent(r.levelName || "")}&questions=${r.questionCount}`
+            );
+          } else {
+            // 没有result对象时，用sessionId跳转
+            navigate(`/result?sessionId=${sessionId}`);
+          }
         }, 2000);
       } else if (evalResult.nextQuestion) {
         // 6. 显示下一题
         const nextQ = evalResult.nextQuestion;
         setCurrentQuestion(nextQ);
-        setQuestionNumber(nextQ.questionNumber);
-        setTotalQuestions(nextQ.totalQuestions);
+        setQuestionNumber((prev) => prev + 1);
 
         await delay(800);
-        addMessage("ai", nextQ.prompt);
-        await playQuestionAudio(nextQ.prompt, nextQ.audioUrl);
+        addMessage("ai", nextQ.text);
+        await playQuestionAudio(nextQ.text, nextQ.audioUrl);
       }
     } catch (err: unknown) {
       setIsAiThinking(false);
@@ -306,38 +313,43 @@ export default function Test() {
     addMessage("user", "I don't understand the question.");
 
     try {
+      // 后端参数: transcription 而非 answerText
       const evalResult = await evaluateAnswer({
         sessionId,
         questionId: currentQuestion.questionId,
-        answerText: "I don't understand the question.",
-        duration: 0,
+        transcription: "I don't understand the question.",
+        answerDuration: 0,
       });
 
       setIsAiThinking(false);
 
-      if (evalResult.evaluation.feedback) {
+      if (evalResult.evaluation?.feedback) {
         addMessage("ai", evalResult.evaluation.feedback);
         await playQuestionAudio(evalResult.evaluation.feedback);
       }
 
-      if (evalResult.isComplete && evalResult.result) {
+      const isComplete = evalResult.nextAction === "complete" || evalResult.nextAction === "finish";
+      if (isComplete) {
         setIsFinished(true);
         addMessage("ai", "Thank you for trying! Let me prepare your result.");
         setTimeout(() => {
-          const r = evalResult.result!;
-          navigate(
-            `/result?sessionId=${r.sessionId}&level=${r.finalLevel}&name=${encodeURIComponent(r.levelLabel)}&label=${encodeURIComponent(r.levelName)}&questions=${r.questionCount}`
-          );
+          if (evalResult.result) {
+            const r = evalResult.result;
+            navigate(
+              `/result?sessionId=${r.sessionId}&level=${r.finalLevel}&name=${encodeURIComponent(r.levelLabel || "")}&label=${encodeURIComponent(r.levelName || "")}&questions=${r.questionCount}`
+            );
+          } else {
+            navigate(`/result?sessionId=${sessionId}`);
+          }
         }, 2000);
       } else if (evalResult.nextQuestion) {
         const nextQ = evalResult.nextQuestion;
         setCurrentQuestion(nextQ);
-        setQuestionNumber(nextQ.questionNumber);
-        setTotalQuestions(nextQ.totalQuestions);
+        setQuestionNumber((prev) => prev + 1);
 
         await delay(800);
-        addMessage("ai", nextQ.prompt);
-        await playQuestionAudio(nextQ.prompt, nextQ.audioUrl);
+        addMessage("ai", nextQ.text);
+        await playQuestionAudio(nextQ.text, nextQ.audioUrl);
       }
     } catch (err: unknown) {
       setIsAiThinking(false);

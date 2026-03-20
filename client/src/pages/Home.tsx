@@ -21,10 +21,6 @@ export default function Home() {
   const { user, isAuthenticated, logout } = useAuth();
 
   const handleStart = () => {
-    if (!isAuthenticated) {
-      navigate("/login");
-      return;
-    }
     navigate("/rules");
   };
 
@@ -151,7 +147,7 @@ export default function Home() {
               boxShadow: "0 6px 20px rgba(27,63,145,0.30)",
             }}
           >
-            {isAuthenticated ? "开始测评" : "登录后开始测评"}
+            开始测评
           </button>
           <p className="text-center text-xs mt-3" style={{ color: "#adb5bd" }}>
             测评约需3-5分钟，请确保在安静环境中进行

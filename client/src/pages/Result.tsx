@@ -1,8 +1,8 @@
 /**
  * 途正英语AI分级测评 - 结果展示页
- * 对接后端API: GET /api/v1/test/result/:sessionId
+ * 支持mock演示模式（URL含mock=true时使用预设数据）
  * 蓝绿品牌色 + 透明毛玻璃风格
- * 新增：点击"加入X级口语营"弹出群二维码弹窗
+ * 点击"加入X级口语营"弹出群二维码弹窗
  */
 import { Button } from "@/components/ui/button";
 import { useLocation, useSearch } from "wouter";
@@ -26,7 +26,8 @@ import { useState, useEffect } from "react";
 import { getTestResult, type TestResultDetail } from "@/lib/api";
 import { trpc } from "@/lib/trpc";
 
-const LOGO_TEXT = "https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/tuzheng-logo-transparent_4a301562.png";
+const LOGO_TEXT =
+  "https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/tuzheng-logo-transparent_4a301562.png";
 
 // Level configurations - 蓝绿色系
 const LEVEL_CONFIG: Record<
@@ -49,8 +50,10 @@ const LEVEL_CONFIG: Record<
     color: "#8a95a5",
     bgColor: "rgba(138,149,165,0.08)",
     iconBg: "rgba(138,149,165,0.12)",
-    description: "你目前处于英语入门阶段，掌握了基本的英文字母和少量常用词汇。别担心，每个人都是从零开始的！",
-    recommendation: "推荐加入零基础口语营，从最基础的日常用语开始，循序渐进地建立英语信心。",
+    description:
+      "你目前处于英语入门阶段，掌握了基本的英文字母和少量常用词汇。别担心，每个人都是从零开始的！",
+    recommendation:
+      "推荐加入零基础口语营，从最基础的日常用语开始，循序渐进地建立英语信心。",
     stars: 1,
     abilityLabel: "入门",
   },
@@ -60,8 +63,10 @@ const LEVEL_CONFIG: Record<
     color: "#1B3F91",
     bgColor: "rgba(27,63,145,0.06)",
     iconBg: "rgba(27,63,145,0.10)",
-    description: "你具备初中水平的英语基础，能理解简单的日常对话，可以用基本句型进行交流。",
-    recommendation: "推荐加入初级口语营，重点提升日常会话能力和基础语法运用。",
+    description:
+      "你具备初中水平的英语基础，能理解简单的日常对话，可以用基本句型进行交流。",
+    recommendation:
+      "推荐加入初级口语营，重点提升日常会话能力和基础语法运用。",
     stars: 2,
     abilityLabel: "基础",
   },
@@ -71,8 +76,10 @@ const LEVEL_CONFIG: Record<
     color: "#83BA12",
     bgColor: "rgba(131,186,18,0.06)",
     iconBg: "rgba(131,186,18,0.12)",
-    description: "你的英语基础不错！能理解较复杂的句子结构，能够就常见话题进行较为流畅的表达。",
-    recommendation: "推荐加入中级口语营，进一步拓展词汇量，提升口语表达的准确性和流利度。",
+    description:
+      "你的英语基础不错！能理解较复杂的句子结构，能够就常见话题进行较为流畅的表达。",
+    recommendation:
+      "推荐加入中级口语营，进一步拓展词汇量，提升口语表达的准确性和流利度。",
     stars: 3,
     abilityLabel: "中级",
   },
@@ -82,31 +89,115 @@ const LEVEL_CONFIG: Record<
     color: "#2B5BA0",
     bgColor: "rgba(43,91,160,0.06)",
     iconBg: "rgba(43,91,160,0.12)",
-    description: "你的英语水平很棒！词汇丰富，语法扎实，能够应对复杂的语言场景，表达流利自如。",
-    recommendation: "推荐加入高级口语营，挑战更高难度的话题讨论和商务英语场景。",
+    description:
+      "你的英语水平很棒！词汇丰富，语法扎实，能够应对复杂的语言场景，表达流利自如。",
+    recommendation:
+      "推荐加入高级口语营，挑战更高难度的话题讨论和商务英语场景。",
     stars: 4,
     abilityLabel: "高级",
   },
 };
 
-/** 群二维码弹窗组件 */
+// Mock演示用的群二维码图片
+const MOCK_QRCODE_IMAGES: Record<number, string> = {
+  0: "https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/demo-qrcode-level0-FmuUuzNiKLLubHiU8j8syk.webp",
+  1: "https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/demo-qrcode-level1-cvy7uvqBCqRAEuNJZmRHGo.webp",
+  2: "https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/demo-qrcode-level2-awTpc7c7jaZU946n2r3kxG.webp",
+  3: "https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/demo-qrcode-level3-jyDMBnpZby7a7fNvfZyU8r.webp",
+};
+
+// Mock演示用的分项得分
+const MOCK_SCORES = {
+  overall: 72,
+  comprehension: 78,
+  grammar: 68,
+  vocabulary: 70,
+  pronunciation: 75,
+  fluency: 65,
+};
+
+// Mock演示用的答题详情
+const MOCK_QUESTION_DETAILS = [
+  {
+    questionId: "q1",
+    text: "Can you tell me your name and where you are from?",
+    transcription: "My name is Li Ming. I am from Guangzhou, China.",
+    score: 85,
+    feedback: "清晰的自我介绍，语法正确。",
+  },
+  {
+    questionId: "q2",
+    text: "Can you describe what you usually do on a typical weekday?",
+    transcription:
+      "I usually wake up at seven o'clock. Then I have breakfast and go to work.",
+    score: 78,
+    feedback: "日常描述流畅，时态运用基本正确。",
+  },
+  {
+    questionId: "q3",
+    text: "You're at a restaurant and the waiter brought you the wrong dish. How would you handle this?",
+    transcription:
+      "Excuse me, I think there might be a mistake with my order. I ordered the chicken salad.",
+    score: 82,
+    feedback: "情景应对得体，使用了礼貌用语。",
+  },
+  {
+    questionId: "q4",
+    text: "What do you think about the impact of social media on young people today?",
+    transcription:
+      "I think social media has both positive and negative effects on young people.",
+    score: 70,
+    feedback: "能表达观点，但论证可以更深入。",
+  },
+  {
+    questionId: "q5",
+    text: "Do you agree that AI will eventually replace most human jobs?",
+    transcription:
+      "I partially agree. While AI is transforming many industries, I believe it will create new types of jobs.",
+    score: 65,
+    feedback: "观点有深度，但高级词汇运用可加强。",
+  },
+  {
+    questionId: "q6",
+    text: "If you could change one thing about the education system, what would it be?",
+    transcription:
+      "I would reform the examination-oriented approach to focus more on practical skills.",
+    score: 60,
+    feedback: "论述结构清晰，但表达流利度有提升空间。",
+  },
+];
+
+/** 群二维码弹窗组件 - 支持mock模式 */
 function QrcodeModal({
   open,
   onClose,
   level,
   levelName,
+  isMock,
 }: {
   open: boolean;
   onClose: () => void;
   level: number;
   levelName: string;
+  isMock: boolean;
 }) {
+  // 非mock模式才调用tRPC
   const { data: qrcodeData, isLoading } = trpc.qrcode.getByLevel.useQuery(
     { level },
-    { enabled: open }
+    { enabled: open && !isMock }
   );
 
   const config = LEVEL_CONFIG[level] || LEVEL_CONFIG[1];
+
+  // mock模式直接用预设图片
+  const qrcodeUrl = isMock
+    ? MOCK_QRCODE_IMAGES[level] || MOCK_QRCODE_IMAGES[2]
+    : qrcodeData?.qrcodeUrl;
+  const groupName = isMock
+    ? `途正英语${config.name}口语营`
+    : qrcodeData?.groupName;
+  const showLoading = !isMock && isLoading;
+  const hasQrcode = isMock || !!qrcodeUrl;
 
   return (
     <AnimatePresence>
@@ -154,7 +245,10 @@ function QrcodeModal({
                   className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3"
                   style={{ backgroundColor: `${config.color}15` }}
                 >
-                  <Users className="w-6 h-6" style={{ color: config.color }} />
+                  <Users
+                    className="w-6 h-6"
+                    style={{ color: config.color }}
+                  />
                 </div>
                 <h3
                   className="text-lg font-bold mb-1"
@@ -169,7 +263,7 @@ function QrcodeModal({
 
               {/* QR Code */}
               <div className="px-5 py-6">
-                {isLoading ? (
+                {showLoading ? (
                   <div className="flex flex-col items-center justify-center py-8">
                     <Loader2
                       className="w-8 h-8 animate-spin mb-3"
@@ -179,7 +273,7 @@ function QrcodeModal({
                       加载中...
                     </p>
                   </div>
-                ) : qrcodeData?.qrcodeUrl ? (
+                ) : hasQrcode ? (
                   <div className="flex flex-col items-center">
                     <div
                       className="w-56 h-56 rounded-2xl overflow-hidden mb-4"
@@ -190,17 +284,17 @@ function QrcodeModal({
                       }}
                     >
                       <img
-                        src={qrcodeData.qrcodeUrl}
+                        src={qrcodeUrl!}
                         alt={`${levelName}口语营群二维码`}
                         className="w-full h-full object-contain p-2"
                       />
                     </div>
-                    {qrcodeData.groupName && (
+                    {groupName && (
                       <p
                         className="text-sm font-medium mb-1"
                         style={{ color: "#3a4a5a" }}
                       >
-                        {qrcodeData.groupName}
+                        {groupName}
                       </p>
                     )}
                     <p className="text-xs" style={{ color: "#adb5bd" }}>
@@ -258,13 +352,14 @@ export default function Result() {
   const sessionId = params.get("sessionId");
   const levelFromUrl = parseInt(params.get("level") || "1");
   const questionsFromUrl = parseInt(params.get("questions") || "6");
+  const isMock = params.get("mock") === "true";
 
   const [resultData, setResultData] = useState<TestResultDetail | null>(null);
-  const [loading, setLoading] = useState(!!sessionId);
+  const [loading, setLoading] = useState(!isMock && !!sessionId);
   const [showQrcode, setShowQrcode] = useState(false);
 
   useEffect(() => {
-    if (!sessionId) return;
+    if (isMock || !sessionId) return;
     const fetchResult = async () => {
       try {
         const data = await getTestResult(sessionId);
@@ -276,31 +371,63 @@ export default function Result() {
       }
     };
     fetchResult();
-  }, [sessionId]);
+  }, [sessionId, isMock]);
 
-  const level = resultData?.finalLevel ?? levelFromUrl;
-  const questions = resultData?.questionCount ?? questionsFromUrl;
+  const level = isMock ? levelFromUrl : (resultData?.finalLevel ?? levelFromUrl);
+  const questions = isMock
+    ? questionsFromUrl
+    : (resultData?.questionCount ?? questionsFromUrl);
   const config = LEVEL_CONFIG[level] || LEVEL_CONFIG[1];
-  const description = resultData?.recommendation || config.description;
+  const description = isMock
+    ? config.description
+    : (resultData?.recommendation || config.description);
   const recommendation = config.recommendation;
-  const scores = resultData?.scores;
-  const levelName = resultData?.levelName || config.name;
+  const scores = isMock ? MOCK_SCORES : resultData?.scores;
+  const levelName = isMock
+    ? config.name
+    : (resultData?.levelName || config.name);
+  const questionDetails = isMock
+    ? MOCK_QUESTION_DETAILS
+    : resultData?.questionDetails;
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "linear-gradient(160deg, #e8eef8 0%, #f0f4f8 30%, #eef6e8 70%, #f5f8f0 100%)" }}>
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{
+          background:
+            "linear-gradient(160deg, #e8eef8 0%, #f0f4f8 30%, #eef6e8 70%, #f5f8f0 100%)",
+        }}
+      >
         <div className="text-center">
-          <Loader2 className="w-10 h-10 animate-spin mx-auto mb-3" style={{ color: "#1B3F91" }} />
-          <p className="text-sm font-medium" style={{ color: "#7a8a9a" }}>正在生成测评报告...</p>
+          <Loader2
+            className="w-10 h-10 animate-spin mx-auto mb-3"
+            style={{ color: "#1B3F91" }}
+          />
+          <p className="text-sm font-medium" style={{ color: "#7a8a9a" }}>
+            正在生成测评报告...
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden" style={{ background: "linear-gradient(160deg, #e8eef8 0%, #f0f4f8 30%, #eef6e8 70%, #f5f8f0 100%)" }}>
+    <div
+      className="min-h-screen relative overflow-hidden"
+      style={{
+        background:
+          "linear-gradient(160deg, #e8eef8 0%, #f0f4f8 30%, #eef6e8 70%, #f5f8f0 100%)",
+      }}
+    >
       {/* 顶部渐变装饰 */}
-      <div className="absolute top-0 left-0 right-0 h-64" style={{ background: "linear-gradient(180deg, rgba(27,63,145,0.08) 0%, transparent 100%)" }} />
+      <div
+        className="absolute top-0 left-0 right-0 h-64"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(27,63,145,0.08) 0%, transparent 100%)",
+        }}
+      />
 
       {/* Content */}
       <div className="relative z-10 min-h-screen flex flex-col px-6 py-6">
@@ -310,8 +437,17 @@ export default function Result() {
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center justify-between mb-4"
         >
-          <img src={LOGO_TEXT} alt="途正英语" className="h-6 object-contain" />
-          <span className="text-sm font-bold" style={{ color: "#3a4a5a" }}>测评报告</span>
+          <img
+            src={LOGO_TEXT}
+            alt="途正英语"
+            className="h-6 object-contain"
+          />
+          <span
+            className="text-sm font-bold"
+            style={{ color: "#3a4a5a" }}
+          >
+            测评报告
+          </span>
           <div className="w-8" />
         </motion.div>
 
@@ -336,7 +472,10 @@ export default function Result() {
               className="w-20 h-20 rounded-full flex items-center justify-center"
               style={{ backgroundColor: config.iconBg }}
             >
-              <Award className="w-10 h-10" style={{ color: config.color }} />
+              <Award
+                className="w-10 h-10"
+                style={{ color: config.color }}
+              />
             </motion.div>
           </div>
 
@@ -358,7 +497,7 @@ export default function Result() {
               className="text-sm font-bold"
               style={{ color: config.color }}
             >
-              {resultData?.levelLabel || config.label}
+              {isMock ? config.label : (resultData?.levelLabel || config.label)}
             </motion.p>
           </div>
 
@@ -395,26 +534,83 @@ export default function Result() {
             className="flex justify-center gap-8 mb-5"
           >
             <div className="text-center">
-              <p className="text-2xl font-extrabold" style={{ color: "#1a2340" }}>{questions}</p>
-              <p className="text-xs font-medium" style={{ color: "#7a8a9a" }}>测评题数</p>
+              <p
+                className="text-2xl font-extrabold"
+                style={{ color: "#1a2340" }}
+              >
+                {questions}
+              </p>
+              <p
+                className="text-xs font-medium"
+                style={{ color: "#7a8a9a" }}
+              >
+                测评题数
+              </p>
             </div>
-            <div className="w-px" style={{ backgroundColor: "rgba(27,63,145,0.1)" }} />
+            <div
+              className="w-px"
+              style={{ backgroundColor: "rgba(27,63,145,0.1)" }}
+            />
             <div className="text-center">
-              <p className="text-2xl font-extrabold" style={{ color: config.color }}>
+              <p
+                className="text-2xl font-extrabold"
+                style={{ color: config.color }}
+              >
                 {config.abilityLabel}
               </p>
-              <p className="text-xs font-medium" style={{ color: "#7a8a9a" }}>能力评级</p>
+              <p
+                className="text-xs font-medium"
+                style={{ color: "#7a8a9a" }}
+              >
+                能力评级
+              </p>
             </div>
-            {resultData?.totalDuration && (
+            {isMock ? (
               <>
-                <div className="w-px" style={{ backgroundColor: "rgba(27,63,145,0.1)" }} />
+                <div
+                  className="w-px"
+                  style={{ backgroundColor: "rgba(27,63,145,0.1)" }}
+                />
                 <div className="text-center">
-                  <p className="text-2xl font-extrabold" style={{ color: "#1a2340" }}>
-                    {Math.round(resultData.totalDuration / 60)}
+                  <p
+                    className="text-2xl font-extrabold"
+                    style={{ color: "#1a2340" }}
+                  >
+                    4
                   </p>
-                  <p className="text-xs font-medium" style={{ color: "#7a8a9a" }}>用时(分钟)</p>
+                  <p
+                    className="text-xs font-medium"
+                    style={{ color: "#7a8a9a" }}
+                  >
+                    用时(分钟)
+                  </p>
                 </div>
               </>
+            ) : (
+              resultData?.totalDuration && (
+                <>
+                  <div
+                    className="w-px"
+                    style={{
+                      backgroundColor: "rgba(27,63,145,0.1)",
+                    }}
+                  />
+                  <div className="text-center">
+                    <p
+                      className="text-2xl font-extrabold"
+                      style={{ color: "#1a2340" }}
+                    >
+                      {Math.round(resultData.totalDuration / 60)}
+                    </p>
+                    <p
+                      className="text-xs font-medium"
+                      style={{ color: "#7a8a9a" }}
+                    >
+                      用时(分钟)
+                    </p>
+                  </div>
+                </>
+              )
             )}
           </motion.div>
 
@@ -444,21 +640,63 @@ export default function Result() {
             }}
           >
             <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className="w-5 h-5" style={{ color: "#1B3F91" }} />
-              <h3 className="font-bold text-sm" style={{ color: "#1a2340" }}>分项得分</h3>
+              <TrendingUp
+                className="w-5 h-5"
+                style={{ color: "#1B3F91" }}
+              />
+              <h3
+                className="font-bold text-sm"
+                style={{ color: "#1a2340" }}
+              >
+                分项得分
+              </h3>
             </div>
             <div className="space-y-3">
               {[
-                { label: "综合得分", value: scores.overall, color: "#1B3F91" },
-                { label: "听力理解", value: scores.comprehension, color: "#2B5BA0" },
-                { label: "语法运用", value: scores.grammar, color: "#83BA12" },
-                { label: "词汇量", value: scores.vocabulary, color: "#6a9a10" },
-                { label: "发音", value: scores.pronunciation, color: "#4a7ab0" },
-                { label: "流利度", value: scores.fluency, color: "#5a9a30" },
+                {
+                  label: "综合得分",
+                  value: scores.overall,
+                  color: "#1B3F91",
+                },
+                {
+                  label: "听力理解",
+                  value: scores.comprehension,
+                  color: "#2B5BA0",
+                },
+                {
+                  label: "语法运用",
+                  value: scores.grammar,
+                  color: "#83BA12",
+                },
+                {
+                  label: "词汇量",
+                  value: scores.vocabulary,
+                  color: "#6a9a10",
+                },
+                {
+                  label: "发音",
+                  value: scores.pronunciation,
+                  color: "#4a7ab0",
+                },
+                {
+                  label: "流利度",
+                  value: scores.fluency,
+                  color: "#5a9a30",
+                },
               ].map((item) => (
                 <div key={item.label} className="flex items-center gap-3">
-                  <span className="text-xs w-16 shrink-0" style={{ color: "#5a6a7a" }}>{item.label}</span>
-                  <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: "rgba(27,63,145,0.06)" }}>
+                  <span
+                    className="text-xs w-16 shrink-0"
+                    style={{ color: "#5a6a7a" }}
+                  >
+                    {item.label}
+                  </span>
+                  <div
+                    className="flex-1 h-2 rounded-full overflow-hidden"
+                    style={{
+                      backgroundColor: "rgba(27,63,145,0.06)",
+                    }}
+                  >
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${item.value}%` }}
@@ -467,7 +705,12 @@ export default function Result() {
                       style={{ backgroundColor: item.color }}
                     />
                   </div>
-                  <span className="text-xs font-bold w-8 text-right" style={{ color: "#3a4a5a" }}>{item.value}</span>
+                  <span
+                    className="text-xs font-bold w-8 text-right"
+                    style={{ color: "#3a4a5a" }}
+                  >
+                    {item.value}
+                  </span>
                 </div>
               ))}
             </div>
@@ -487,16 +730,27 @@ export default function Result() {
           }}
         >
           <div className="flex items-center gap-2 mb-3">
-            <TrendingUp className="w-5 h-5" style={{ color: "#83BA12" }} />
-            <h3 className="font-bold text-sm" style={{ color: "#1a2340" }}>学习建议</h3>
+            <TrendingUp
+              className="w-5 h-5"
+              style={{ color: "#83BA12" }}
+            />
+            <h3
+              className="font-bold text-sm"
+              style={{ color: "#1a2340" }}
+            >
+              学习建议
+            </h3>
           </div>
-          <p className="text-sm leading-relaxed" style={{ color: "#5a6a7a" }}>
+          <p
+            className="text-sm leading-relaxed"
+            style={{ color: "#5a6a7a" }}
+          >
             {recommendation}
           </p>
         </motion.div>
 
         {/* Question Details */}
-        {resultData?.questionDetails && resultData.questionDetails.length > 0 && (
+        {questionDetails && questionDetails.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -509,32 +763,74 @@ export default function Result() {
             }}
           >
             <div className="flex items-center gap-2 mb-4">
-              <History className="w-5 h-5" style={{ color: "#1B3F91" }} />
-              <h3 className="font-bold text-sm" style={{ color: "#1a2340" }}>答题详情</h3>
+              <History
+                className="w-5 h-5"
+                style={{ color: "#1B3F91" }}
+              />
+              <h3
+                className="font-bold text-sm"
+                style={{ color: "#1a2340" }}
+              >
+                答题详情
+              </h3>
             </div>
             <div className="space-y-4">
-              {resultData.questionDetails.map((q: { questionId: string; text?: string; transcription?: string; score?: number; feedback?: string }, idx: number) => (
-                <div key={q.questionId} className="border-b pb-3 last:border-0 last:pb-0" style={{ borderColor: "rgba(27,63,145,0.06)" }}>
-                  <div className="flex items-start gap-2 mb-1">
-                    <span
-                      className="text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shrink-0 mt-0.5 text-white"
-                      style={{ backgroundColor: "#1B3F91" }}
-                    >
-                      {idx + 1}
-                    </span>
-                    <p className="text-xs font-medium leading-relaxed" style={{ color: "#3a4a5a" }}>{q.text}</p>
-                  </div>
-                  <div className="ml-7">
-                    <p className="text-xs mb-1" style={{ color: "#7a8a9a" }}>
-                      <span style={{ color: "#adb5bd" }}>回答：</span>{q.transcription}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold" style={{ color: "#1B3F91" }}>{q.score}分</span>
-                      <span className="text-xs" style={{ color: "#8a95a5" }}>{q.feedback}</span>
+              {questionDetails.map(
+                (
+                  q: {
+                    questionId: string;
+                    text?: string;
+                    transcription?: string;
+                    score?: number;
+                    feedback?: string;
+                  },
+                  idx: number
+                ) => (
+                  <div
+                    key={q.questionId}
+                    className="border-b pb-3 last:border-0 last:pb-0"
+                    style={{ borderColor: "rgba(27,63,145,0.06)" }}
+                  >
+                    <div className="flex items-start gap-2 mb-1">
+                      <span
+                        className="text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shrink-0 mt-0.5 text-white"
+                        style={{ backgroundColor: "#1B3F91" }}
+                      >
+                        {idx + 1}
+                      </span>
+                      <p
+                        className="text-xs font-medium leading-relaxed"
+                        style={{ color: "#3a4a5a" }}
+                      >
+                        {q.text}
+                      </p>
+                    </div>
+                    <div className="ml-7">
+                      <p
+                        className="text-xs mb-1"
+                        style={{ color: "#7a8a9a" }}
+                      >
+                        <span style={{ color: "#adb5bd" }}>回答：</span>
+                        {q.transcription}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="text-xs font-bold"
+                          style={{ color: "#1B3F91" }}
+                        >
+                          {q.score}分
+                        </span>
+                        <span
+                          className="text-xs"
+                          style={{ color: "#8a95a5" }}
+                        >
+                          {q.feedback}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              )}
             </div>
           </motion.div>
         )}
@@ -551,7 +847,8 @@ export default function Result() {
             onClick={() => setShowQrcode(true)}
             className="w-full h-14 rounded-2xl text-white text-base font-bold shadow-lg transition-all active:scale-[0.98]"
             style={{
-              background: "linear-gradient(135deg, #1B3F91 0%, #2B5BA0 100%)",
+              background:
+                "linear-gradient(135deg, #1B3F91 0%, #2B5BA0 100%)",
               boxShadow: "0 6px 20px rgba(27,63,145,0.30)",
             }}
           >
@@ -600,15 +897,31 @@ export default function Result() {
             }}
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: "rgba(131,186,18,0.10)" }}>
-                <BookOpen className="w-5 h-5" style={{ color: "#6a9a10" }} />
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{ backgroundColor: "rgba(131,186,18,0.10)" }}
+              >
+                <BookOpen
+                  className="w-5 h-5"
+                  style={{ color: "#6a9a10" }}
+                />
               </div>
               <div className="text-left">
-                <p className="text-sm font-bold" style={{ color: "#1a2340" }}>查看课程详情</p>
-                <p className="text-xs" style={{ color: "#7a8a9a" }}>了解{levelName}口语营课程内容</p>
+                <p
+                  className="text-sm font-bold"
+                  style={{ color: "#1a2340" }}
+                >
+                  查看课程详情
+                </p>
+                <p className="text-xs" style={{ color: "#7a8a9a" }}>
+                  了解{levelName}口语营课程内容
+                </p>
               </div>
             </div>
-            <ChevronRight className="w-4 h-4" style={{ color: "#adb5bd" }} />
+            <ChevronRight
+              className="w-4 h-4"
+              style={{ color: "#adb5bd" }}
+            />
           </button>
         </motion.div>
       </div>
@@ -619,6 +932,7 @@ export default function Result() {
         onClose={() => setShowQrcode(false)}
         level={level}
         levelName={levelName}
+        isMock={isMock}
       />
     </div>
   );

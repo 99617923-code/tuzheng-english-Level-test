@@ -2,6 +2,7 @@
  * 途正英语 - 认证上下文
  * 基于客户后端API的登录状态管理
  * 支持token自动刷新和AUTH_EXPIRED全局处理
+ * 开发模式下支持mock token跳过后端验证
  */
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import {
@@ -13,6 +14,15 @@ import {
   clearTokens,
 } from "@/lib/api";
 import { useLocation } from "wouter";
+
+const IS_DEV = import.meta.env.DEV;
+
+/** 检测当前token是否为开发模式mock token */
+function isDevMockToken(): boolean {
+  if (!IS_DEV) return false;
+  const token = getToken();
+  return !!token && token.startsWith("dev_mock_");
+}
 
 interface AuthState {
   user: UserInfo | null;
@@ -44,6 +54,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // 开发模式下mock token不调用后端验证，直接使用本地用户信息
+    if (isDevMockToken()) {
+      const savedUser = getSavedUserInfo();
+      if (savedUser) {
+        console.info("[Auth] Dev mode: using mock token, skipping backend validation");
+        setState({ user: savedUser, loading: false, isAuthenticated: true });
+      } else {
+        clearTokens();
+        setState({ user: null, loading: false, isAuthenticated: false });
+      }
+      return;
+    }
+
     getMe()
       .then((data) => {
         setState({
@@ -64,6 +87,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const handleAuthError = (event: Event) => {
       const customEvent = event as CustomEvent;
       if (customEvent.detail === "AUTH_EXPIRED") {
+        // 开发模式下mock token不触发自动跳转
+        if (isDevMockToken()) {
+          console.warn("[Auth] Dev mode: AUTH_EXPIRED ignored for mock token");
+          return;
+        }
         clearTokens();
         setState({ user: null, loading: false, isAuthenticated: false });
         navigate("/login");
@@ -76,14 +104,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      await apiLogout();
+      // mock token不调用后端logout
+      if (!isDevMockToken()) {
+        await apiLogout();
+      }
     } finally {
+      clearTokens();
       setState({ user: null, loading: false, isAuthenticated: false });
       navigate("/login");
     }
   }, [navigate]);
 
   const refresh = useCallback(async () => {
+    // mock token不调用后端刷新
+    if (isDevMockToken()) {
+      const savedUser = getSavedUserInfo();
+      if (savedUser) {
+        setState({ user: savedUser, loading: false, isAuthenticated: true });
+      }
+      return;
+    }
+
     try {
       const data = await getMe();
       setState({

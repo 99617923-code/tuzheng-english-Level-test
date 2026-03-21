@@ -671,6 +671,27 @@ export default function Test() {
     setIsCancelZone(deltaY > 80);
   }, []);
 
+  // 全局mouseUp/touchEnd监听：确保无论在哪里松开都能停止录音
+  useEffect(() => {
+    if (!isRecording) return;
+
+    const handleGlobalMouseUp = () => {
+      stopRecording(isCancelZone);
+    };
+    const handleGlobalTouchEnd = (e: TouchEvent) => {
+      e.preventDefault();
+      stopRecording(isCancelZone);
+    };
+
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+    window.addEventListener('touchend', handleGlobalTouchEnd, { passive: false });
+
+    return () => {
+      window.removeEventListener('mouseup', handleGlobalMouseUp);
+      window.removeEventListener('touchend', handleGlobalTouchEnd);
+    };
+  }, [isRecording, isCancelZone, stopRecording]);
+
   const handleTouchEnd = useCallback(
     (e: React.TouchEvent) => {
       e.preventDefault();
@@ -971,10 +992,8 @@ export default function Test() {
               {/* 微信风格按住说话按钮 */}
               <button
                 onMouseDown={() => startRecording()}
-                onMouseUp={() => stopRecording(isCancelZone)}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
                 onTouchCancel={(e) => {
                   e.preventDefault();
                   stopRecording(true);

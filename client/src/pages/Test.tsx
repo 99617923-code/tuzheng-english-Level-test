@@ -3,6 +3,7 @@
  * 纯前端mock，不依赖任何后端API
  * 6道预设题目，AI语音条+用户语音条交互
  * 每题之间显示出题原则提示
+ * 微信风格语音录音交互 + 底部输入区固定
  */
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
@@ -16,10 +17,11 @@ import {
   Square,
   Send,
   Keyboard,
-  MessageSquare,
   Play,
   Pause,
   Brain,
+  X,
+  ChevronUp,
 } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
@@ -36,25 +38,18 @@ interface ChatMessage {
   text: string;
   hint?: string;
   timestamp: number;
-  /** 语音条时长(秒)，有值则显示为语音条样式 */
   audioDuration?: number;
-  /** 是否正在播放 */
-  isPlaying?: boolean;
 }
 
 // ========== Mock题目数据 ==========
 interface MockQuestion {
   questionId: string;
   text: string;
-  level: number; // 0-3
+  level: number;
   type: string;
-  /** AI反馈 */
   feedback: string;
-  /** 出题原则说明 */
   principle: string;
-  /** 模拟用户回答 */
   mockUserAnswer: string;
-  /** 模拟用户语音时长 */
   mockAudioDuration: number;
 }
 
@@ -143,7 +138,6 @@ function AudioBar({
   duration,
   isAi,
   text,
-  onPlay,
 }: {
   duration: number;
   isAi: boolean;
@@ -153,11 +147,9 @@ function AudioBar({
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   const handlePlay = () => {
     if (isPlaying) {
-      // 停止播放
       window.speechSynthesis?.cancel();
       if (timerRef.current) clearInterval(timerRef.current);
       setIsPlaying(false);
@@ -167,9 +159,7 @@ function AudioBar({
 
     setIsPlaying(true);
     setProgress(0);
-    onPlay?.();
 
-    // 用Web Speech API朗读
     if ("speechSynthesis" in window && text) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
@@ -195,11 +185,9 @@ function AudioBar({
         setProgress(0);
         if (timerRef.current) clearInterval(timerRef.current);
       };
-      utteranceRef.current = utterance;
       window.speechSynthesis.speak(utterance);
     }
 
-    // 进度条动画
     const startTime = Date.now();
     const totalMs = duration * 1000;
     timerRef.current = setInterval(() => {
@@ -219,10 +207,7 @@ function AudioBar({
     };
   }, []);
 
-  // 根据时长计算语音条宽度（最小120px，最大260px）
   const barWidth = Math.min(260, Math.max(120, duration * 12 + 80));
-
-  // 生成波形条
   const waveCount = Math.min(30, Math.max(8, Math.floor(duration * 1.5)));
 
   return (
@@ -236,7 +221,6 @@ function AudioBar({
           : "linear-gradient(135deg, #1B3F91, #2B5BA0)",
       }}
     >
-      {/* Play/Pause icon */}
       <div
         className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
         style={{
@@ -246,19 +230,12 @@ function AudioBar({
         }}
       >
         {isPlaying ? (
-          <Pause
-            className="w-3.5 h-3.5"
-            style={{ color: isAi ? "#fff" : "#fff" }}
-          />
+          <Pause className="w-3.5 h-3.5 text-white" />
         ) : (
-          <Play
-            className="w-3.5 h-3.5 ml-0.5"
-            style={{ color: isAi ? "#fff" : "#fff" }}
-          />
+          <Play className="w-3.5 h-3.5 ml-0.5 text-white" />
         )}
       </div>
 
-      {/* Waveform */}
       <div className="flex items-center gap-[2px] flex-1 h-5 overflow-hidden">
         {Array.from({ length: waveCount }).map((_, i) => {
           const heights = [3, 8, 5, 12, 7, 15, 9, 6, 13, 4, 10, 7, 14, 5, 11, 8, 6, 13, 9, 4, 12, 7, 10, 5, 14, 8, 6, 11, 9, 7];
@@ -272,35 +249,16 @@ function AudioBar({
                 width: 2,
                 height: h,
                 backgroundColor: isAi
-                  ? isActive
-                    ? "#1B3F91"
-                    : "rgba(27,63,145,0.25)"
-                  : isActive
-                  ? "#fff"
-                  : "rgba(255,255,255,0.35)",
+                  ? isActive ? "#1B3F91" : "rgba(27,63,145,0.25)"
+                  : isActive ? "#fff" : "rgba(255,255,255,0.35)",
               }}
-              animate={
-                isPlaying
-                  ? {
-                      height: [h, h * 0.4 + Math.random() * h * 0.8, h],
-                    }
-                  : {}
-              }
-              transition={
-                isPlaying
-                  ? {
-                      duration: 0.3 + Math.random() * 0.2,
-                      repeat: Infinity,
-                      delay: i * 0.03,
-                    }
-                  : {}
-              }
+              animate={isPlaying ? { height: [h, h * 0.4 + Math.random() * h * 0.8, h] } : {}}
+              transition={isPlaying ? { duration: 0.3 + Math.random() * 0.2, repeat: Infinity, delay: i * 0.03 } : {}}
             />
           );
         })}
       </div>
 
-      {/* Duration */}
       <span
         className="text-xs font-medium shrink-0 tabular-nums"
         style={{ color: isAi ? "#5a6a7a" : "rgba(255,255,255,0.8)" }}
@@ -308,6 +266,159 @@ function AudioBar({
         {duration}"
       </span>
     </button>
+  );
+}
+
+// ========== 微信风格录音遮罩组件 ==========
+function WechatRecordingOverlay({
+  isRecording,
+  recordingTime,
+  isCancelZone,
+}: {
+  isRecording: boolean;
+  recordingTime: number;
+  isCancelZone: boolean;
+}) {
+  return (
+    <AnimatePresence>
+      {isRecording && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 z-40 flex flex-col items-center justify-center"
+          style={{
+            background: isCancelZone
+              ? "rgba(0,0,0,0.65)"
+              : "rgba(0,0,0,0.50)",
+          }}
+        >
+          {/* 录音动画区域 */}
+          <div className="flex flex-col items-center">
+            {/* 波纹圈 */}
+            <div className="relative w-32 h-32 flex items-center justify-center mb-6">
+              {/* 外圈脉冲 */}
+              <motion.div
+                className="absolute inset-0 rounded-full"
+                style={{
+                  border: isCancelZone
+                    ? "2px solid rgba(239,68,68,0.3)"
+                    : "2px solid rgba(131,186,18,0.3)",
+                }}
+                animate={{ scale: [1, 1.4, 1], opacity: [0.6, 0, 0.6] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              />
+              <motion.div
+                className="absolute inset-2 rounded-full"
+                style={{
+                  border: isCancelZone
+                    ? "2px solid rgba(239,68,68,0.4)"
+                    : "2px solid rgba(131,186,18,0.4)",
+                }}
+                animate={{ scale: [1, 1.3, 1], opacity: [0.7, 0.1, 0.7] }}
+                transition={{ duration: 1.5, repeat: Infinity, delay: 0.3 }}
+              />
+              <motion.div
+                className="absolute inset-4 rounded-full"
+                style={{
+                  border: isCancelZone
+                    ? "2px solid rgba(239,68,68,0.5)"
+                    : "2px solid rgba(131,186,18,0.5)",
+                }}
+                animate={{ scale: [1, 1.2, 1], opacity: [0.8, 0.2, 0.8] }}
+                transition={{ duration: 1.5, repeat: Infinity, delay: 0.6 }}
+              />
+
+              {/* 中心麦克风图标 */}
+              <motion.div
+                className="relative w-20 h-20 rounded-full flex items-center justify-center"
+                style={{
+                  background: isCancelZone
+                    ? "linear-gradient(135deg, #ef4444, #dc2626)"
+                    : "linear-gradient(135deg, #83BA12, #6a9a10)",
+                  boxShadow: isCancelZone
+                    ? "0 0 40px rgba(239,68,68,0.4)"
+                    : "0 0 40px rgba(131,186,18,0.4)",
+                }}
+                animate={{ scale: [1, 1.05, 1] }}
+                transition={{ duration: 0.8, repeat: Infinity }}
+              >
+                {isCancelZone ? (
+                  <X className="w-8 h-8 text-white" />
+                ) : (
+                  <Mic className="w-8 h-8 text-white" />
+                )}
+              </motion.div>
+            </div>
+
+            {/* 声波可视化 */}
+            <div className="flex items-end gap-1 h-10 mb-4">
+              {Array.from({ length: 20 }).map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="w-1 rounded-full"
+                  style={{
+                    backgroundColor: isCancelZone
+                      ? "rgba(239,68,68,0.7)"
+                      : "rgba(131,186,18,0.7)",
+                  }}
+                  animate={{
+                    height: [4, Math.random() * 32 + 6, 4],
+                  }}
+                  transition={{
+                    duration: 0.3 + Math.random() * 0.4,
+                    repeat: Infinity,
+                    delay: i * 0.05,
+                  }}
+                />
+              ))}
+            </div>
+
+            {/* 录音时长 */}
+            <motion.div
+              className="flex items-center gap-2 mb-3"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              <div
+                className="w-2.5 h-2.5 rounded-full animate-pulse"
+                style={{
+                  backgroundColor: isCancelZone ? "#ef4444" : "#83BA12",
+                }}
+              />
+              <span className="text-white text-lg font-semibold tabular-nums">
+                {Math.floor(recordingTime / 60)
+                  .toString()
+                  .padStart(2, "0")}
+                :{(recordingTime % 60).toString().padStart(2, "0")}
+              </span>
+            </motion.div>
+
+            {/* 提示文字 */}
+            <motion.div
+              className="flex flex-col items-center gap-1"
+              animate={isCancelZone ? { scale: [1, 1.05, 1] } : {}}
+              transition={{ duration: 0.5, repeat: Infinity }}
+            >
+              {isCancelZone ? (
+                <p className="text-red-400 text-sm font-medium">
+                  松开手指，取消发送
+                </p>
+              ) : (
+                <>
+                  <div className="flex items-center gap-1 text-white/70">
+                    <ChevronUp className="w-4 h-4" />
+                    <p className="text-sm">上滑取消</p>
+                  </div>
+                  <p className="text-white/50 text-xs">松开发送</p>
+                </>
+              )}
+            </motion.div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -324,12 +435,16 @@ export default function Test() {
   const [recordingTime, setRecordingTime] = useState(0);
   const [inputMode, setInputMode] = useState<InputMode>("voice");
   const [textInput, setTextInput] = useState("");
+  const [isCancelZone, setIsCancelZone] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const startTimeRef = useRef<number>(0);
   const textInputRef = useRef<HTMLInputElement>(null);
+  const touchStartYRef = useRef<number>(0);
+  const cancelledRef = useRef<boolean>(false);
 
   const totalQuestions = MOCK_QUESTIONS.length;
   const questionNumber = currentQuestionIndex + 1;
@@ -363,7 +478,6 @@ export default function Test() {
   // ========== 初始化 ==========
   useEffect(() => {
     const initTest = async () => {
-      // 欢迎语
       addMessage(
         "ai",
         "Hello! Welcome to TuZheng English Level Assessment. I'm your AI examiner. Let's begin with a few questions to understand your English level. Just relax and do your best!",
@@ -372,17 +486,14 @@ export default function Test() {
 
       await delay(1500);
 
-      // 显示第一题出题原则
       addMessage("principle", MOCK_QUESTIONS[0].principle);
       await delay(1200);
 
-      // 第一题
       setCurrentQuestionIndex(0);
       const q = MOCK_QUESTIONS[0];
       addMessage("ai", q.text, { audioDuration: 6 });
       setIsAiSpeaking(true);
 
-      // 自动播放第一题语音
       await speakText(q.text);
       setIsAiSpeaking(false);
     };
@@ -391,7 +502,6 @@ export default function Test() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /** 使用Web Speech API朗读文本 */
   const speakText = (text: string): Promise<void> => {
     return new Promise((resolve) => {
       if (!("speechSynthesis" in window)) {
@@ -427,18 +537,15 @@ export default function Test() {
       ? Math.max(3, Math.ceil(answerText.split(" ").length * 0.5))
       : q.mockAudioDuration;
 
-    // 显示用户回答（语音条）
     addMessage("user", answerText, { audioDuration: answerDuration });
 
     setIsProcessing(true);
     setIsAiThinking(true);
 
-    // 模拟AI思考
     await delay(1500 + Math.random() * 1000);
 
     setIsAiThinking(false);
 
-    // AI反馈（语音条）
     addMessage("ai", q.feedback, { audioDuration: 5 });
     setIsAiSpeaking(true);
     await speakText(q.feedback);
@@ -446,10 +553,8 @@ export default function Test() {
 
     await delay(600);
 
-    // 判断是否完成
     const nextIndex = currentQuestionIndex + 1;
     if (nextIndex >= MOCK_QUESTIONS.length) {
-      // 测评完成
       setIsFinished(true);
       addMessage(
         "ai",
@@ -462,7 +567,6 @@ export default function Test() {
       );
       setIsAiSpeaking(false);
 
-      // 跳转结果页（mock数据）
       setTimeout(() => {
         navigate(
           `/result?sessionId=mock-demo&level=2&name=${encodeURIComponent(
@@ -473,12 +577,10 @@ export default function Test() {
         );
       }, 2500);
     } else {
-      // 下一题：先显示出题原则
       const nextQ = MOCK_QUESTIONS[nextIndex];
       addMessage("principle", nextQ.principle);
       await delay(1500);
 
-      // 显示下一题
       setCurrentQuestionIndex(nextIndex);
       addMessage("ai", nextQ.text, {
         audioDuration: Math.ceil(nextQ.text.split(" ").length * 0.3),
@@ -491,9 +593,12 @@ export default function Test() {
     setIsProcessing(false);
   };
 
-  // ========== 语音录音模式 ==========
+  // ========== 微信风格语音录音 ==========
   const startRecording = useCallback(async () => {
     if (isAiSpeaking || isAiThinking || isProcessing || isFinished) return;
+
+    cancelledRef.current = false;
+    setIsCancelZone(false);
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -512,8 +617,9 @@ export default function Test() {
 
       mediaRecorder.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
-        // Mock模式：直接使用预设回答
-        processAnswer();
+        if (!cancelledRef.current) {
+          processAnswer();
+        }
       };
 
       mediaRecorder.start();
@@ -528,19 +634,54 @@ export default function Test() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAiSpeaking, isAiThinking, isProcessing, isFinished, currentQuestionIndex]);
 
-  const stopRecording = useCallback(() => {
+  const stopRecording = useCallback((cancelled?: boolean) => {
+    if (cancelled) {
+      cancelledRef.current = true;
+    }
     if (
       mediaRecorderRef.current &&
       mediaRecorderRef.current.state === "recording"
     ) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
+      setIsCancelZone(false);
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
+      if (cancelled) {
+        toast("已取消录音", { icon: "🚫" });
+      }
     }
   }, []);
+
+  // 触摸事件处理（微信风格上滑取消）
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      e.preventDefault();
+      touchStartYRef.current = e.touches[0].clientY;
+      startRecording();
+    },
+    [startRecording]
+  );
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    const deltaY = touchStartYRef.current - e.touches[0].clientY;
+    // 上滑超过80px进入取消区域
+    setIsCancelZone(deltaY > 80);
+  }, []);
+
+  const handleTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      e.preventDefault();
+      if (isCancelZone) {
+        stopRecording(true);
+      } else {
+        stopRecording(false);
+      }
+    },
+    [isCancelZone, stopRecording]
+  );
 
   // ========== 文字输入模式 ==========
   const handleTextSubmit = async () => {
@@ -559,13 +700,11 @@ export default function Test() {
     }
   };
 
-  /** 用户点击"听不懂" */
   const handleCantUnderstand = async () => {
     if (isProcessing || isAiThinking || isFinished) return;
     await processAnswer("I don't understand the question.");
   };
 
-  /** 退出测评 */
   const handleQuit = () => {
     window.speechSynthesis?.cancel();
     navigate("/");
@@ -579,14 +718,14 @@ export default function Test() {
 
   return (
     <div
-      className="min-h-screen flex flex-col"
+      className="h-screen flex flex-col overflow-hidden"
       style={{
         background:
           "linear-gradient(160deg, #e8eef8 0%, #f0f4f8 30%, #eef6e8 70%, #f5f8f0 100%)",
       }}
     >
-      {/* Header */}
-      <div className="bg-white/80 backdrop-blur-md border-b border-border/50 px-4 py-3 sticky top-0 z-20">
+      {/* ===== Fixed Header ===== */}
+      <div className="bg-white/80 backdrop-blur-md border-b border-border/50 px-4 py-3 z-20 shrink-0">
         <div className="flex items-center justify-between">
           <button
             onClick={handleQuit}
@@ -602,7 +741,6 @@ export default function Test() {
           </div>
           <div className="w-9" />
         </div>
-        {/* Progress Bar */}
         <div className="mt-2 h-1.5 bg-muted rounded-full overflow-hidden">
           <motion.div
             className="h-full rounded-full"
@@ -616,8 +754,18 @@ export default function Test() {
         </div>
       </div>
 
-      {/* Chat Area */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+      {/* ===== Scrollable Chat Area ===== */}
+      <div
+        ref={chatContainerRef}
+        className="flex-1 overflow-y-auto px-4 py-4 space-y-4"
+        style={{
+          scrollbarWidth: "none",
+          msOverflowStyle: "none",
+        }}
+      >
+        <style>{`
+          .chat-scroll::-webkit-scrollbar { display: none; }
+        `}</style>
         <AnimatePresence>
           {messages.map((msg) => (
             <motion.div
@@ -636,7 +784,6 @@ export default function Test() {
                 <UserBubble
                   text={msg.text}
                   audioDuration={msg.audioDuration}
-                  inputMode={inputMode}
                 />
               ) : msg.role === "principle" ? (
                 <PrincipleBubble text={msg.text} />
@@ -661,27 +808,16 @@ export default function Test() {
             />
             <div className="bg-white rounded-2xl rounded-tl-md px-4 py-3 shadow-sm">
               <div className="flex gap-1.5">
-                <span
-                  className="w-2 h-2 rounded-full animate-bounce"
-                  style={{
-                    animationDelay: "0ms",
-                    backgroundColor: "rgba(27,63,145,0.4)",
-                  }}
-                />
-                <span
-                  className="w-2 h-2 rounded-full animate-bounce"
-                  style={{
-                    animationDelay: "150ms",
-                    backgroundColor: "rgba(27,63,145,0.4)",
-                  }}
-                />
-                <span
-                  className="w-2 h-2 rounded-full animate-bounce"
-                  style={{
-                    animationDelay: "300ms",
-                    backgroundColor: "rgba(27,63,145,0.4)",
-                  }}
-                />
+                {[0, 150, 300].map((d) => (
+                  <span
+                    key={d}
+                    className="w-2 h-2 rounded-full animate-bounce"
+                    style={{
+                      animationDelay: `${d}ms`,
+                      backgroundColor: "rgba(27,63,145,0.4)",
+                    }}
+                  />
+                ))}
               </div>
             </div>
           </motion.div>
@@ -690,8 +826,8 @@ export default function Test() {
         <div ref={chatEndRef} />
       </div>
 
-      {/* Bottom Controls */}
-      <div className="bg-white/90 backdrop-blur-md border-t border-border/50 px-4 py-3 pb-6">
+      {/* ===== Fixed Bottom Controls ===== */}
+      <div className="bg-white/95 backdrop-blur-md border-t border-border/50 px-4 py-3 pb-[max(env(safe-area-inset-bottom),16px)] z-20 shrink-0">
         {isFinished ? (
           <div className="text-center py-2">
             <div
@@ -800,51 +936,14 @@ export default function Test() {
             )}
           </div>
         ) : (
-          /* ========== 语音录音模式 ========== */
-          <div className="flex flex-col items-center gap-3">
-            {/* Recording Status */}
-            {isRecording && (
-              <motion.div
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-3 rounded-full px-4 py-2"
-                style={{ backgroundColor: "rgba(27,63,145,0.05)" }}
-              >
-                <div className="flex items-end gap-0.5 h-5">
-                  {[0, 1, 2, 3, 4, 5, 6].map((i) => (
-                    <motion.div
-                      key={i}
-                      className="w-0.5 rounded-full"
-                      style={{ backgroundColor: "#1B3F91" }}
-                      animate={{
-                        height: [3, Math.random() * 18 + 3, 3],
-                      }}
-                      transition={{
-                        duration: 0.4 + Math.random() * 0.3,
-                        repeat: Infinity,
-                        delay: i * 0.08,
-                      }}
-                    />
-                  ))}
-                </div>
-                <span
-                  className="text-sm font-medium"
-                  style={{ color: "#1B3F91" }}
-                >
-                  {recordingTime}s
-                </span>
-                <div
-                  className="w-2 h-2 rounded-full animate-pulse"
-                  style={{ backgroundColor: "#1B3F91" }}
-                />
-              </motion.div>
-            )}
-
+          /* ========== 语音录音模式（微信风格） ========== */
+          <div className="flex flex-col items-center gap-2">
+            {/* AI说话状态提示 */}
             {isAiSpeaking && !isRecording && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex items-center gap-2 rounded-full px-4 py-2"
+                className="flex items-center gap-2 rounded-full px-4 py-1.5"
                 style={{ backgroundColor: "rgba(131,186,18,0.10)" }}
               >
                 <Volume2 className="w-4 h-4" style={{ color: "#6a9a10" }} />
@@ -857,113 +956,89 @@ export default function Test() {
               </motion.div>
             )}
 
-            {/* Mic Button + Switch to Text */}
-            <div className="flex items-center gap-4">
+            {/* 按住说话按钮区 + 切换文字 */}
+            <div className="flex items-center gap-3 w-full">
               {/* 切换到文字模式 */}
               <button
                 onClick={() => setInputMode("text")}
                 disabled={isDisabled || isRecording}
-                className="w-11 h-11 rounded-full flex items-center justify-center border border-border/60 bg-white hover:bg-muted/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-10 h-10 rounded-full flex items-center justify-center border border-border/60 bg-white hover:bg-muted/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                 title="切换到文字模式"
               >
-                <Keyboard className="w-5 h-5 text-muted-foreground" />
+                <Keyboard className="w-4.5 h-4.5 text-muted-foreground" />
               </button>
 
-              {/* Mic Button */}
-              <div className="relative">
-                {isRecording && (
-                  <>
-                    <div
-                      className="absolute inset-[-4px] rounded-full animate-pulse-ring"
-                      style={{
-                        backgroundColor: "rgba(27,63,145,0.15)",
-                      }}
-                    />
-                    <div
-                      className="absolute inset-[-12px] rounded-full animate-pulse-ring"
-                      style={{
-                        animationDelay: "0.5s",
-                        backgroundColor: "rgba(27,63,145,0.08)",
-                      }}
-                    />
-                  </>
-                )}
-                <button
-                  onMouseDown={startRecording}
-                  onMouseUp={stopRecording}
-                  onMouseLeave={stopRecording}
-                  onTouchStart={(e) => {
-                    e.preventDefault();
-                    startRecording();
-                  }}
-                  onTouchEnd={(e) => {
-                    e.preventDefault();
-                    stopRecording();
-                  }}
-                  onTouchCancel={(e) => {
-                    e.preventDefault();
-                    stopRecording();
-                  }}
-                  disabled={isDisabled}
-                  style={
-                    isRecording
-                      ? {
-                          background:
-                            "linear-gradient(135deg, #1B3F91, #2B5BA0)",
-                          boxShadow: "0 8px 25px rgba(27,63,145,0.4)",
-                        }
-                      : !isDisabled
-                      ? {
-                          background:
-                            "linear-gradient(135deg, #1B3F91, #2B5BA0)",
-                          boxShadow: "0 6px 20px rgba(27,63,145,0.3)",
-                        }
-                      : {}
-                  }
-                  className={`relative w-16 h-16 rounded-full flex items-center justify-center transition-all duration-200 ${
-                    isRecording
-                      ? "text-white scale-110 shadow-xl"
-                      : isDisabled
-                      ? "bg-muted text-warm-gray"
-                      : "text-white shadow-lg active:scale-95"
-                  }`}
-                >
-                  {isRecording ? (
-                    <Square className="w-6 h-6 fill-white" />
-                  ) : (
-                    <Mic className="w-7 h-7" />
-                  )}
-                </button>
-              </div>
+              {/* 微信风格按住说话按钮 */}
+              <button
+                onMouseDown={() => startRecording()}
+                onMouseUp={() => stopRecording(isCancelZone)}
+                onMouseLeave={() => {
+                  if (isRecording) stopRecording(true);
+                }}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                onTouchCancel={(e) => {
+                  e.preventDefault();
+                  stopRecording(true);
+                }}
+                disabled={isDisabled}
+                className={`flex-1 h-12 rounded-full flex items-center justify-center gap-2 font-medium text-sm transition-all select-none ${
+                  isRecording
+                    ? "scale-[0.97]"
+                    : isDisabled
+                    ? "opacity-50 cursor-not-allowed"
+                    : "active:scale-[0.97]"
+                }`}
+                style={{
+                  background: isRecording
+                    ? "linear-gradient(135deg, rgba(131,186,18,0.15), rgba(27,63,145,0.10))"
+                    : "linear-gradient(135deg, rgba(27,63,145,0.06), rgba(131,186,18,0.06))",
+                  border: isRecording
+                    ? "1.5px solid rgba(131,186,18,0.4)"
+                    : "1.5px solid rgba(27,63,145,0.12)",
+                  color: isRecording ? "#6a9a10" : "#5a6a7a",
+                }}
+              >
+                <Mic className="w-4.5 h-4.5" />
+                {isRecording ? "松开 发送" : "按住 说话"}
+              </button>
 
-              {/* 占位保持居中 */}
-              <div className="w-11 h-11" />
+              {/* 听不懂按钮 */}
+              {!isRecording && !isDisabled && questionNumber > 0 ? (
+                <button
+                  onClick={handleCantUnderstand}
+                  className="w-10 h-10 rounded-full flex items-center justify-center border border-border/60 bg-white hover:bg-muted/50 transition-all shrink-0"
+                  title="听不懂？点这里"
+                >
+                  <AlertCircle className="w-4.5 h-4.5" style={{ color: "#8a95a5" }} />
+                </button>
+              ) : (
+                <div className="w-10 h-10 shrink-0" />
+              )}
             </div>
 
-            <p className="text-xs text-warm-gray">
-              {isRecording
-                ? "松开结束录音"
-                : isAiSpeaking
-                ? "请等待AI说完"
-                : isAiThinking || isProcessing
-                ? "AI正在思考..."
-                : "按住说话，松开发送"}
-            </p>
-
-            {/* Can't understand button */}
-            {!isRecording && !isDisabled && questionNumber > 0 && (
-              <button
-                onClick={handleCantUnderstand}
-                className="flex items-center gap-1.5 text-xs transition-colors mt-1 hover:opacity-80"
-                style={{ color: "#8a95a5" }}
-              >
-                <AlertCircle className="w-3.5 h-3.5" />
-                听不懂？点这里
-              </button>
+            {/* 底部提示 */}
+            {!isRecording && !isAiSpeaking && !isDisabled && (
+              <p className="text-[11px]" style={{ color: "#adb5bd" }}>
+                按住按钮说话，上滑可取消
+              </p>
+            )}
+            {(isAiThinking || (isProcessing && !isAiThinking && !isFinished)) && (
+              <p className="text-[11px]" style={{ color: "#1B3F91" }}>
+                AI正在思考...
+              </p>
             )}
           </div>
         )}
       </div>
+
+      {/* ===== 微信风格录音全屏遮罩 ===== */}
+      <WechatRecordingOverlay
+        isRecording={isRecording}
+        recordingTime={recordingTime}
+        isCancelZone={isCancelZone}
+      />
     </div>
   );
 }
@@ -987,11 +1062,9 @@ function AiBubble({
         className="w-10 h-10 rounded-full shrink-0 shadow-md border-2 border-white"
       />
       <div className="flex flex-col gap-1.5">
-        {/* 语音条 */}
         {audioDuration && (
           <AudioBar duration={audioDuration} isAi={true} text={text} />
         )}
-        {/* 文字内容 */}
         <div className="bg-white rounded-2xl rounded-tl-md px-4 py-3 shadow-sm">
           <p
             className="text-sm leading-relaxed font-medium"
@@ -1011,11 +1084,9 @@ function AiBubble({
 function UserBubble({
   text,
   audioDuration,
-  inputMode,
 }: {
   text: string;
   audioDuration?: number;
-  inputMode?: InputMode;
 }) {
   return (
     <div className="flex items-start gap-2.5 max-w-[85%] ml-auto flex-row-reverse">
@@ -1028,11 +1099,9 @@ function UserBubble({
         <Mic className="w-4 h-4 text-white" />
       </div>
       <div className="flex flex-col gap-1.5 items-end">
-        {/* 语音条 */}
         {audioDuration && (
           <AudioBar duration={audioDuration} isAi={false} text={text} />
         )}
-        {/* 文字内容 */}
         <div
           className="text-white rounded-2xl rounded-tr-md px-4 py-3 shadow-sm"
           style={{
@@ -1046,7 +1115,6 @@ function UserBubble({
   );
 }
 
-/** 出题原则提示气泡 */
 function PrincipleBubble({ text }: { text: string }) {
   return (
     <motion.div

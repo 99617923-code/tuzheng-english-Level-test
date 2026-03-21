@@ -9,7 +9,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 
 const LOGO_TEXT = "https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/tuzheng-logo-transparent_4a301562.png";
-const AI_AVATAR = "https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/ai-teacher-avatar-dLw5RzBDM3AJWaRxiMxYoU.webp";
 
 // 示例视频URL（后续由客户提供真实视频替换）
 const DEMO_VIDEO_URL = "";
@@ -76,21 +75,6 @@ export default function Home() {
 
         {/* Hero Section */}
         <div className="flex-1 flex flex-col items-center justify-center -mt-4">
-          {/* AI Teacher Avatar */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, delay: 0.05 }}
-            className="mb-5"
-          >
-            <div
-              className="w-24 h-24 rounded-full overflow-hidden border-4 border-white/60 shadow-xl"
-              style={{ boxShadow: "0 8px 30px rgba(27,63,145,0.15)" }}
-            >
-              <img src={AI_AVATAR} alt="AI考官" className="w-full h-full object-cover" />
-            </div>
-          </motion.div>
-
           {/* Welcome Text */}
           <motion.div {...fadeIn(0.1)} className="text-center mb-6">
             {isAuthenticated && user ? (

@@ -1,15 +1,13 @@
 /**
- * 途正英语AI分级测评 - 规则说明页
- * 蓝绿品牌色 + 透明毛玻璃风格
+ * 途正英语AI分级测评 - 测评说明页（简化版）
+ * 去掉顶部大图，精简内容让手机一屏看完
  */
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Mic, Volume2, Brain, Clock, ChevronLeft, Shield, CheckCircle2 } from "lucide-react";
+import { Mic, Volume2, Clock, ChevronLeft, Shield } from "lucide-react";
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
-
-const RULES_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/rules-illustration-S6diYDHWuxzGGRWfMezTkV.webp";
 
 export default function Rules() {
   const [, navigate] = useLocation();
@@ -47,7 +45,7 @@ export default function Rules() {
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center px-4 py-4"
+        className="flex items-center px-4 py-4 shrink-0"
       >
         <button
           onClick={() => navigate("/")}
@@ -60,68 +58,62 @@ export default function Rules() {
         </h2>
       </motion.div>
 
-      {/* Illustration */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-        className="px-6 mb-4"
-      >
-        <div className="rounded-2xl overflow-hidden shadow-sm">
-          <img src={RULES_IMG} alt="测评说明" className="w-full h-40 object-cover" />
-        </div>
-      </motion.div>
-
-      {/* Rules Content */}
-      <div className="flex-1 px-6 pb-6 space-y-4">
-        {/* How it works - 毛玻璃卡片 */}
+      {/* 内容区 - 紧凑布局一屏显示 */}
+      <div className="flex-1 flex flex-col px-6 pb-6">
+        {/* 注意事项 - 简洁横排 */}
         <motion.div
-          initial={{ opacity: 0, y: 15 }}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="backdrop-blur-md rounded-2xl p-4 mb-4"
+          style={{
+            backgroundColor: "rgba(255,255,255,0.60)",
+            boxShadow: "0 4px 20px rgba(27,63,145,0.06)",
+            border: "1px solid rgba(255,255,255,0.4)",
+          }}
+        >
+          <div className="grid grid-cols-2 gap-3">
+            <TipItem icon={<Clock className="w-4 h-4" />} text="约需5分钟" />
+            <TipItem icon={<Mic className="w-4 h-4" />} text="安静环境" />
+            <TipItem icon={<Volume2 className="w-4 h-4" />} text="打开音量" />
+            <TipItem icon={<Shield className="w-4 h-4" />} text="独立完成" />
+          </div>
+        </motion.div>
+
+        {/* 测评流程 - 简洁三步 */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="backdrop-blur-md rounded-2xl p-5"
+          className="backdrop-blur-md rounded-2xl p-4 mb-4"
           style={{
             backgroundColor: "rgba(255,255,255,0.60)",
             boxShadow: "0 4px 20px rgba(27,63,145,0.06)",
             border: "1px solid rgba(255,255,255,0.4)",
           }}
         >
-          <h3 className="font-bold text-base mb-4" style={{ color: "#1a2340" }}>测评流程</h3>
-          <div className="space-y-4">
-            <RuleStep icon={<Volume2 className="w-4 h-4" />} step="1" title="听题" desc="AI外教用英语向你提出问题，请仔细听" />
-            <RuleStep icon={<Mic className="w-4 h-4" />} step="2" title="回答" desc="点击麦克风按钮，用英语语音回答问题" />
-            <RuleStep icon={<Brain className="w-4 h-4" />} step="3" title="AI评估" desc="AI根据你的回答自动调整下一题难度" />
-            <RuleStep icon={<CheckCircle2 className="w-4 h-4" />} step="4" title="获取结果" desc="5-8题后系统自动判定你的英语水平级别" />
+          <h3 className="font-bold text-sm mb-3" style={{ color: "#1a2340" }}>测评流程</h3>
+          <div className="flex items-center gap-2">
+            <StepBadge num="1" label="听题" color="#1B3F91" />
+            <div className="flex-1 h-px" style={{ background: "linear-gradient(90deg, rgba(27,63,145,0.2), rgba(131,186,18,0.2))" }} />
+            <StepBadge num="2" label="回答" color="#2B5BA0" />
+            <div className="flex-1 h-px" style={{ background: "linear-gradient(90deg, rgba(131,186,18,0.2), rgba(27,63,145,0.2))" }} />
+            <StepBadge num="3" label="定级" color="#83BA12" />
           </div>
+          <p className="text-xs mt-3 text-center" style={{ color: "#7a8a9a" }}>
+            AI外教用英语提问 → 你用语音回答 → 系统自动评定等级
+          </p>
+          <p className="text-xs mt-1 text-center" style={{ color: "#adb5bd" }}>
+            共10-15道题，难度从低到高自适应调整
+          </p>
         </motion.div>
 
-        {/* Tips */}
+        {/* 麦克风授权 */}
         <motion.div
-          initial={{ opacity: 0, y: 15 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
-          className="backdrop-blur-md rounded-2xl p-5"
-          style={{
-            backgroundColor: "rgba(255,255,255,0.60)",
-            boxShadow: "0 4px 20px rgba(27,63,145,0.06)",
-            border: "1px solid rgba(255,255,255,0.4)",
-          }}
-        >
-          <h3 className="font-bold text-base mb-3" style={{ color: "#1a2340" }}>注意事项</h3>
-          <div className="space-y-2.5">
-            <TipItem icon={<Clock className="w-3.5 h-3.5" />} text="测评约需3-5分钟，请预留充足时间" />
-            <TipItem icon={<Mic className="w-3.5 h-3.5" />} text="请在安静环境中进行，确保语音清晰" />
-            <TipItem icon={<Volume2 className="w-3.5 h-3.5" />} text="请打开手机音量，以便听清AI提问" />
-            <TipItem icon={<Shield className="w-3.5 h-3.5" />} text="请独立完成，测评结果仅用于分级" />
-          </div>
-        </motion.div>
-
-        {/* Mic Permission */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="rounded-2xl p-5 border-2 transition-colors"
+          transition={{ delay: 0.3 }}
+          className="rounded-2xl p-4 border-2 transition-colors mb-4"
           style={{
             backgroundColor: micGranted ? "rgba(131,186,18,0.08)" : "rgba(255,255,255,0.60)",
             borderColor: micGranted ? "rgba(131,186,18,0.4)" : "rgba(27,63,145,0.15)",
@@ -130,20 +122,20 @@ export default function Rules() {
         >
           <div className="flex items-center gap-3">
             <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+              className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
               style={{
                 backgroundColor: micGranted ? "rgba(131,186,18,0.15)" : "rgba(27,63,145,0.08)",
                 color: micGranted ? "#6a9a10" : "#1B3F91",
               }}
             >
-              <Mic className="w-6 h-6" />
+              <Mic className="w-5 h-5" />
             </div>
             <div className="flex-1">
               <h4 className="font-bold text-sm" style={{ color: "#1a2340" }}>
                 {micGranted ? "麦克风已就绪" : "需要麦克风权限"}
               </h4>
               <p className="text-xs mt-0.5" style={{ color: "#7a8a9a" }}>
-                {micGranted ? "权限已授予，可以开始测评" : "测评需要使用麦克风录制你的回答"}
+                {micGranted ? "权限已授予，可以开始测评" : "测评需要录制你的语音回答"}
               </p>
             </div>
             {!micGranted && (
@@ -160,12 +152,15 @@ export default function Rules() {
           </div>
         </motion.div>
 
-        {/* Start Button */}
+        {/* 弹性空间 */}
+        <div className="flex-1 min-h-4" />
+
+        {/* 开始按钮 */}
         <motion.div
-          initial={{ opacity: 0, y: 15 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.65 }}
-          className="pt-2 pb-4"
+          transition={{ delay: 0.4 }}
+          className="pb-2"
         >
           <Button
             onClick={handleStart}
@@ -184,31 +179,25 @@ export default function Rules() {
   );
 }
 
-function RuleStep({ icon, step, title, desc }: { icon: React.ReactNode; step: string; title: string; desc: string }) {
+function StepBadge({ num, label, color }: { num: string; label: string; color: string }) {
   return (
-    <div className="flex items-start gap-3">
+    <div className="flex flex-col items-center gap-1">
       <div
-        className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5"
-        style={{ backgroundColor: "rgba(27,63,145,0.08)", color: "#1B3F91" }}
+        className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold"
+        style={{ background: `linear-gradient(135deg, ${color}, ${color}dd)` }}
       >
-        <span className="text-xs font-bold">{step}</span>
+        {num}
       </div>
-      <div className="flex-1">
-        <div className="flex items-center gap-1.5">
-          <span style={{ color: "#1B3F91" }}>{icon}</span>
-          <h4 className="font-bold text-sm" style={{ color: "#1a2340" }}>{title}</h4>
-        </div>
-        <p className="text-xs mt-0.5" style={{ color: "#7a8a9a" }}>{desc}</p>
-      </div>
+      <span className="text-xs font-medium" style={{ color }}>{label}</span>
     </div>
   );
 }
 
 function TipItem({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
-    <div className="flex items-center gap-2.5">
-      <span style={{ color: "#7a8a9a" }}>{icon}</span>
-      <p className="text-xs" style={{ color: "#7a8a9a" }}>{text}</p>
+    <div className="flex items-center gap-2 p-2 rounded-xl" style={{ backgroundColor: "rgba(27,63,145,0.04)" }}>
+      <span style={{ color: "#1B3F91" }}>{icon}</span>
+      <span className="text-xs font-medium" style={{ color: "#5a6a7a" }}>{text}</span>
     </div>
   );
 }

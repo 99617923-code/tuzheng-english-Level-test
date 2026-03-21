@@ -972,9 +972,6 @@ export default function Test() {
               <button
                 onMouseDown={() => startRecording()}
                 onMouseUp={() => stopRecording(isCancelZone)}
-                onMouseLeave={() => {
-                  if (isRecording) stopRecording(true);
-                }}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}

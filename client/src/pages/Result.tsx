@@ -624,6 +624,28 @@ export default function Result() {
           >
             {description}
           </motion.p>
+
+          {/* 加入口语营按钮 - 红色醒目，紧跟结果卡片内 */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.05 }}
+            className="mt-5"
+          >
+            <Button
+              onClick={() => setShowQrcode(true)}
+              className="w-full h-14 rounded-2xl text-white text-base font-bold shadow-lg transition-all active:scale-[0.98]"
+              style={{
+                background:
+                  "linear-gradient(135deg, #E53935 0%, #C62828 100%)",
+                boxShadow: "0 6px 20px rgba(229,57,53,0.35)",
+              }}
+            >
+              <Users className="w-5 h-5 mr-2" />
+              加入{levelName}口语营
+              <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          </motion.div>
         </motion.div>
 
         {/* Detailed Scores Card */}
@@ -842,21 +864,6 @@ export default function Result() {
           transition={{ delay: 1.2 }}
           className="space-y-3 mt-auto pb-6"
         >
-          {/* Join Group - 弹出群二维码 */}
-          <Button
-            onClick={() => setShowQrcode(true)}
-            className="w-full h-14 rounded-2xl text-white text-base font-bold shadow-lg transition-all active:scale-[0.98]"
-            style={{
-              background:
-                "linear-gradient(135deg, #1B3F91 0%, #2B5BA0 100%)",
-              boxShadow: "0 6px 20px rgba(27,63,145,0.30)",
-            }}
-          >
-            <Users className="w-5 h-5 mr-2" />
-            加入{levelName}口语营
-            <ChevronRight className="w-4 h-4 ml-1" />
-          </Button>
-
           {/* Secondary Actions */}
           <div className="flex gap-3">
             <Button

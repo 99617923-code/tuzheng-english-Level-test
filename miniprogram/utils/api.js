@@ -1,0 +1,161 @@
+/**
+ * 途正英语 - API接口封装
+ * 对接后端所有业务接口
+ */
+const { request, uploadFile, setTokens, clearTokens } = require('./request')
+
+// ============ 认证接口 ============
+
+/** 发送短信验证码 */
+function sendSmsCode(phone, purpose = 'login') {
+  return request('/api/v1/auth/send-sms-code', {
+    method: 'POST',
+    data: { phone, purpose }
+  }).then(res => {
+    if (res.code !== 200) throw new Error(res.msg || '发送失败')
+    return res.data
+  })
+}
+
+/** 短信验证码登录（未注册自动创建账号） */
+function smsLogin(phone, code) {
+  return request('/api/v1/auth/sms-login', {
+    method: 'POST',
+    data: { phone, code }
+  }).then(res => {
+    if (res.code !== 200) throw new Error(res.msg || '登录失败')
+    // 保存token和用户信息
+    setTokens(res.data.biz_token, res.data.refresh_token)
+    if (res.data.user_info) {
+      wx.setStorageSync('tz_user_info', res.data.user_info)
+    }
+    return res.data
+  })
+}
+
+/** 获取当前用户信息 */
+function getMe() {
+  return request('/api/v1/auth/me').then(res => {
+    if (res.code !== 200) throw new Error(res.msg || '获取用户信息失败')
+    if (res.data.user_info) {
+      wx.setStorageSync('tz_user_info', res.data.user_info)
+    }
+    return res.data
+  })
+}
+
+/** 退出登录 */
+function logout() {
+  return request('/api/v1/auth/logout', { method: 'POST' })
+    .catch(() => {})
+    .finally(() => {
+      clearTokens()
+    })
+}
+
+// ============ 测评接口 ============
+
+/** 创建测评会话 */
+function startTest() {
+  return request('/api/v1/test/start', {
+    method: 'POST'
+  }).then(res => {
+    if (res.code !== 200) throw new Error(res.msg || '创建测评失败')
+    return res.data
+  })
+}
+
+/** 提交回答并获取AI评估 */
+function evaluateAnswer(params) {
+  return request('/api/v1/test/evaluate', {
+    method: 'POST',
+    data: params
+  }).then(res => {
+    if (res.code !== 200) throw new Error(res.msg || '评估失败')
+    return res.data
+  })
+}
+
+/** 获取测评结果详情 */
+function getTestResult(sessionId) {
+  return request(`/api/v1/test/result/${sessionId}`).then(res => {
+    if (res.code !== 200) throw new Error(res.msg || '获取结果失败')
+    return res.data
+  })
+}
+
+/** 上传测评录音 */
+function uploadAudio(filePath, sessionId, questionId) {
+  return uploadFile('/api/v1/test/upload-audio', filePath, 'file', {
+    sessionId,
+    questionId
+  }).then(res => {
+    if (res.code !== 200) throw new Error(res.msg || '上传失败')
+    return res.data
+  })
+}
+
+/** 语音转文字 */
+function transcribeAudio(audioUrl, language = 'en') {
+  return request('/api/v1/test/transcribe', {
+    method: 'POST',
+    data: { audioUrl, language }
+  }).then(res => {
+    if (res.code !== 200) throw new Error(res.msg || '转写失败')
+    return res.data
+  })
+}
+
+/** 终止测评会话 */
+function terminateTest(sessionId, reason) {
+  return request('/api/v1/test/terminate', {
+    method: 'POST',
+    data: { sessionId, reason }
+  }).then(res => {
+    if (res.code !== 200) throw new Error(res.msg || '终止失败')
+    return res.data
+  })
+}
+
+/** 查询测评历史 */
+function getTestHistory(page = 1, pageSize = 20) {
+  return request(`/api/v1/test/history?page=${page}&pageSize=${pageSize}`).then(res => {
+    if (res.code !== 200) throw new Error(res.msg || '获取历史失败')
+    return res.data
+  })
+}
+
+/** 文本转语音 */
+function textToSpeech(text, voice = 'en-US-female', speed = 0.85) {
+  return request('/api/v1/test/tts', {
+    method: 'POST',
+    data: { text, voice, speed }
+  }).then(res => {
+    if (res.code !== 200) throw new Error(res.msg || 'TTS失败')
+    return res.data
+  })
+}
+
+/** 获取群二维码 */
+function getQrcodeByLevel(level) {
+  return request(`/api/v1/qrcode/level/${level}`).then(res => {
+    if (res.code !== 200) throw new Error(res.msg || '获取二维码失败')
+    return res.data
+  })
+}
+
+module.exports = {
+  sendSmsCode,
+  smsLogin,
+  getMe,
+  logout,
+  startTest,
+  evaluateAnswer,
+  getTestResult,
+  uploadAudio,
+  transcribeAudio,
+  terminateTest,
+  getTestHistory,
+  textToSpeech,
+  getQrcodeByLevel
+}

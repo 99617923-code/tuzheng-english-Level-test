@@ -1,0 +1,143 @@
+<!--
+  途正英语AI分级测评 - 测评主页面
+  核心交互：听AI语音 → 按住说话 → AI评分 → 下一题/出结果
+-->
+<view class="page">
+  <!-- 自定义导航栏 -->
+  <view class="nav-bar" style="padding-top: {{statusBarHeight}}px;">
+    <view class="nav-content">
+      <view class="nav-back" bindtap="handleQuit">
+        <image class="nav-back-icon" src="/assets/icons/x.svg" mode="aspectFit" />
+      </view>
+      <view class="nav-center">
+        <text class="nav-level">{{currentLevelName}}</text>
+        <text class="nav-progress">第 {{currentQuestionIndex + 1}} 题</text>
+      </view>
+      <view class="nav-timer">
+        <image class="timer-icon" src="/assets/icons/clock.svg" mode="aspectFit" />
+        <text class="timer-text">{{timerDisplay}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 进度条 -->
+  <view class="progress-wrap" style="top: {{navHeight}}px;">
+    <view class="progress-bar">
+      <view class="progress-fill" style="width: {{progressPercent}}%;"></view>
+    </view>
+  </view>
+
+  <!-- 主内容区 -->
+  <view class="main-area" style="padding-top: {{navHeight + 20}}px;">
+    <!-- 题目卡片 -->
+    <view class="question-card glass-card-strong animate-fade-in">
+      <!-- AI头像 + 状态 -->
+      <view class="ai-header">
+        <view class="ai-avatar-wrap">
+          <image class="ai-avatar" src="{{aiAvatarUrl}}" mode="aspectFill" />
+          <view wx:if="{{aiSpeaking}}" class="ai-speaking-dot"></view>
+        </view>
+        <view class="ai-info">
+          <text class="ai-name">AI 外教</text>
+          <text class="ai-status">{{aiStatusText}}</text>
+        </view>
+      </view>
+
+      <!-- 题目文本 -->
+      <view class="question-text-wrap">
+        <text class="question-text">{{currentQuestion.text || '正在加载题目...'}}</text>
+      </view>
+
+      <!-- AI语音播放条 -->
+      <view wx:if="{{currentQuestion.audioUrl}}" class="audio-bar" bindtap="playAudio">
+        <view class="audio-play-btn">
+          <image wx:if="{{!audioPlaying}}" class="audio-play-icon" src="/assets/icons/play.svg" mode="aspectFit" />
+          <image wx:else class="audio-play-icon" src="/assets/icons/pause.svg" mode="aspectFit" />
+        </view>
+        <view class="audio-waves">
+          <view wx:for="{{audioWaves}}" wx:key="index" class="audio-wave-bar {{audioPlaying ? 'playing' : ''}}" style="height: {{item}}rpx; animation-delay: {{index * 0.05}}s;"></view>
+        </view>
+        <text class="audio-duration">{{audioDurationText}}</text>
+      </view>
+
+      <!-- 用户回答区域 -->
+      <view wx:if="{{userTranscription}}" class="user-answer">
+        <view class="user-answer-header">
+          <text class="user-answer-label">你的回答</text>
+        </view>
+        <text class="user-answer-text">{{userTranscription}}</text>
+      </view>
+
+      <!-- AI评价反馈 -->
+      <view wx:if="{{evaluationFeedback}}" class="feedback-area">
+        <view class="feedback-score-row">
+          <text class="feedback-label">得分</text>
+          <text class="feedback-score" style="color: {{scoreColor}};">{{evaluationScore}}</text>
+        </view>
+        <text class="feedback-text">{{evaluationFeedback}}</text>
+      </view>
+    </view>
+
+    <!-- 实时语音识别文字 -->
+    <view wx:if="{{isRecording && realtimeText}}" class="realtime-text glass-card">
+      <text class="realtime-label">正在识别...</text>
+      <text class="realtime-content">{{realtimeText}}</text>
+    </view>
+  </view>
+
+  <!-- 底部操作区 -->
+  <view class="bottom-bar" style="padding-bottom: calc(env(safe-area-inset-bottom) + 32rpx);">
+    <!-- 状态：等待播放AI语音 -->
+    <view wx:if="{{phase === 'listening'}}" class="action-area">
+      <button class="listen-btn" bindtap="playAudio">
+        <image class="listen-icon" src="/assets/icons/volume.svg" mode="aspectFit" />
+        <text class="listen-text">{{audioPlaying ? '正在播放...' : '点击播放题目'}}</text>
+      </button>
+    </view>
+
+    <!-- 状态：准备回答 / 录音中 -->
+    <view wx:elif="{{phase === 'answering'}}" class="action-area">
+      <!-- 录音按钮 -->
+      <view class="record-area">
+        <view wx:if="{{isRecording}}" class="record-pulse-ring"></view>
+        <view
+          class="record-btn {{isRecording ? 'recording' : ''}}"
+          bindtouchstart="startRecording"
+          bindtouchend="stopRecording"
+          bindtouchcancel="cancelRecording"
+        >
+          <image class="record-mic-icon" src="/assets/icons/mic.svg" mode="aspectFit" />
+        </view>
+        <text class="record-hint">{{isRecording ? '松开结束录音' : '按住说话'}}</text>
+        <text wx:if="{{isRecording}}" class="record-timer">{{recordTimeDisplay}}</text>
+      </view>
+      <!-- 跳过按钮 -->
+      <view class="skip-row">
+        <button class="skip-btn" bindtap="handleSkip">跳过此题</button>
+      </view>
+    </view>
+
+    <!-- 状态：评估中 -->
+    <view wx:elif="{{phase === 'evaluating'}}" class="action-area">
+      <view class="evaluating-wrap">
+        <image class="evaluating-spinner" src="/assets/icons/loader.svg" mode="aspectFit" />
+        <text class="evaluating-text">AI正在评估你的回答...</text>
+      </view>
+    </view>
+
+    <!-- 状态：显示评价，等待下一题 -->
+    <view wx:elif="{{phase === 'feedback'}}" class="action-area">
+      <button class="btn-primary" bindtap="handleNext">
+        <text>{{isLastQuestion ? '查看结果' : '下一题'}}</text>
+      </button>
+    </view>
+
+    <!-- 状态：加载中 -->
+    <view wx:elif="{{phase === 'loading'}}" class="action-area">
+      <view class="evaluating-wrap">
+        <image class="evaluating-spinner" src="/assets/icons/loader.svg" mode="aspectFit" />
+        <text class="evaluating-text">正在准备测评...</text>
+      </view>
+    </view>
+  </view>
+</view>

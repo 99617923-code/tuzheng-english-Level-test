@@ -1,0 +1,104 @@
+<!--
+  途正英语AI分级测评 - 欢迎页
+  品牌展示 + 示例视频 + 开始测评入口
+-->
+<view class="page">
+  <!-- 装饰性背景元素 -->
+  <view class="deco-circle deco-1"></view>
+  <view class="deco-circle deco-2"></view>
+  <view class="deco-circle deco-3"></view>
+  <view class="deco-circle deco-4"></view>
+
+  <!-- Content -->
+  <view class="content">
+    <!-- Header: Logo + Auth -->
+    <view class="header animate-fade-in">
+      <view class="logo-wrap">
+        <image class="logo-img" src="{{logoUrl}}" mode="heightFix" />
+      </view>
+      <button wx:if="{{isAuthenticated}}" class="auth-btn" bindtap="handleLogout">
+        <text class="auth-btn-text">退出</text>
+      </button>
+      <button wx:else class="auth-btn auth-btn-login" bindtap="goLogin">
+        <text class="auth-btn-text login-text">登录</text>
+      </button>
+    </view>
+
+    <!-- Hero Section -->
+    <view class="hero">
+      <!-- Welcome Text -->
+      <view class="welcome animate-fade-in-delay-1">
+        <text wx:if="{{isAuthenticated && userInfo}}" class="greeting">Hi, {{userInfo.nickname || '同学'}}</text>
+        <view class="title-wrap">
+          <text class="title-line1">英语水平</text>
+          <text class="title-line2">AI 智能测评</text>
+        </view>
+        <text class="subtitle">和AI外教对话，3分钟精准评定你的英语水平，开启专属学习之旅</text>
+      </view>
+
+      <!-- 测评示例视频 -->
+      <view class="video-card animate-fade-in-delay-2" bindtap="handlePlayDemo">
+        <view class="video-area">
+          <!-- 播放按钮 -->
+          <view class="play-btn-wrap">
+            <view class="play-pulse"></view>
+            <view class="play-btn">
+              <image class="play-icon" src="/assets/icons/play.svg" mode="aspectFit" />
+            </view>
+          </view>
+          <!-- 装饰波纹 -->
+          <view class="wave-bars">
+            <view wx:for="{{waveHeights}}" wx:key="index" class="wave-bar" style="height: {{item}}rpx;"></view>
+          </view>
+        </view>
+        <view class="video-info">
+          <text class="video-title">观看测评示例</text>
+          <text class="video-desc">了解测评流程，轻松上手</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- History Link (authenticated users) -->
+    <view wx:if="{{isAuthenticated}}" class="history-entry animate-fade-in-delay-3" bindtap="goHistory">
+      <view class="history-left">
+        <view class="history-icon-wrap">
+          <image class="history-icon" src="/assets/icons/history.svg" mode="aspectFit" />
+        </view>
+        <text class="history-text">查看测评记录</text>
+      </view>
+      <text class="history-arrow">→</text>
+    </view>
+
+    <!-- CTA Button -->
+    <view class="cta-wrap animate-fade-in-delay-4">
+      <button class="btn-primary" bindtap="handleStart">开始测评</button>
+      <text class="cta-hint">测评约需5分钟，请确保在安静环境中进行</text>
+    </view>
+  </view>
+
+  <!-- 视频弹窗 -->
+  <view wx:if="{{showVideo}}" class="video-modal" bindtap="closeVideo">
+    <view class="video-modal-content" catchtap="preventClose">
+      <view wx:if="{{demoVideoUrl}}" class="video-player-wrap">
+        <video
+          src="{{demoVideoUrl}}"
+          autoplay
+          show-play-btn
+          show-center-play-btn
+          controls
+          class="video-player"
+        />
+      </view>
+      <view wx:else class="video-placeholder">
+        <view class="placeholder-icon-wrap">
+          <image class="placeholder-icon" src="/assets/icons/play.svg" mode="aspectFit" />
+        </view>
+        <text class="placeholder-title">示例视频即将上线</text>
+        <text class="placeholder-desc">敬请期待</text>
+      </view>
+      <view class="video-modal-footer">
+        <button class="close-btn" bindtap="closeVideo">关闭</button>
+      </view>
+    </view>
+  </view>
+</view>

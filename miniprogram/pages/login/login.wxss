@@ -1,0 +1,219 @@
+/* 途正英语 - 登录页样式 */
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-gradient);
+}
+
+/* 顶部渐变区 */
+.header-bg {
+  position: relative;
+  height: 416rpx;
+  overflow: hidden;
+  background: linear-gradient(135deg, #1B3F91 0%, #2B5BA0 50%, #4a8a30 100%);
+  flex-shrink: 0;
+}
+
+.header-deco-1 {
+  position: absolute;
+  top: -40rpx;
+  right: -40rpx;
+  width: 256rpx;
+  height: 256rpx;
+  border-radius: 50%;
+  background: rgba(131,186,18,0.15);
+}
+
+.header-deco-2 {
+  position: absolute;
+  bottom: -20rpx;
+  left: -30rpx;
+  width: 192rpx;
+  height: 192rpx;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+}
+
+.header-content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: env(safe-area-inset-top);
+}
+
+.avatar {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 50%;
+  border: 8rpx solid rgba(255,255,255,0.30);
+  box-shadow: 0 16rpx 48rpx rgba(0,0,0,0.15);
+  margin-bottom: 24rpx;
+}
+
+.header-logo {
+  height: 56rpx;
+  filter: brightness(0) invert(1);
+}
+
+.header-subtitle {
+  font-size: 26rpx;
+  font-weight: 500;
+  color: rgba(255,255,255,0.85);
+  margin-top: 16rpx;
+}
+
+.wave-bottom {
+  position: absolute;
+  bottom: -2rpx;
+  left: 0;
+  right: 0;
+  height: 60rpx;
+  background: var(--bg-gradient);
+  border-radius: 60rpx 60rpx 0 0;
+}
+
+/* 表单区 */
+.form-wrap {
+  flex: 1;
+  padding: 0 48rpx;
+  margin-top: -16rpx;
+}
+
+.form-card {
+  padding: 48rpx;
+}
+
+.form-title {
+  display: block;
+  font-size: 36rpx;
+  font-weight: 800;
+  color: var(--text-primary);
+  text-align: center;
+  margin-bottom: 16rpx;
+}
+
+.form-desc {
+  display: block;
+  font-size: 24rpx;
+  color: var(--text-light);
+  text-align: center;
+  margin-bottom: 48rpx;
+}
+
+.input-group {
+  margin-bottom: 32rpx;
+}
+
+.input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  background: rgba(255,255,255,0.6);
+  border: 2rpx solid rgba(27,63,145,0.12);
+  border-radius: var(--radius-lg);
+  padding: 28rpx 32rpx;
+}
+
+.input-icon {
+  width: 40rpx;
+  height: 40rpx;
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+
+.input-field {
+  flex: 1;
+  font-size: 28rpx;
+  color: var(--text-primary);
+  background: transparent;
+}
+
+.code-row {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+}
+
+.code-input-wrap {
+  flex: 1;
+}
+
+.send-code-btn {
+  height: 100rpx;
+  min-width: 220rpx;
+  border-radius: var(--radius-lg);
+  font-size: 26rpx;
+  font-weight: 600;
+  background: linear-gradient(135deg, #1B3F91, #2B5BA0) !important;
+  color: #ffffff;
+  box-shadow: 0 4rpx 16rpx rgba(27,63,145,0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+  padding: 0 24rpx;
+}
+
+.send-code-btn.disabled {
+  background: rgba(240,242,245,0.8) !important;
+  color: var(--text-light);
+  box-shadow: none;
+}
+
+.sending-text, .countdown-text {
+  color: var(--text-light);
+}
+
+.send-text {
+  color: #ffffff;
+}
+
+.login-btn {
+  width: 100%;
+  height: 104rpx;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, #1B3F91 0%, #2B5BA0 100%) !important;
+  color: #ffffff;
+  font-size: 32rpx;
+  font-weight: 700;
+  box-shadow: 0 8rpx 30rpx rgba(27,63,145,0.30);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 16rpx;
+  line-height: 1;
+}
+
+.login-btn[disabled] {
+  opacity: 0.6;
+}
+
+.login-btn-text {
+  color: #ffffff;
+}
+
+.agreement {
+  display: block;
+  text-align: center;
+  font-size: 22rpx;
+  color: var(--text-placeholder);
+  margin-top: 32rpx;
+}
+
+.brand-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 64rpx;
+  margin-bottom: 48rpx;
+}
+
+.brand-logo {
+  height: 32rpx;
+  opacity: 0.3;
+}

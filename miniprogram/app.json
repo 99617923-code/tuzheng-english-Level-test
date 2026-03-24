@@ -1,0 +1,32 @@
+{
+  "pages": [
+    "pages/home/home",
+    "pages/login/login",
+    "pages/rules/rules",
+    "pages/test/test",
+    "pages/result/result",
+    "pages/history/history"
+  ],
+  "window": {
+    "navigationStyle": "custom",
+    "backgroundColor": "#f0f4f8",
+    "backgroundColorTop": "#e8eef8",
+    "backgroundColorBottom": "#f5f8f0",
+    "backgroundTextStyle": "dark"
+  },
+  "plugins": {
+    "WechatSI": {
+      "version": "0.3.6",
+      "provider": "wx069ba97219f66d99"
+    }
+  },
+  "requiredPrivateInfos": [],
+  "permission": {
+    "scope.record": {
+      "desc": "测评需要录制你的英语语音回答"
+    }
+  },
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents",
+  "style": "v2"
+}

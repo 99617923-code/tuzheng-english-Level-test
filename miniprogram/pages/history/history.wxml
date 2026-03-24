@@ -1,0 +1,97 @@
+<!--
+  途正英语AI分级测评 - 历史记录页
+-->
+<view class="page">
+  <!-- 自定义导航栏 -->
+  <view class="nav-bar" style="padding-top: {{statusBarHeight}}px;">
+    <view class="nav-content">
+      <view class="nav-back" bindtap="goBack">
+        <image class="nav-back-icon" src="/assets/icons/chevron-left.svg" mode="aspectFit" />
+      </view>
+      <text class="nav-title">测评记录</text>
+      <view class="nav-placeholder"></view>
+    </view>
+  </view>
+
+  <!-- 内容区 -->
+  <scroll-view
+    scroll-y
+    class="scroll-area"
+    style="top: {{navHeight}}px;"
+    enhanced
+    show-scrollbar="{{false}}"
+    bindscrolltolower="loadMore"
+  >
+    <!-- 加载中 -->
+    <view wx:if="{{loading && list.length === 0}}" class="empty-state">
+      <image class="empty-spinner" src="/assets/icons/loader.svg" mode="aspectFit" />
+      <text class="empty-text">加载中...</text>
+    </view>
+
+    <!-- 空状态 -->
+    <view wx:elif="{{!loading && list.length === 0}}" class="empty-state">
+      <view class="empty-icon-wrap">
+        <image class="empty-icon" src="/assets/icons/history.svg" mode="aspectFit" />
+      </view>
+      <text class="empty-title">暂无测评记录</text>
+      <text class="empty-desc">完成一次测评后，记录将显示在这里</text>
+      <button class="empty-btn" bindtap="goTest">开始测评</button>
+    </view>
+
+    <!-- 记录列表 -->
+    <view wx:else class="list">
+      <view
+        class="record-card glass-card animate-fade-in"
+        wx:for="{{list}}"
+        wx:key="sessionId"
+        bindtap="viewDetail"
+        data-session-id="{{item.sessionId}}"
+        style="animation-delay: {{index * 0.05}}s;"
+      >
+        <view class="record-header">
+          <view class="record-level-badge" style="background: {{item.levelColor}};">
+            <text class="record-level-text">{{item.levelName || '未完成'}}</text>
+          </view>
+          <text class="record-date">{{item.completedAtFormatted}}</text>
+        </view>
+
+        <view class="record-body">
+          <view wx:if="{{item.levelLabel}}" class="record-label">
+            <text class="record-label-text">{{item.levelLabel}}</text>
+          </view>
+
+          <view class="record-stats">
+            <view class="stat-item">
+              <text class="stat-value">{{item.questionCount || 0}}</text>
+              <text class="stat-label">答题数</text>
+            </view>
+            <view class="stat-divider"></view>
+            <view class="stat-item">
+              <text class="stat-value">{{item.durationText || '-'}}</text>
+              <text class="stat-label">用时</text>
+            </view>
+            <view class="stat-divider"></view>
+            <view class="stat-item">
+              <text class="stat-value {{item.status === 'completed' ? 'completed' : 'incomplete'}}">{{item.statusText}}</text>
+              <text class="stat-label">状态</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="record-arrow">
+          <image class="arrow-icon" src="/assets/icons/chevron-right.svg" mode="aspectFit" />
+        </view>
+      </view>
+
+      <!-- 加载更多 -->
+      <view wx:if="{{loadingMore}}" class="loading-more">
+        <image class="loading-more-spinner" src="/assets/icons/loader.svg" mode="aspectFit" />
+        <text class="loading-more-text">加载中...</text>
+      </view>
+
+      <view wx:elif="{{noMore}}" class="no-more">
+        <text class="no-more-text">— 没有更多记录了 —</text>
+      </view>
+    </view>
+  </scroll-view>
+</view>

@@ -1,0 +1,136 @@
+<!--
+  途正英语AI分级测评 - 结果页
+  等级展示 + 分项得分 + 群二维码弹窗
+-->
+<view class="page">
+  <!-- 自定义导航栏 -->
+  <view class="nav-bar" style="padding-top: {{statusBarHeight}}px;">
+    <view class="nav-content">
+      <view class="nav-placeholder"></view>
+      <text class="nav-title">测评报告</text>
+      <view class="nav-close" bindtap="goHome">
+        <image class="nav-close-icon" src="/assets/icons/x.svg" mode="aspectFit" />
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading-wrap" style="padding-top: {{navHeight}}px;">
+    <view class="loading-card glass-card-strong">
+      <image class="loading-spinner" src="/assets/icons/loader.svg" mode="aspectFit" />
+      <text class="loading-title">正在生成测评报告</text>
+      <text class="loading-desc">AI正在分析你的表现...</text>
+    </view>
+  </view>
+
+  <!-- 结果内容 -->
+  <scroll-view wx:else scroll-y class="scroll-area" style="top: {{navHeight}}px;" enhanced show-scrollbar="{{false}}">
+    <!-- 等级卡片 -->
+    <view class="level-card animate-fade-in" style="background: {{levelBgGradient}};">
+      <view class="level-badge" style="background: {{levelColor}};">
+        <text class="level-badge-text">{{levelName}}</text>
+      </view>
+      <text class="level-label">{{levelLabel}}</text>
+
+      <!-- 星级 -->
+      <view class="stars-row">
+        <image wx:for="{{starsArray}}" wx:key="index"
+          class="star-icon"
+          src="{{item ? '/assets/icons/star.svg' : '/assets/icons/star-empty.svg'}}"
+          mode="aspectFit"
+          style="{{item ? 'opacity:1' : 'opacity:0.4'}}"
+        />
+      </view>
+
+      <!-- 综合得分 -->
+      <view class="overall-score-wrap">
+        <text class="overall-score">{{overallScore}}</text>
+        <text class="overall-label">综合得分</text>
+      </view>
+
+      <!-- 测评信息 -->
+      <view class="test-meta">
+        <view class="meta-item">
+          <text class="meta-value">{{questionCount}}</text>
+          <text class="meta-label">答题数</text>
+        </view>
+        <view class="meta-divider"></view>
+        <view class="meta-item">
+          <text class="meta-value">{{durationText}}</text>
+          <text class="meta-label">用时</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 能力描述 -->
+    <view class="section animate-fade-in-delay-1">
+      <text class="section-title">能力评估</text>
+      <view class="desc-card glass-card-strong">
+        <text class="desc-text">{{description}}</text>
+      </view>
+    </view>
+
+    <!-- 分项得分 -->
+    <view class="section animate-fade-in-delay-2">
+      <text class="section-title">分项得分</text>
+      <view class="scores-card glass-card-strong">
+        <view class="score-item" wx:for="{{scoreItems}}" wx:key="label">
+          <view class="score-header">
+            <text class="score-label">{{item.label}}</text>
+            <text class="score-value" style="color: {{item.color}};">{{item.value}}</text>
+          </view>
+          <view class="score-bar-bg">
+            <view class="score-bar-fill" style="width: {{item.percent}}%; background: {{item.color}};"></view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 学习建议 -->
+    <view class="section animate-fade-in-delay-3">
+      <text class="section-title">学习建议</text>
+      <view class="recommend-card glass-card-strong">
+        <image class="recommend-icon" src="/assets/icons/award.svg" mode="aspectFit" />
+        <text class="recommend-text">{{recommendation}}</text>
+      </view>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="actions animate-fade-in-delay-4">
+      <button class="btn-primary" bindtap="handleJoinGroup">
+        <image class="btn-icon" src="/assets/icons/users.svg" mode="aspectFit" />
+        <text>加入学习群</text>
+      </button>
+
+      <view class="secondary-actions">
+        <button class="secondary-btn" bindtap="handleRetake">重新测评</button>
+        <button class="secondary-btn" open-type="share">分享结果</button>
+      </view>
+    </view>
+
+    <!-- 底部间距 -->
+    <view style="height: calc(env(safe-area-inset-bottom) + 48rpx);"></view>
+  </scroll-view>
+
+  <!-- 群二维码弹窗 -->
+  <view wx:if="{{showQrModal}}" class="modal-mask" bindtap="closeQrModal">
+    <view class="modal-content glass-card-strong" catchtap="preventClose">
+      <view class="modal-header">
+        <text class="modal-title">加入学习群</text>
+        <view class="modal-close" bindtap="closeQrModal">
+          <image class="modal-close-icon" src="/assets/icons/x.svg" mode="aspectFit" />
+        </view>
+      </view>
+      <view class="modal-body">
+        <text class="modal-desc">扫描下方二维码，加入{{levelName}}学习群</text>
+        <view wx:if="{{qrcodeUrl}}" class="qrcode-wrap">
+          <image class="qrcode-img" src="{{qrcodeUrl}}" mode="aspectFit" show-menu-by-longpress />
+        </view>
+        <view wx:else class="qrcode-placeholder">
+          <text class="qrcode-placeholder-text">二维码即将上线</text>
+        </view>
+        <text class="modal-hint">长按图片可保存到相册</text>
+      </view>
+    </view>
+  </view>
+</view>

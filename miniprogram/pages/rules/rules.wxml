@@ -1,0 +1,80 @@
+<!--
+  途正英语AI分级测评 - 测评说明页
+  流程说明 + 注意事项 + 录音权限授权
+-->
+<view class="page">
+  <!-- 自定义导航栏 -->
+  <view class="nav-bar" style="padding-top: {{statusBarHeight}}px;">
+    <view class="nav-content">
+      <view class="nav-back" bindtap="goBack">
+        <image class="nav-back-icon" src="/assets/icons/chevron-left.svg" mode="aspectFit" />
+      </view>
+      <text class="nav-title">测评说明</text>
+      <view class="nav-placeholder"></view>
+    </view>
+  </view>
+
+  <scroll-view scroll-y class="scroll-area" style="top: {{navHeight}}px;">
+    <!-- AI老师卡片 -->
+    <view class="teacher-card glass-card animate-fade-in">
+      <image class="teacher-avatar" src="{{aiAvatarUrl}}" mode="aspectFill" />
+      <view class="teacher-info">
+        <text class="teacher-name">AI 外教</text>
+        <text class="teacher-desc">我将和你进行一段英语对话，评估你的英语水平</text>
+      </view>
+    </view>
+
+    <!-- 流程说明 -->
+    <view class="section animate-fade-in-delay-1">
+      <text class="section-title">测评流程</text>
+      <view class="steps">
+        <view class="step-item" wx:for="{{steps}}" wx:key="index">
+          <view class="step-num-wrap" style="background: {{item.bgColor}};">
+            <text class="step-num" style="color: {{item.color}};">{{index + 1}}</text>
+          </view>
+          <view class="step-content">
+            <text class="step-title">{{item.title}}</text>
+            <text class="step-desc">{{item.desc}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 注意事项 -->
+    <view class="section animate-fade-in-delay-2">
+      <text class="section-title">注意事项</text>
+      <view class="tips-card glass-card">
+        <view class="tip-item" wx:for="{{tips}}" wx:key="index">
+          <view class="tip-dot" style="background: {{item.color}};"></view>
+          <text class="tip-text">{{item.text}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 录音权限 -->
+    <view class="section animate-fade-in-delay-3">
+      <view class="permission-card glass-card-strong">
+        <view class="permission-header">
+          <image class="permission-icon" src="/assets/icons/mic.svg" mode="aspectFit" />
+          <view class="permission-info">
+            <text class="permission-title">录音权限</text>
+            <text class="permission-desc">测评需要使用麦克风录制你的语音回答</text>
+          </view>
+        </view>
+        <view class="permission-status">
+          <text wx:if="{{recordPermission === 'authorized'}}" class="permission-granted">✓ 已授权</text>
+          <text wx:elif="{{recordPermission === 'denied'}}" class="permission-denied">✗ 已拒绝，请在设置中开启</text>
+          <button wx:else class="permission-btn" bindtap="requestPermission">点击授权</button>
+        </view>
+      </view>
+    </view>
+
+    <!-- 底部按钮 -->
+    <view class="bottom-area animate-fade-in-delay-4">
+      <button class="btn-primary" bindtap="handleStartTest">
+        <text>开始测评</text>
+      </button>
+      <text class="bottom-hint">测评约需5分钟，共涵盖4个等级</text>
+    </view>
+  </scroll-view>
+</view>

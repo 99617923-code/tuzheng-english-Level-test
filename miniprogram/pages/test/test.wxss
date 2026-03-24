@@ -1,0 +1,447 @@
+/* 途正英语 - 测评主页面样式 */
+.page {
+  min-height: 100vh;
+  background: var(--bg-gradient);
+  display: flex;
+  flex-direction: column;
+}
+
+/* 导航栏 */
+.nav-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: rgba(240,244,248,0.90);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.nav-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 88rpx;
+  padding: 0 32rpx;
+}
+
+.nav-back {
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.6);
+}
+
+.nav-back-icon {
+  width: 32rpx;
+  height: 32rpx;
+}
+
+.nav-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.nav-level {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: var(--brand-blue);
+}
+
+.nav-progress {
+  font-size: 20rpx;
+  color: var(--text-muted);
+}
+
+.nav-timer {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  background: rgba(255,255,255,0.6);
+  border-radius: var(--radius-full);
+  padding: 8rpx 20rpx;
+}
+
+.timer-icon {
+  width: 28rpx;
+  height: 28rpx;
+  opacity: 0.5;
+}
+
+.timer-text {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 进度条 */
+.progress-wrap {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 99;
+  padding: 0 48rpx;
+  height: 20rpx;
+  display: flex;
+  align-items: center;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8rpx;
+  border-radius: 8rpx;
+  background: rgba(27,63,145,0.08);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 8rpx;
+  background: linear-gradient(90deg, var(--brand-blue), var(--brand-green));
+  transition: width 0.5s ease;
+}
+
+/* 主内容区 */
+.main-area {
+  flex: 1;
+  padding: 32rpx 48rpx;
+  padding-bottom: 360rpx;
+}
+
+/* 题目卡片 */
+.question-card {
+  padding: 40rpx;
+}
+
+.ai-header {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  margin-bottom: 32rpx;
+}
+
+.ai-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.ai-avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  border: 4rpx solid rgba(27,63,145,0.10);
+}
+
+.ai-speaking-dot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 24rpx;
+  height: 24rpx;
+  border-radius: 50%;
+  background: var(--brand-green);
+  border: 4rpx solid #ffffff;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.ai-info {
+  flex: 1;
+}
+
+.ai-name {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: var(--brand-blue);
+}
+
+.ai-status {
+  display: block;
+  font-size: 22rpx;
+  color: var(--text-muted);
+  margin-top: 4rpx;
+}
+
+.question-text-wrap {
+  margin-bottom: 32rpx;
+}
+
+.question-text {
+  font-size: 32rpx;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.7;
+}
+
+/* 音频播放条 */
+.audio-bar {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  background: rgba(27,63,145,0.04);
+  border-radius: var(--radius-lg);
+  padding: 20rpx 28rpx;
+  margin-bottom: 32rpx;
+}
+
+.audio-bar:active {
+  background: rgba(27,63,145,0.08);
+}
+
+.audio-play-btn {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--brand-blue), var(--brand-blue-light));
+  flex-shrink: 0;
+}
+
+.audio-play-icon {
+  width: 28rpx;
+  height: 28rpx;
+}
+
+.audio-waves {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+  height: 48rpx;
+}
+
+.audio-wave-bar {
+  width: 5rpx;
+  border-radius: 5rpx;
+  background: rgba(27,63,145,0.20);
+  transition: height 0.2s ease;
+}
+
+.audio-wave-bar.playing {
+  animation: soundWave 0.6s ease-in-out infinite;
+}
+
+.audio-duration {
+  font-size: 22rpx;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 用户回答 */
+.user-answer {
+  background: rgba(131,186,18,0.06);
+  border-radius: var(--radius-md);
+  padding: 24rpx 28rpx;
+  margin-bottom: 24rpx;
+}
+
+.user-answer-header {
+  margin-bottom: 12rpx;
+}
+
+.user-answer-label {
+  font-size: 22rpx;
+  font-weight: 600;
+  color: var(--brand-green);
+}
+
+.user-answer-text {
+  font-size: 28rpx;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* 评价反馈 */
+.feedback-area {
+  background: rgba(27,63,145,0.04);
+  border-radius: var(--radius-md);
+  padding: 24rpx 28rpx;
+}
+
+.feedback-score-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 12rpx;
+}
+
+.feedback-label {
+  font-size: 22rpx;
+  color: var(--text-muted);
+}
+
+.feedback-score {
+  font-size: 36rpx;
+  font-weight: 800;
+}
+
+.feedback-text {
+  font-size: 26rpx;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* 实时识别文字 */
+.realtime-text {
+  margin-top: 24rpx;
+  padding: 24rpx 28rpx;
+}
+
+.realtime-label {
+  display: block;
+  font-size: 22rpx;
+  color: var(--brand-green);
+  font-weight: 600;
+  margin-bottom: 8rpx;
+}
+
+.realtime-content {
+  font-size: 28rpx;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* 底部操作区 */
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  padding: 32rpx 48rpx;
+  background: linear-gradient(to top, rgba(240,244,248,0.95) 60%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.action-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 播放按钮 */
+.listen-btn {
+  width: 100%;
+  height: 112rpx;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--brand-blue) 0%, var(--brand-blue-light) 100%) !important;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16rpx;
+  box-shadow: 0 12rpx 40rpx rgba(27,63,145,0.30);
+  line-height: 1;
+}
+
+.listen-icon {
+  width: 40rpx;
+  height: 40rpx;
+}
+
+.listen-text {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+/* 录音按钮 */
+.record-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.record-pulse-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 192rpx;
+  height: 192rpx;
+  margin-top: -96rpx;
+  margin-left: -96rpx;
+  border-radius: 50%;
+  background: rgba(27,63,145,0.10);
+  animation: pulseRing 1.5s ease-out infinite;
+  pointer-events: none;
+}
+
+.record-btn {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--brand-blue), var(--brand-blue-light));
+  box-shadow: 0 12rpx 40rpx rgba(27,63,145,0.30);
+  transition: transform 0.2s ease;
+}
+
+.record-btn.recording {
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  box-shadow: 0 12rpx 40rpx rgba(231,76,60,0.30);
+  transform: scale(1.1);
+}
+
+.record-mic-icon {
+  width: 64rpx;
+  height: 64rpx;
+}
+
+.record-hint {
+  font-size: 26rpx;
+  color: var(--text-muted);
+  margin-top: 20rpx;
+}
+
+.record-timer {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: var(--brand-blue);
+  margin-top: 8rpx;
+  font-variant-numeric: tabular-nums;
+}
+
+.skip-row {
+  margin-top: 24rpx;
+}
+
+.skip-btn {
+  font-size: 26rpx;
+  color: var(--text-muted);
+  background: transparent !important;
+  text-decoration: underline;
+  line-height: 1;
+  padding: 8rpx 16rpx;
+}
+
+/* 评估中 */
+.evaluating-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.evaluating-spinner {
+  width: 56rpx;
+  height: 56rpx;
+  animation: spin 1s linear infinite;
+}
+
+.evaluating-text {
+  font-size: 28rpx;
+  color: var(--text-muted);
+}

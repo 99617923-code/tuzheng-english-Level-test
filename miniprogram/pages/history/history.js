@@ -1,6 +1,6 @@
 /**
  * 途正英语AI分级测评 - 历史记录页
- * 小程序原生适配：全局导航布局
+ * 优化排版版：左侧序号+右侧信息，统计摘要
  */
 const app = getApp()
 const { getTestHistory } = require('../../utils/api')
@@ -17,7 +17,9 @@ Page({
     list: [],
     page: 1,
     pageSize: 20,
-    total: 0
+    total: 0,
+    completedCount: 0,
+    bestLevel: ''
   },
 
   onLoad() {
@@ -53,12 +55,27 @@ Page({
     try {
       const data = await getTestHistory(this.data.page, this.data.pageSize)
       const list = (data.list || []).map(item => this.formatItem(item))
+      const allList = [...this.data.list, ...list]
+
+      // 计算统计摘要
+      const completedItems = allList.filter(item => item.status === 'completed')
+      const completedCount = completedItems.length
+      let bestLevel = ''
+      if (completedItems.length > 0) {
+        // 找最高等级（finalLevel 最大的）
+        const best = completedItems.reduce((prev, curr) => {
+          return (curr.finalLevel || 0) > (prev.finalLevel || 0) ? curr : prev
+        })
+        bestLevel = best.levelName || ''
+      }
 
       this.setData({
         loading: false,
-        list: [...this.data.list, ...list],
+        list: allList,
         total: data.total || 0,
-        noMore: list.length < this.data.pageSize
+        noMore: list.length < this.data.pageSize,
+        completedCount,
+        bestLevel
       })
     } catch (err) {
       console.error('[History] Load error:', err)

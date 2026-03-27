@@ -1,6 +1,6 @@
 <!--
   途正英语AI分级测评 - 历史记录页
-  小程序原生适配：全局导航布局
+  优化排版：左侧序号+右侧信息，日期完整显示，状态更醒目
 -->
 <view class="page">
   <!-- 自定义导航栏 -->
@@ -39,8 +39,26 @@
       <button class="empty-btn" bindtap="goTest">开始测评</button>
     </view>
 
+    <!-- 统计摘要 -->
+    <view wx:if="{{list.length > 0}}" class="summary-bar">
+      <view class="summary-item">
+        <text class="summary-value">{{list.length}}</text>
+        <text class="summary-label">总测评</text>
+      </view>
+      <view class="summary-divider"></view>
+      <view class="summary-item">
+        <text class="summary-value">{{completedCount}}</text>
+        <text class="summary-label">已完成</text>
+      </view>
+      <view class="summary-divider"></view>
+      <view class="summary-item">
+        <text class="summary-value {{bestLevel ? '' : 'muted'}}">{{bestLevel || '-'}}</text>
+        <text class="summary-label">最高等级</text>
+      </view>
+    </view>
+
     <!-- 记录列表 -->
-    <view wx:else class="list">
+    <view wx:if="{{list.length > 0}}" class="list">
       <view
         class="record-card glass-card animate-fade-in"
         wx:for="{{list}}"
@@ -49,38 +67,50 @@
         data-session-id="{{item.sessionId}}"
         style="animation-delay: {{index * 0.05}}s;"
       >
-        <view class="record-header">
-          <view class="record-level-badge" style="background: {{item.levelColor}};">
-            <text class="record-level-text">{{item.levelName || '未完成'}}</text>
+        <!-- 左侧：序号圆圈 + 状态色条 -->
+        <view class="card-left">
+          <view class="index-circle {{item.status === 'completed' ? 'completed' : ''}}">
+            <text class="index-num">{{index + 1}}</text>
           </view>
-          <text class="record-date">{{item.completedAtFormatted}}</text>
+          <view class="status-line {{item.status === 'completed' ? 'completed' : ''}}"></view>
         </view>
 
-        <view class="record-body">
-          <view wx:if="{{item.levelLabel}}" class="record-label">
-            <text class="record-label-text">{{item.levelLabel}}</text>
-          </view>
-
-          <view class="record-stats">
-            <view class="stat-item">
-              <text class="stat-value">{{item.questionCount || 0}}</text>
-              <text class="stat-label">答题数</text>
+        <!-- 右侧：主信息 -->
+        <view class="card-right">
+          <!-- 第一行：等级 + 状态 -->
+          <view class="card-row-top">
+            <view wx:if="{{item.status === 'completed'}}" class="level-tag" style="background: {{item.levelColor}};">
+              <text class="level-tag-text">{{item.levelName}}</text>
             </view>
-            <view class="stat-divider"></view>
-            <view class="stat-item">
-              <text class="stat-value">{{item.durationText || '-'}}</text>
-              <text class="stat-label">用时</text>
+            <view wx:else class="level-tag incomplete">
+              <text class="level-tag-text">未完成</text>
             </view>
-            <view class="stat-divider"></view>
-            <view class="stat-item">
-              <text class="stat-value {{item.status === 'completed' ? 'completed' : 'incomplete'}}">{{item.statusText}}</text>
-              <text class="stat-label">状态</text>
+            <view class="status-badge {{item.status === 'completed' ? 'done' : 'pending'}}">
+              <view class="status-dot"></view>
+              <text class="status-text">{{item.statusText}}</text>
             </view>
           </view>
-        </view>
 
-        <view class="record-arrow">
-          <image class="arrow-icon" src="/assets/icons/chevron-right.svg" mode="aspectFit" />
+          <!-- 第二行：等级描述 -->
+          <text wx:if="{{item.levelLabel}}" class="level-desc">{{item.levelLabel}}</text>
+
+          <!-- 第三行：统计数据 -->
+          <view class="card-stats">
+            <view class="stat-chip">
+              <image class="stat-icon" src="/assets/icons/mic.svg" mode="aspectFit" />
+              <text class="stat-text">{{item.questionCount || 0}} 题</text>
+            </view>
+            <view class="stat-chip">
+              <image class="stat-icon" src="/assets/icons/clock.svg" mode="aspectFit" />
+              <text class="stat-text">{{item.durationText || '-'}}</text>
+            </view>
+          </view>
+
+          <!-- 第四行：日期 + 箭头 -->
+          <view class="card-row-bottom">
+            <text class="card-date">{{item.completedAtFormatted}}</text>
+            <image class="arrow-icon" src="/assets/icons/chevron-right.svg" mode="aspectFit" />
+          </view>
         </view>
       </view>
 

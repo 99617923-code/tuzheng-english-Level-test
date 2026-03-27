@@ -1,4 +1,4 @@
-/* 途正英语 - 历史记录页样式 */
+/* 途正英语 - 历史记录页样式（优化排版版） */
 .page {
   min-height: 100vh;
   background: var(--bg-gradient);
@@ -12,11 +12,53 @@
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 24rpx 40rpx;
+  padding: 24rpx 32rpx;
   padding-bottom: calc(env(safe-area-inset-bottom) + 24rpx);
 }
 
-/* 空状态 */
+/* ========== 统计摘要 ========== */
+.summary-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 28rpx 32rpx;
+  margin-bottom: 28rpx;
+  background: rgba(255,255,255,0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: var(--radius-lg);
+  border: 1rpx solid rgba(255,255,255,0.5);
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+}
+
+.summary-value {
+  font-size: 36rpx;
+  font-weight: 800;
+  color: var(--brand-blue);
+}
+
+.summary-value.muted {
+  color: var(--text-muted);
+}
+
+.summary-label {
+  font-size: 22rpx;
+  color: var(--text-muted);
+}
+
+.summary-divider {
+  width: 2rpx;
+  height: 48rpx;
+  background: rgba(27,63,145,0.08);
+}
+
+/* ========== 空状态 ========== */
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -80,116 +122,207 @@
   line-height: 1.4;
 }
 
-/* 记录列表 */
+/* ========== 记录列表 ========== */
 .list {
   display: flex;
   flex-direction: column;
-  gap: 24rpx;
+  gap: 20rpx;
 }
 
 .record-card {
-  padding: 32rpx;
   display: flex;
-  flex-direction: column;
-  position: relative;
+  flex-direction: row;
+  padding: 0;
+  overflow: hidden;
 }
 
 .record-card:active {
-  background: var(--glass-bg-strong);
+  transform: scale(0.98);
+  transition: transform 0.15s ease;
 }
 
-.record-header {
+/* 左侧序号区 */
+.card-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28rpx 20rpx 28rpx 24rpx;
+  gap: 8rpx;
+}
+
+.index-circle {
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(27,63,145,0.06);
+  flex-shrink: 0;
+}
+
+.index-circle.completed {
+  background: linear-gradient(135deg, var(--brand-blue), var(--brand-blue-light));
+}
+
+.index-num {
+  font-size: 24rpx;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.index-circle.completed .index-num {
+  color: #ffffff;
+}
+
+.status-line {
+  flex: 1;
+  width: 4rpx;
+  min-height: 24rpx;
+  border-radius: 2rpx;
+  background: rgba(27,63,145,0.06);
+}
+
+.status-line.completed {
+  background: linear-gradient(to bottom, var(--brand-blue), rgba(27,63,145,0.06));
+}
+
+/* 右侧信息区 */
+.card-right {
+  flex: 1;
+  padding: 24rpx 28rpx 24rpx 8rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+/* 第一行：等级 + 状态 */
+.card-row-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20rpx;
 }
 
-.record-level-badge {
+.level-tag {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  padding: 8rpx 24rpx;
+  padding: 6rpx 20rpx;
   border-radius: var(--radius-full);
 }
 
-.record-level-text {
+.level-tag.incomplete {
+  background: rgba(138,149,165,0.12);
+}
+
+.level-tag-text {
   font-size: 24rpx;
   font-weight: 700;
   color: #ffffff;
 }
 
-.record-date {
+.level-tag.incomplete .level-tag-text {
+  color: #8a95a5;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 4rpx 16rpx;
+  border-radius: var(--radius-full);
+}
+
+.status-badge.done {
+  background: rgba(131,186,18,0.10);
+}
+
+.status-badge.pending {
+  background: rgba(138,149,165,0.08);
+}
+
+.status-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+}
+
+.status-badge.done .status-dot {
+  background: var(--brand-green);
+}
+
+.status-badge.pending .status-dot {
+  background: #c0c6cf;
+}
+
+.status-text {
   font-size: 22rpx;
-  color: var(--text-muted);
-}
-
-.record-body {
-  flex: 1;
-}
-
-.record-label {
-  margin-bottom: 16rpx;
-}
-
-.record-label-text {
-  font-size: 26rpx;
-  color: var(--text-secondary);
   font-weight: 500;
 }
 
-.record-stats {
-  display: flex;
-  align-items: center;
-  gap: 32rpx;
-}
-
-.stat-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.stat-value {
-  font-size: 28rpx;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.stat-value.completed {
+.status-badge.done .status-text {
   color: var(--brand-green);
 }
 
-.stat-value.incomplete {
-  color: var(--text-muted);
+.status-badge.pending .status-text {
+  color: #8a95a5;
 }
 
-.stat-label {
-  font-size: 20rpx;
+/* 等级描述 */
+.level-desc {
+  font-size: 26rpx;
+  color: var(--text-secondary);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* 统计数据 */
+.card-stats {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 6rpx 16rpx;
+  background: rgba(27,63,145,0.04);
+  border-radius: var(--radius-sm);
+}
+
+.stat-icon {
+  width: 24rpx;
+  height: 24rpx;
+  opacity: 0.4;
+}
+
+.stat-text {
+  font-size: 22rpx;
   color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* 底部：日期 + 箭头 */
+.card-row-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-top: 4rpx;
 }
 
-.stat-divider {
-  width: 2rpx;
-  height: 40rpx;
-  background: rgba(0,0,0,0.06);
-}
-
-.record-arrow {
-  position: absolute;
-  right: 32rpx;
-  top: 50%;
-  transform: translateY(-50%);
+.card-date {
+  font-size: 22rpx;
+  color: var(--text-placeholder);
 }
 
 .arrow-icon {
   width: 28rpx;
   height: 28rpx;
-  opacity: 0.3;
+  opacity: 0.25;
 }
 
-/* 加载更多 */
+/* ========== 加载更多 ========== */
 .loading-more {
   display: flex;
   align-items: center;

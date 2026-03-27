@@ -1,5 +1,6 @@
 /**
  * 途正英语AI分级测评 - 结果页
+ * 对接真实后端API：getTestResult + getQrcodeByLevel
  * 小程序原生适配：全局导航布局
  */
 const app = getApp()
@@ -32,7 +33,8 @@ Page({
 
     // 二维码弹窗
     showQrModal: false,
-    qrcodeUrl: ''
+    qrcodeUrl: '',
+    groupName: ''
   },
 
   _sessionId: '',
@@ -55,28 +57,60 @@ Page({
     }
   },
 
-  /** 加载测评结果 */
+  /** 加载测评结果 - 对接真实后端API */
   async loadResult() {
     try {
       const data = await getTestResult(this._sessionId)
-      this._finalLevel = data.finalLevel || 0
+
+      // 兼容后端不同字段命名（camelCase / snake_case）
+      this._finalLevel = data.finalLevel !== undefined ? data.finalLevel
+        : data.final_level !== undefined ? data.final_level
+        : data.level !== undefined ? data.level : 0
 
       const config = app.getLevelConfig(this._finalLevel)
-      const scores = data.scores || {}
+
+      // 兼容后端不同的分数字段结构
+      const scores = data.scores || data.score_detail || {}
 
       const totalStars = 5
       const filledStars = config.stars || 1
       const starsArray = Array.from({ length: totalStars }, (_, i) => i < filledStars)
 
+      // 构建分项得分列表
       const scoreItems = [
-        { label: '听力理解', value: scores.comprehension || 0, percent: scores.comprehension || 0, color: '#1B3F91' },
-        { label: '语法运用', value: scores.grammar || 0, percent: scores.grammar || 0, color: '#2B5BA0' },
-        { label: '词汇量', value: scores.vocabulary || 0, percent: scores.vocabulary || 0, color: '#83BA12' },
-        { label: '口语流利度', value: scores.fluency || 0, percent: scores.fluency || 0, color: '#4a8a30' }
+        {
+          label: '听力理解',
+          value: scores.comprehension || scores.listening || 0,
+          percent: scores.comprehension || scores.listening || 0,
+          color: '#1B3F91'
+        },
+        {
+          label: '语法运用',
+          value: scores.grammar || 0,
+          percent: scores.grammar || 0,
+          color: '#2B5BA0'
+        },
+        {
+          label: '词汇量',
+          value: scores.vocabulary || 0,
+          percent: scores.vocabulary || 0,
+          color: '#83BA12'
+        },
+        {
+          label: '口语流利度',
+          value: scores.fluency || 0,
+          percent: scores.fluency || 0,
+          color: '#4a8a30'
+        }
       ]
 
       if (scores.pronunciation) {
-        scoreItems.push({ label: '发音准确度', value: scores.pronunciation, percent: scores.pronunciation, color: '#6a9a10' })
+        scoreItems.push({
+          label: '发音准确度',
+          value: scores.pronunciation,
+          percent: scores.pronunciation,
+          color: '#6a9a10'
+        })
       }
 
       const bgGradients = {
@@ -86,20 +120,27 @@ Page({
         3: 'linear-gradient(135deg, rgba(43,91,160,0.08), rgba(27,63,145,0.06))'
       }
 
-      const totalDuration = data.totalDuration || 0
+      // 兼容后端不同的时长字段
+      const totalDuration = data.totalDuration || data.total_duration || data.duration || 0
       const durationText = formatDuration(Math.round(totalDuration))
+
+      // 兼容后端不同的题目数字段
+      const questionCount = data.questionCount || data.question_count || data.total_questions || 0
+
+      // 兼容后端不同的综合分字段
+      const overallScore = scores.overall || scores.overall_score || scores.total || 0
 
       this.setData({
         loading: false,
         levelName: config.name,
-        levelLabel: config.label || data.levelLabel || '',
+        levelLabel: config.label || data.levelLabel || data.level_label || '',
         levelColor: config.color,
         levelBgGradient: bgGradients[this._finalLevel] || bgGradients[1],
         starsArray,
-        overallScore: scores.overall || 0,
-        questionCount: data.questionCount || 0,
+        overallScore,
+        questionCount,
         durationText,
-        description: config.description || '',
+        description: config.description || data.description || '',
         recommendation: data.recommendation || config.recommendation || '',
         scoreItems
       })
@@ -111,16 +152,24 @@ Page({
     }
   },
 
-  /** 加入学习群 */
+  /** 加入学习群 - 对接真实后端群二维码接口 */
   async handleJoinGroup() {
-    this.setData({ showQrModal: true })
+    this.setData({ showQrModal: true, qrcodeUrl: '', groupName: '' })
     try {
       const data = await getQrcodeByLevel(this._finalLevel)
-      if (data && data.qrcodeUrl) {
-        this.setData({ qrcodeUrl: data.qrcodeUrl })
+      if (data) {
+        // 兼容后端不同字段命名
+        const qrcodeUrl = data.qrcodeUrl || data.qrcode_url || data.imageUrl || data.image_url || ''
+        const groupName = data.groupName || data.group_name || ''
+
+        this.setData({
+          qrcodeUrl,
+          groupName
+        })
       }
     } catch (e) {
       console.warn('[QRCode] Fetch failed:', e)
+      // 获取失败不阻断，弹窗显示"二维码即将上线"占位
     }
   },
 

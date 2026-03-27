@@ -155,3 +155,17 @@
 
 ## 小程序测评记录页排版优化
 - [x] 优化history页面卡片排版：信息层次更清晰、日期不截断、状态标签更醒目
+
+## 小程序升级 - 对接真实后端API（去掉Mock模式）
+- [x] api.js：确认evaluate接口参数兼容（增加recognizedText和duration字段映射）
+- [x] test.js：测评页对接真实API（去掉mock逻辑，走真实startTest/evaluateAnswer/uploadAudio）
+- [x] test.js：evaluate接口增加recognizedText参数（同声传译识别文字传给后端辅助评分）
+- [x] test.js：evaluate接口增加duration参数（录音时长传给后端）
+- [x] test.js：录音上传+evaluate一体化流程（上传音频→拿audioUrl→传给evaluate）
+- [x] result.js：结果页对接真实getQrcodeByLevel接口（去掉mock二维码）
+- [x] result.js：群二维码level参数适配后端格式（数字0-3 vs 字符串starter/elementary等）
+- [x] login.js：确认微信手机号登录接口参数格式与后端一致
+- [x] home.js：确认首页登录状态检查逻辑正确
+- [x] history.js：确认历史记录接口字段映射正确
+- [x] 全面检查所有页面去掉mock/模拟数据残留
+- [x] 保存checkpoint并同步到GitHub

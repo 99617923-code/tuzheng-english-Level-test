@@ -2,6 +2,7 @@
  * 途正英语AI分级测评 - 测评主页面
  * 核心交互：听AI语音 → 按住说话 → AI评分 → 下一题/出结果
  * 使用微信同声传译插件进行实时语音识别
+ * 录音上传到OSS + 后端Whisper精确转写 + LLM评分
  * 小程序原生适配：全局导航布局
  */
 const app = getApp()
@@ -25,7 +26,7 @@ Page({
     currentQuestion: {},
     currentQuestionIndex: 0,
     currentLevelName: '',
-    totalQuestions: 10,
+    totalQuestions: 12,
     isLastQuestion: false,
 
     // 计时
@@ -62,6 +63,8 @@ Page({
   _recorderManager: null,
   _recordFilePath: '',
   _sessionManager: null,
+  _nextQuestion: null,
+  _testResult: null,
 
   onLoad() {
     const navLayout = app.getNavLayout()
@@ -103,18 +106,20 @@ Page({
     } catch (e) {}
   },
 
-  /** 初始化测评 */
+  /** 初始化测评 - 调用真实后端API */
   async initTest() {
     this.setData({ phase: 'loading', aiStatusText: '正在准备测评...' })
 
     try {
       const data = await startTest()
       this.setData({
-        sessionId: data.sessionId,
-        currentQuestion: data.firstQuestion,
-        totalQuestions: data.totalQuestions || 10,
+        sessionId: data.sessionId || data.session_id,
+        currentQuestion: this._normalizeQuestion(data.firstQuestion || data.first_question),
+        totalQuestions: data.totalQuestions || data.total_questions || 12,
         currentQuestionIndex: 0,
-        currentLevelName: this.getLevelName(data.firstQuestion.level),
+        currentLevelName: this.getLevelName(
+          (data.firstQuestion || data.first_question || {}).level
+        ),
         phase: 'listening',
         aiStatusText: '请听题目',
         progressPercent: 0
@@ -122,13 +127,33 @@ Page({
 
       this.startTimer()
 
-      if (data.firstQuestion.audioUrl) {
+      const question = data.firstQuestion || data.first_question
+      if (question && question.audioUrl) {
         await delay(500)
         this.playAudio()
+      } else {
+        // 没有音频的题目直接进入回答阶段
+        this.setData({ phase: 'answering', aiStatusText: '请用英语回答' })
       }
     } catch (err) {
+      console.error('[Test] Init error:', err)
       showError(err.message || '创建测评失败')
       setTimeout(() => wx.navigateBack(), 1500)
+    }
+  },
+
+  /**
+   * 标准化题目数据（兼容后端不同字段命名风格）
+   * 后端可能用 camelCase 或 snake_case
+   */
+  _normalizeQuestion(q) {
+    if (!q) return {}
+    return {
+      questionId: q.questionId || q.question_id || q.id || '',
+      text: q.text || q.question_text || q.content || '',
+      audioUrl: q.audioUrl || q.audio_url || '',
+      level: q.level !== undefined ? q.level : 0,
+      type: q.type || 'oral'
     }
   },
 
@@ -232,7 +257,10 @@ Page({
         plugin.voiceRecognizer.stop()
       } catch (e) {}
 
-      this.submitAnswer()
+      // 只有有录音文件才提交
+      if (this._recordFilePath) {
+        this.submitAnswer()
+      }
     })
 
     this._recorderManager.onError((err) => {
@@ -279,7 +307,7 @@ Page({
     } catch (e) {}
   },
 
-  /** 启动同声传译语音识别 */
+  /** 启动同声传译语音识别（前端实时识别，辅助后端评分） */
   startVoiceRecognition() {
     const manager = plugin.voiceRecognizer
 
@@ -300,6 +328,7 @@ Page({
 
     manager.onError = (err) => {
       console.warn('[VoiceRecognizer] Error:', err)
+      // 同声传译失败不影响主流程，后端Whisper会兜底
     }
 
     manager.start({
@@ -309,8 +338,14 @@ Page({
     })
   },
 
-  // ============ 提交评估 ============
+  // ============ 提交评估（真实API流程） ============
 
+  /**
+   * 提交回答 - 完整流程：
+   * 1. 上传录音到OSS（upload-audio接口）
+   * 2. 将audioUrl + 同声传译文字 + 录音时长 发给evaluate接口
+   * 3. 后端用Whisper精确转写 + LLM评分
+   */
   async submitAnswer() {
     const { sessionId, currentQuestion, userTranscription, recordSeconds } = this.data
 
@@ -325,6 +360,7 @@ Page({
     })
 
     try {
+      // 第一步：上传录音到OSS
       let audioUrl = ''
       try {
         const uploadRes = await uploadAudio(
@@ -332,34 +368,52 @@ Page({
           sessionId,
           currentQuestion.questionId
         )
-        audioUrl = uploadRes.audioUrl
+        audioUrl = uploadRes.audioUrl || uploadRes.audio_url || uploadRes.url || ''
+        console.log('[Upload] Audio uploaded:', audioUrl)
       } catch (e) {
         console.warn('[Upload] Failed, continuing with transcription only:', e)
+        // 上传失败不阻断流程，后端可以仅用同声传译文字评分
       }
 
+      // 第二步：提交评估
+      // 同时传递：audioUrl（供Whisper精确转写）+ recognizedText（同声传译文字辅助）+ duration
       const evalRes = await evaluateAnswer({
         sessionId,
         questionId: currentQuestion.questionId,
         transcription: userTranscription || '',
+        recognizedText: userTranscription || '',
         audioUrl: audioUrl || undefined,
-        answerDuration: recordSeconds
+        answerDuration: recordSeconds,
+        duration: recordSeconds
       })
 
-      const { evaluation, nextQuestion, nextAction, result } = evalRes
-      const score = evaluation ? evaluation.score : 0
+      // 第三步：处理评估结果
+      // 兼容后端不同的响应字段命名
+      const evaluation = evalRes.evaluation || evalRes
+      const nextQuestion = evalRes.nextQuestion || evalRes.next_question
+      const nextAction = evalRes.nextAction || evalRes.next_action || ''
+      const result = evalRes.result || null
+
+      const score = evaluation ? (evaluation.score || evaluation.overall_score || 0) : 0
       const scoreColor = score >= 80 ? '#83BA12' : score >= 60 ? '#2B5BA0' : '#e74c3c'
+      const feedback = evaluation ? (evaluation.feedback || evaluation.comment || '') : ''
 
       this.setData({
-        evaluationFeedback: evaluation ? evaluation.feedback : '',
+        evaluationFeedback: feedback,
         evaluationScore: score,
         scoreColor,
         phase: 'feedback',
         aiStatusText: '评估完成',
-        isLastQuestion: nextAction === 'complete' || !nextQuestion
+        isLastQuestion: nextAction === 'complete' || nextAction === 'finish' || !nextQuestion
       })
 
-      if (nextQuestion) this._nextQuestion = nextQuestion
-      if (result) this._testResult = result
+      // 缓存下一题和结果数据
+      if (nextQuestion) {
+        this._nextQuestion = this._normalizeQuestion(nextQuestion)
+      }
+      if (result) {
+        this._testResult = result
+      }
 
     } catch (err) {
       console.error('[Evaluate] Error:', err)
@@ -374,7 +428,9 @@ Page({
     const { isLastQuestion, sessionId } = this.data
 
     if (isLastQuestion) {
-      const resultSessionId = this._testResult ? this._testResult.sessionId : sessionId
+      const resultSessionId = this._testResult
+        ? (this._testResult.sessionId || this._testResult.session_id || sessionId)
+        : sessionId
       wx.redirectTo({
         url: `/pages/result/result?sessionId=${resultSessionId}`
       })
@@ -430,10 +486,14 @@ Page({
               sessionId: this.data.sessionId,
               questionId: this.data.currentQuestion.questionId,
               transcription: '',
-              answerDuration: 0
+              recognizedText: '',
+              answerDuration: 0,
+              duration: 0
             })
 
-            const { nextQuestion, nextAction, result } = evalRes
+            const nextQuestion = evalRes.nextQuestion || evalRes.next_question
+            const nextAction = evalRes.nextAction || evalRes.next_action || ''
+            const result = evalRes.result || null
 
             this.setData({
               evaluationFeedback: '已跳过此题',
@@ -441,10 +501,10 @@ Page({
               scoreColor: '#8a95a5',
               phase: 'feedback',
               aiStatusText: '已跳过',
-              isLastQuestion: nextAction === 'complete' || !nextQuestion
+              isLastQuestion: nextAction === 'complete' || nextAction === 'finish' || !nextQuestion
             })
 
-            if (nextQuestion) this._nextQuestion = nextQuestion
+            if (nextQuestion) this._nextQuestion = this._normalizeQuestion(nextQuestion)
             if (result) this._testResult = result
 
           } catch (err) {

@@ -1,6 +1,7 @@
 /**
  * 途正英语 - API接口封装
  * 对接后端所有业务接口
+ * 后端地址: https://tzapp-admin.figo.cn
  */
 const { request, uploadFile, setTokens, clearTokens } = require('./request')
 
@@ -81,11 +82,39 @@ function startTest() {
   })
 }
 
-/** 提交回答并获取AI评估 */
+/**
+ * 提交回答并获取AI评估
+ * @param {object} params
+ * @param {string} params.sessionId - 测评会话ID
+ * @param {string} params.questionId - 题目ID
+ * @param {string} [params.audioUrl] - 录音OSS地址（由upload-audio返回）
+ * @param {string} [params.transcription] - 同声传译插件识别的文字（前端实时识别）
+ * @param {string} [params.recognizedText] - 同义字段，部分后端版本使用此字段名
+ * @param {number} [params.answerDuration] - 回答时长（秒）
+ * @param {number} [params.duration] - 同义字段，部分后端版本使用此字段名
+ */
 function evaluateAnswer(params) {
+  // 兼容处理：同时发送 transcription/recognizedText 和 answerDuration/duration
+  // 确保后端无论用哪个字段名都能正确接收
+  const data = {
+    sessionId: params.sessionId,
+    questionId: params.questionId,
+    // 文字识别结果：同时发送两个字段名，兼容不同后端版本
+    transcription: params.transcription || params.recognizedText || '',
+    recognizedText: params.recognizedText || params.transcription || '',
+    // 录音时长：同时发送两个字段名
+    answerDuration: params.answerDuration || params.duration || 0,
+    duration: params.duration || params.answerDuration || 0
+  }
+
+  // 可选字段
+  if (params.audioUrl) {
+    data.audioUrl = params.audioUrl
+  }
+
   return request('/api/v1/test/evaluate', {
     method: 'POST',
-    data: params
+    data
   }).then(res => {
     if (res.code !== 200) throw new Error(res.msg || '评估失败')
     return res.data
@@ -111,7 +140,7 @@ function uploadAudio(filePath, sessionId, questionId) {
   })
 }
 
-/** 语音转文字 */
+/** 语音转文字（Whisper，后端集成） */
 function transcribeAudio(audioUrl, language = 'en') {
   return request('/api/v1/test/transcribe', {
     method: 'POST',
@@ -152,7 +181,10 @@ function textToSpeech(text, voice = 'en-US-female', speed = 0.85) {
   })
 }
 
-/** 获取群二维码 */
+/**
+ * 获取群二维码
+ * @param {number} level - 等级数字（0=零级, 1=一级, 2=二级, 3=三级）
+ */
 function getQrcodeByLevel(level) {
   return request(`/api/v1/qrcode/level/${level}`).then(res => {
     if (res.code !== 200) throw new Error(res.msg || '获取二维码失败')

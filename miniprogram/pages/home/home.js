@@ -75,16 +75,17 @@ Page({
   /** 分享给好友 */
   onShareAppMessage() {
     return {
-      title: '途正英语AI智能测评 - 3分钟测出你的英语水平',
+      title: '途正英语AI智能分级测评，3分钟测出你的英语水平',
       path: '/pages/home/home',
-      imageUrl: app.globalData.logoUrl
+      imageUrl: app.globalData.shareCoverUrl
     }
   },
 
   /** 分享到朋友圈 */
   onShareTimeline() {
     return {
-      title: '途正英语AI智能测评 - 3分钟测出你的英语水平',
+      title: '途正英语AI智能分级测评，3分钟测出你的英语水平',
+      imageUrl: app.globalData.shareCoverUrl,
       query: ''
     }
   }

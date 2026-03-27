@@ -21,6 +21,7 @@ App({
     // 品牌资源
     logoUrl: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/tuzheng-logo-transparent_4a301562.png',
     aiAvatarUrl: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/ai-teacher-avatar-dLw5RzBDM3AJWaRxiMxYoU.webp',
+    shareCoverUrl: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/share-cover_103ee497.png',
     // 等级配置
     levelConfig: {
       0: { name: '零级', label: '零基础 / 小学水平', color: '#8a95a5', bgColor: 'rgba(138,149,165,0.08)', stars: 1, abilityLabel: '入门', description: '你目前处于英语入门阶段，掌握了基本的英文字母和少量常用词汇。别担心，每个人都是从零开始的！', recommendation: '推荐加入零基础口语营，从最基础的日常用语开始，循序渐进地建立英语信心。' },

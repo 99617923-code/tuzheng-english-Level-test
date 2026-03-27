@@ -180,3 +180,8 @@
 - [x] 首页(home)添加onShareTimeline分享到朋友圈
 - [x] 结果页(result)添加分享功能（分享测评结果 + 朋友圈）
 - [x] 测评说明页(rules)添加分享功能
+
+## 优化 - 分享封面图和标题
+- [x] 制作分享封面图（首页首屏效果，5:4比例500x400px）
+- [x] 上传封面图到CDN- [x] 修改分享标题为“途正英语AI智能分级测评，3分钟测出你的英语水平”"
+- [x] 更新所有页面的onShareAppMessage和onShareTimeline

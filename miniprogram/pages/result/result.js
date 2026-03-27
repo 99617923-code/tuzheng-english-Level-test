@@ -194,8 +194,9 @@ Page({
   onShareAppMessage() {
     const { levelName, overallScore } = this.data
     return {
-      title: `我在途正英语AI测评中获得了${levelName}（${overallScore}分），快来测测你的英语水平！`,
-      path: '/pages/home/home'
+      title: `我在途正英语AI分级测评中获得了${levelName}（${overallScore}分），快来测测你的英语水平！`,
+      path: '/pages/home/home',
+      imageUrl: app.globalData.shareCoverUrl
     }
   },
 
@@ -203,7 +204,8 @@ Page({
   onShareTimeline() {
     const { levelName, overallScore } = this.data
     return {
-      title: `我在途正英语AI测评中获得了${levelName}（${overallScore}分），快来测测你的英语水平！`,
+      title: `我在途正英语AI分级测评中获得了${levelName}（${overallScore}分），快来测测你的英语水平！`,
+      imageUrl: app.globalData.shareCoverUrl,
       query: `sessionId=${this._sessionId}`
     }
   }

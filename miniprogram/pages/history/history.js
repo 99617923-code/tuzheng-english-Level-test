@@ -1,7 +1,16 @@
 /**
- * 途正英语AI分级测评 - 历史记录页
- * 对接真实后端API：getTestHistory
- * 优化排版版：左侧序号+右侧信息，统计摘要
+ * 途正英语AI分级测评 - 历史记录页（自适应引擎 v2）
+ * 对接后端API：getTestHistory
+ * 
+ * v2 历史记录格式：
+ * {
+ *   list: [{
+ *     sessionId, status, majorLevel, majorLevelName,
+ *     highestSubLevel, overallScore, totalQuestions,
+ *     passedQuestions, totalDuration, createdAt, completedAt
+ *   }],
+ *   total, page, pageSize
+ * }
  */
 const app = getApp()
 const { getTestHistory } = require('../../utils/api')
@@ -51,7 +60,7 @@ Page({
     this.loadHistory()
   },
 
-  /** 加载历史记录 - 对接真实后端API */
+  /** 加载历史记录 - 对接v2 API */
   async loadHistory() {
     try {
       const data = await getTestHistory(this.data.page, this.data.pageSize)
@@ -65,7 +74,7 @@ Page({
       let bestLevel = ''
       if (completedItems.length > 0) {
         const best = completedItems.reduce((prev, curr) => {
-          return (curr.finalLevel || 0) > (prev.finalLevel || 0) ? curr : prev
+          return (curr.majorLevel || 0) > (prev.majorLevel || 0) ? curr : prev
         })
         bestLevel = best.levelName || ''
       }
@@ -73,7 +82,7 @@ Page({
       this.setData({
         loading: false,
         list: allList,
-        total: data.total || data.totalCount || data.total_count || 0,
+        total: data.total || data.totalCount || 0,
         noMore: list.length < this.data.pageSize,
         completedCount,
         bestLevel
@@ -85,31 +94,44 @@ Page({
     }
   },
 
-  /** 格式化记录项 - 兼容后端不同字段命名 */
+  /** 格式化记录项 - 适配v2字段 */
   formatItem(item) {
-    const finalLevel = item.finalLevel !== undefined ? item.finalLevel
+    // v2字段优先，兼容v1
+    const majorLevel = item.majorLevel !== undefined ? item.majorLevel
+      : item.finalLevel !== undefined ? item.finalLevel
       : item.final_level !== undefined ? item.final_level
       : item.level !== undefined ? item.level : 0
 
-    const config = app.getLevelConfig(finalLevel)
+    const config = app.getLevelConfig(majorLevel)
     const isCompleted = item.status === 'completed'
 
-    // 兼容后端不同字段命名
+    // 兼容不同字段命名
     const sessionId = item.sessionId || item.session_id || item.id || ''
     const completedAt = item.completedAt || item.completed_at || item.updatedAt || item.updated_at || ''
+    const createdAt = item.createdAt || item.created_at || ''
+
+    // v2: totalDuration 是毫秒
     const totalDuration = item.totalDuration || item.total_duration || item.duration || 0
-    const questionCount = item.questionCount || item.question_count || 0
+    const durationSeconds = totalDuration > 10000 ? Math.round(totalDuration / 1000) : Math.round(totalDuration)
+
+    const totalQuestions = item.totalQuestions || item.question_count || item.questionCount || 0
+    const passedQuestions = item.passedQuestions || 0
+    const overallScore = item.overallScore || item.overall_score || 0
+    const highestSubLevel = item.highestSubLevel || item.highest_sub_level || ''
 
     return {
       ...item,
       sessionId,
-      finalLevel,
-      levelName: isCompleted ? (item.levelName || item.level_name || config.name) : null,
-      levelLabel: isCompleted ? (item.levelLabel || item.level_label || config.label) : null,
+      majorLevel,
+      levelName: isCompleted ? (item.majorLevelName || item.levelName || item.level_name || config.name) : null,
+      levelLabel: isCompleted ? (config.label) : null,
       levelColor: isCompleted ? config.color : '#8a95a5',
-      completedAtFormatted: completedAt ? formatDate(completedAt) : '未完成',
-      durationText: totalDuration ? formatDuration(Math.round(totalDuration)) : '-',
-      questionCount,
+      completedAtFormatted: completedAt ? formatDate(completedAt) : (createdAt ? formatDate(createdAt) : '未完成'),
+      durationText: durationSeconds > 0 ? formatDuration(durationSeconds) : '-',
+      totalQuestions,
+      passedQuestions,
+      overallScore: Math.round(overallScore),
+      highestSubLevel,
       statusText: isCompleted ? '已完成' : '未完成'
     }
   },

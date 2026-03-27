@@ -251,10 +251,57 @@
   font-weight: 800;
 }
 
+.feedback-passed {
+  font-size: 22rpx;
+  font-weight: 600;
+  padding: 4rpx 16rpx;
+  border-radius: var(--radius-full);
+  margin-left: auto;
+}
+
+.feedback-passed.passed {
+  color: #ffffff;
+  background: var(--brand-green);
+}
+
+.feedback-passed.failed {
+  color: #ffffff;
+  background: #8a95a5;
+}
+
 .feedback-text {
   font-size: 26rpx;
   color: var(--text-secondary);
   line-height: 1.6;
+}
+
+/* 升级提示 */
+.levelup-toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255,255,255,0.95);
+  border-radius: var(--radius-xl);
+  padding: 48rpx 64rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16rpx;
+  box-shadow: 0 24rpx 80rpx rgba(27,63,145,0.20);
+  z-index: 200;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.levelup-icon {
+  font-size: 64rpx;
+}
+
+.levelup-text {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: var(--brand-blue);
 }
 
 /* 实时识别文字 */

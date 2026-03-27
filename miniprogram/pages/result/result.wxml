@@ -1,6 +1,6 @@
 <!--
-  途正英语AI分级测评 - 结果页
-  等级展示 + 分项得分 + 群二维码弹窗
+  途正英语AI分级测评 - 结果页（自适应引擎 v2）
+  等级展示 + 分项得分 + 优劣势 + 学习建议 + 群二维码弹窗
   小程序原生适配：全局导航布局
 -->
 <view class="page">
@@ -32,6 +32,7 @@
         <text class="level-badge-text">{{levelName}}</text>
       </view>
       <text class="level-label">{{levelLabel}}</text>
+      <text wx:if="{{highestSubLevel}}" class="highest-sublevel">最高通过：{{highestSubLevel}}</text>
 
       <!-- 星级 -->
       <view class="stars-row">
@@ -52,8 +53,13 @@
       <!-- 测评信息 -->
       <view class="test-meta">
         <view class="meta-item">
-          <text class="meta-value">{{questionCount}}</text>
+          <text class="meta-value">{{totalQuestions}}</text>
           <text class="meta-label">答题数</text>
+        </view>
+        <view class="meta-divider"></view>
+        <view class="meta-item">
+          <text class="meta-value">{{passedQuestions}}</text>
+          <text class="meta-label">通过数</text>
         </view>
         <view class="meta-divider"></view>
         <view class="meta-item">
@@ -63,16 +69,16 @@
       </view>
     </view>
 
-    <!-- 能力描述 -->
+    <!-- 能力评估 -->
     <view class="section animate-fade-in-delay-1">
       <text class="section-title">能力评估</text>
       <view class="desc-card glass-card-strong">
-        <text class="desc-text">{{description}}</text>
+        <text class="desc-text">{{summary}}</text>
       </view>
     </view>
 
     <!-- 分项得分 -->
-    <view class="section animate-fade-in-delay-2">
+    <view wx:if="{{scoreItems.length > 0}}" class="section animate-fade-in-delay-2">
       <text class="section-title">分项得分</text>
       <view class="scores-card glass-card-strong">
         <view class="score-item" wx:for="{{scoreItems}}" wx:key="label">
@@ -83,6 +89,28 @@
           <view class="score-bar-bg">
             <view class="score-bar-fill" style="width: {{item.percent}}%; background: {{item.color}};"></view>
           </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 优势 -->
+    <view wx:if="{{strengths.length > 0}}" class="section animate-fade-in-delay-2">
+      <text class="section-title">你的优势</text>
+      <view class="list-card glass-card-strong">
+        <view class="list-item strength" wx:for="{{strengths}}" wx:key="index">
+          <text class="list-icon">✓</text>
+          <text class="list-text">{{item}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 待提升 -->
+    <view wx:if="{{weaknesses.length > 0}}" class="section animate-fade-in-delay-3">
+      <text class="section-title">待提升</text>
+      <view class="list-card glass-card-strong">
+        <view class="list-item weakness" wx:for="{{weaknesses}}" wx:key="index">
+          <text class="list-icon">→</text>
+          <text class="list-text">{{item}}</text>
         </view>
       </view>
     </view>

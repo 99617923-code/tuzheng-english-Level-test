@@ -185,3 +185,13 @@
 - [x] 制作分享封面图（首页首屏效果，5:4比例500x400px）
 - [x] 上传封面图到CDN- [x] 修改分享标题为“途正英语AI智能分级测评，3分钟测出你的英语水平”"
 - [x] 更新所有页面的onShareAppMessage和onShareTimeline
+
+## 小程序升级 - 自适应分级测评引擎v2对接
+- [x] api.js：新增/更新start、evaluate、getResult接口适配v2格式
+- [x] test.js：完整重写，实现自适应升级循环（start→evaluate循环→finished跳结果页）
+- [x] test.wxml：适配v2数据字段（majorLevelDisplay、subLevelDisplay、通过/未通过标签、升级提示）
+- [x] test.wxss：新增升级提示toast样式、通过/未通过标签样式
+- [x] result.js：完整重写，对接v2结果格式（优劣势、最高通过小级、分项得分）
+- [x] result.wxml：新增优势/劣势列表、最高通过小级展示
+- [x] result.wxss：新增优劣势列表样式、最高通过小级样式
+- [x] history.js：适配v2字段（majorLevel、highestSubLevel、overallScore等）

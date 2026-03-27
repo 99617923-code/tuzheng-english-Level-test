@@ -1,6 +1,6 @@
 /**
  * 途正英语 - API接口封装
- * 对接后端所有业务接口
+ * 对接后端自适应分级测评引擎 v2
  * 后端地址: https://tzapp-admin.figo.cn
  */
 const { request, uploadFile, setTokens, clearTokens } = require('./request')
@@ -25,7 +25,6 @@ function smsLogin(phone, code) {
     data: { phone, code }
   }).then(res => {
     if (res.code !== 200) throw new Error(res.msg || '登录失败')
-    // 保存token和用户信息
     setTokens(res.data.biz_token, res.data.refresh_token)
     if (res.data.user_info) {
       wx.setStorageSync('tz_user_info', res.data.user_info)
@@ -41,7 +40,6 @@ function wxPhoneLogin(phoneCode, loginCode) {
     data: { phoneCode, loginCode }
   }).then(res => {
     if (res.code !== 200) throw new Error(res.msg || '登录失败')
-    // 保存token和用户信息
     setTokens(res.data.biz_token, res.data.refresh_token)
     if (res.data.user_info) {
       wx.setStorageSync('tz_user_info', res.data.user_info)
@@ -70,9 +68,18 @@ function logout() {
     })
 }
 
-// ============ 测评接口 ============
+// ============ 测评接口（自适应引擎 v2） ============
 
-/** 创建测评会话 */
+/**
+ * 创建测评会话（自适应引擎 v2）
+ * 后端自动从PRE1开始，返回第一道题
+ * 
+ * Response: {
+ *   sessionId, currentSubLevel, currentMajorLevel,
+ *   questionIndex, totalAnswered,
+ *   question: { questionId, audioUrl, questionText, subLevel }
+ * }
+ */
 function startTest() {
   return request('/api/v1/test/start', {
     method: 'POST'
@@ -83,33 +90,54 @@ function startTest() {
 }
 
 /**
- * 提交回答并获取AI评估
+ * 提交回答并获取下一题（自适应引擎 v2 核心接口）
+ * 
+ * 后端逻辑：
+ * - 每个小级2道题，2道全通过→升级到下一小级
+ * - 1通过1不通过→定为当前小级所属大级，结束
+ * - 0通过→定为前一个大级（最低0），结束
+ * 
  * @param {object} params
- * @param {string} params.sessionId - 测评会话ID
- * @param {string} params.questionId - 题目ID
- * @param {string} [params.audioUrl] - 录音OSS地址（由upload-audio返回）
- * @param {string} [params.transcription] - 同声传译插件识别的文字（前端实时识别）
- * @param {string} [params.recognizedText] - 同义字段，部分后端版本使用此字段名
- * @param {number} [params.answerDuration] - 回答时长（秒）
- * @param {number} [params.duration] - 同义字段，部分后端版本使用此字段名
+ * @param {string} params.sessionId - 测评会话ID（必填）
+ * @param {string|number} params.questionId - 题目ID（必填）
+ * @param {string} [params.audioUrl] - 录音OSS地址
+ * @param {string} [params.recognizedText] - 前端语音识别文本
+ * @param {number} [params.duration] - 回答用时（毫秒）
+ * 
+ * Response (status=continue): {
+ *   evaluation: { passed, score, scoreDetail, feedback },
+ *   status: "continue",
+ *   currentSubLevel, currentMajorLevel, questionIndex, totalAnswered,
+ *   question: { questionId, audioUrl, questionText, subLevel }
+ * }
+ * 
+ * Response (status=finished): {
+ *   evaluation: { passed, score, scoreDetail, feedback },
+ *   status: "finished",
+ *   question: null,
+ *   result: {
+ *     majorLevel, majorLevelName, highestSubLevel, overallScore,
+ *     totalQuestions, passedQuestions, totalDuration,
+ *     report: { pronunciation, grammar, vocabulary, fluency, summary, strengths, weaknesses, recommendation },
+ *     groupQrcode: { groupName, qrcodeUrl }
+ *   }
+ * }
  */
 function evaluateAnswer(params) {
-  // 兼容处理：同时发送 transcription/recognizedText 和 answerDuration/duration
-  // 确保后端无论用哪个字段名都能正确接收
   const data = {
     sessionId: params.sessionId,
-    questionId: params.questionId,
-    // 文字识别结果：同时发送两个字段名，兼容不同后端版本
-    transcription: params.transcription || params.recognizedText || '',
-    recognizedText: params.recognizedText || params.transcription || '',
-    // 录音时长：同时发送两个字段名
-    answerDuration: params.answerDuration || params.duration || 0,
-    duration: params.duration || params.answerDuration || 0
+    questionId: params.questionId
   }
 
-  // 可选字段
+  // 可选字段 - 只传有值的
   if (params.audioUrl) {
     data.audioUrl = params.audioUrl
+  }
+  if (params.recognizedText) {
+    data.recognizedText = params.recognizedText
+  }
+  if (params.duration !== undefined && params.duration !== null) {
+    data.duration = params.duration
   }
 
   return request('/api/v1/test/evaluate', {
@@ -121,7 +149,16 @@ function evaluateAnswer(params) {
   })
 }
 
-/** 获取测评结果详情 */
+/**
+ * 获取测评结果详情（自适应引擎 v2）
+ * 
+ * Response: {
+ *   majorLevel, majorLevelName, highestSubLevel, overallScore,
+ *   totalQuestions, passedQuestions, totalDuration,
+ *   report: { pronunciation, grammar, vocabulary, fluency, summary, strengths, weaknesses, recommendation },
+ *   groupQrcode: { groupName, qrcodeUrl }
+ * }
+ */
 function getTestResult(sessionId) {
   return request(`/api/v1/test/result/${sessionId}`).then(res => {
     if (res.code !== 200) throw new Error(res.msg || '获取结果失败')

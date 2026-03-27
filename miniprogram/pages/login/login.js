@@ -1,15 +1,21 @@
 /**
  * 途正英语AI分级测评 - 登录页
- * 手机号 + 短信验证码登录
+ * 小程序原生适配：微信手机号快捷登录 + 短信验证码登录
  */
 const app = getApp()
-const { sendSmsCode, smsLogin } = require('../../utils/api')
+const { sendSmsCode, smsLogin, wxPhoneLogin } = require('../../utils/api')
 const { showToast, showError, showSuccess } = require('../../utils/util')
 
 Page({
   data: {
-    logoUrl: '',
+    navBarHeight: 0,
+    navContentTop: 0,
+    navContentHeight: 0,
     aiAvatarUrl: '',
+    logoUrl: '',
+
+    // 短信登录表单
+    showSmsForm: false,
     phone: '',
     smsCode: '',
     loading: false,
@@ -20,9 +26,13 @@ Page({
   _countdownTimer: null,
 
   onLoad() {
+    const navLayout = app.getNavLayout()
     this.setData({
-      logoUrl: app.globalData.logoUrl,
-      aiAvatarUrl: app.globalData.aiAvatarUrl
+      navBarHeight: navLayout.navBarHeight,
+      navContentTop: navLayout.navContentTop,
+      navContentHeight: navLayout.navContentHeight,
+      aiAvatarUrl: app.globalData.aiAvatarUrl,
+      logoUrl: app.globalData.logoUrl
     })
   },
 
@@ -30,6 +40,76 @@ Page({
     if (this._countdownTimer) {
       clearInterval(this._countdownTimer)
     }
+  },
+
+  /** 返回上一页 */
+  goBack() {
+    wx.navigateBack({ fail: () => {
+      wx.reLaunch({ url: '/pages/home/home' })
+    }})
+  },
+
+  /** 微信手机号快捷登录 */
+  onGetPhoneNumber(e) {
+    if (e.detail.errMsg !== 'getPhoneNumber:ok') {
+      // 用户拒绝授权，提示使用短信登录
+      showToast('您已取消授权，可使用短信验证码登录')
+      this.setData({ showSmsForm: true })
+      return
+    }
+
+    const code = e.detail.code
+    if (!code) {
+      showError('获取手机号失败，请重试')
+      return
+    }
+
+    this.setData({ loading: true })
+
+    // 先调用 wx.login 获取登录凭证
+    wx.login({
+      success: (loginRes) => {
+        if (!loginRes.code) {
+          showError('微信登录失败，请重试')
+          this.setData({ loading: false })
+          return
+        }
+
+        // 将 phoneCode 和 loginCode 发送给后端
+        wxPhoneLogin(code, loginRes.code)
+          .then(data => {
+            app.globalData.userInfo = data.user_info
+            app.globalData.isAuthenticated = true
+
+            if (data.is_new_user) {
+              showSuccess('注册成功，已自动登录')
+            } else {
+              showSuccess('登录成功')
+            }
+
+            setTimeout(() => {
+              wx.navigateBack({ fail: () => {
+                wx.redirectTo({ url: '/pages/home/home' })
+              }})
+            }, 800)
+          })
+          .catch(err => {
+            showError(err.message || '登录失败，请重试')
+          })
+          .finally(() => {
+            this.setData({ loading: false })
+          })
+      },
+      fail: () => {
+        showError('微信登录失败，请重试')
+        this.setData({ loading: false })
+      }
+    })
+  },
+
+  /** 切换显示短信登录表单 */
+  toggleSmsForm() {
+    this.setData({ showSmsForm: true })
   },
 
   onPhoneInput(e) {
@@ -84,8 +164,8 @@ Page({
     }, 1000)
   },
 
-  /** 登录 */
-  handleLogin() {
+  /** 短信验证码登录 */
+  handleSmsLogin() {
     const { phone, smsCode, loading } = this.data
     if (loading) return
 
@@ -110,7 +190,6 @@ Page({
 
     smsLogin(phone.trim(), smsCode.trim())
       .then(data => {
-        // 更新全局状态
         app.globalData.userInfo = data.user_info
         app.globalData.isAuthenticated = true
 
@@ -120,12 +199,11 @@ Page({
           showSuccess('登录成功')
         }
 
-        // 返回上一页
         setTimeout(() => {
           wx.navigateBack({ fail: () => {
             wx.redirectTo({ url: '/pages/home/home' })
           }})
-        }, 1000)
+        }, 800)
       })
       .catch(err => {
         showError(err.message || '登录失败')

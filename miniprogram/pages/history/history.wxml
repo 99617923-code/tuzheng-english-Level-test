@@ -1,15 +1,16 @@
 <!--
   途正英语AI分级测评 - 历史记录页
+  小程序原生适配：全局导航布局
 -->
 <view class="page">
   <!-- 自定义导航栏 -->
-  <view class="nav-bar" style="padding-top: {{statusBarHeight}}px;">
-    <view class="nav-content">
-      <view class="nav-back" bindtap="goBack">
+  <view class="custom-nav" style="height: {{navBarHeight}}px;">
+    <view class="custom-nav-content" style="margin-top: {{navContentTop}}px; height: {{navContentHeight}}px;">
+      <view class="nav-back-btn" bindtap="goBack">
         <image class="nav-back-icon" src="/assets/icons/chevron-left.svg" mode="aspectFit" />
       </view>
-      <text class="nav-title">测评记录</text>
-      <view class="nav-placeholder"></view>
+      <text class="nav-title-center">测评记录</text>
+      <view class="nav-right-placeholder"></view>
     </view>
   </view>
 
@@ -17,14 +18,14 @@
   <scroll-view
     scroll-y
     class="scroll-area"
-    style="top: {{navHeight}}px;"
+    style="top: {{navBarHeight}}px;"
     enhanced
     show-scrollbar="{{false}}"
     bindscrolltolower="loadMore"
   >
     <!-- 加载中 -->
     <view wx:if="{{loading && list.length === 0}}" class="empty-state">
-      <image class="empty-spinner" src="/assets/icons/loader.svg" mode="aspectFit" />
+      <view class="spinner"></view>
       <text class="empty-text">加载中...</text>
     </view>
 
@@ -85,7 +86,7 @@
 
       <!-- 加载更多 -->
       <view wx:if="{{loadingMore}}" class="loading-more">
-        <image class="loading-more-spinner" src="/assets/icons/loader.svg" mode="aspectFit" />
+        <view class="spinner-small"></view>
         <text class="loading-more-text">加载中...</text>
       </view>
 

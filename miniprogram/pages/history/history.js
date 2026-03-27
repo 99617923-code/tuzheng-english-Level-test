@@ -1,5 +1,6 @@
 /**
  * 途正英语AI分级测评 - 历史记录页
+ * 小程序原生适配：全局导航布局
  */
 const app = getApp()
 const { getTestHistory } = require('../../utils/api')
@@ -7,8 +8,9 @@ const { formatDate, formatDuration, showError, checkLogin } = require('../../uti
 
 Page({
   data: {
-    statusBarHeight: 20,
-    navHeight: 88,
+    navBarHeight: 0,
+    navContentTop: 0,
+    navContentHeight: 0,
     loading: true,
     loadingMore: false,
     noMore: false,
@@ -19,11 +21,12 @@ Page({
   },
 
   onLoad() {
-    const systemInfo = wx.getWindowInfo()
-    const statusBarHeight = systemInfo.statusBarHeight || 20
-    const navHeight = statusBarHeight + 44
-
-    this.setData({ statusBarHeight, navHeight })
+    const navLayout = app.getNavLayout()
+    this.setData({
+      navBarHeight: navLayout.navBarHeight,
+      navContentTop: navLayout.navContentTop,
+      navContentHeight: navLayout.navContentHeight
+    })
 
     if (!checkLogin()) {
       wx.showModal({

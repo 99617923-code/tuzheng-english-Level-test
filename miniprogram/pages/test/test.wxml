@@ -1,19 +1,20 @@
 <!--
   途正英语AI分级测评 - 测评主页面
   核心交互：听AI语音 → 按住说话 → AI评分 → 下一题/出结果
+  小程序原生适配：全局导航布局
 -->
 <view class="page">
   <!-- 自定义导航栏 -->
-  <view class="nav-bar" style="padding-top: {{statusBarHeight}}px;">
-    <view class="nav-content">
-      <view class="nav-back" bindtap="handleQuit">
+  <view class="custom-nav" style="height: {{navBarHeight}}px;">
+    <view class="custom-nav-content" style="margin-top: {{navContentTop}}px; height: {{navContentHeight}}px;">
+      <view class="nav-back-btn" bindtap="handleQuit">
         <image class="nav-back-icon" src="/assets/icons/x.svg" mode="aspectFit" />
       </view>
-      <view class="nav-center">
+      <view class="nav-center-info">
         <text class="nav-level">{{currentLevelName}}</text>
         <text class="nav-progress">第 {{currentQuestionIndex + 1}} 题</text>
       </view>
-      <view class="nav-timer">
+      <view class="nav-timer-wrap">
         <image class="timer-icon" src="/assets/icons/clock.svg" mode="aspectFit" />
         <text class="timer-text">{{timerDisplay}}</text>
       </view>
@@ -21,14 +22,14 @@
   </view>
 
   <!-- 进度条 -->
-  <view class="progress-wrap" style="top: {{navHeight}}px;">
+  <view class="progress-wrap" style="top: {{navBarHeight}}px;">
     <view class="progress-bar">
       <view class="progress-fill" style="width: {{progressPercent}}%;"></view>
     </view>
   </view>
 
   <!-- 主内容区 -->
-  <view class="main-area" style="padding-top: {{navHeight + 20}}px;">
+  <view class="main-area" style="padding-top: {{navBarHeight + 20}}px;">
     <!-- 题目卡片 -->
     <view class="question-card glass-card-strong animate-fade-in">
       <!-- AI头像 + 状态 -->
@@ -86,7 +87,7 @@
   </view>
 
   <!-- 底部操作区 -->
-  <view class="bottom-bar" style="padding-bottom: calc(env(safe-area-inset-bottom) + 32rpx);">
+  <view class="bottom-bar">
     <!-- 状态：等待播放AI语音 -->
     <view wx:if="{{phase === 'listening'}}" class="action-area">
       <button class="listen-btn" bindtap="playAudio">
@@ -97,7 +98,6 @@
 
     <!-- 状态：准备回答 / 录音中 -->
     <view wx:elif="{{phase === 'answering'}}" class="action-area">
-      <!-- 录音按钮 -->
       <view class="record-area">
         <view wx:if="{{isRecording}}" class="record-pulse-ring"></view>
         <view
@@ -111,7 +111,6 @@
         <text class="record-hint">{{isRecording ? '松开结束录音' : '按住说话'}}</text>
         <text wx:if="{{isRecording}}" class="record-timer">{{recordTimeDisplay}}</text>
       </view>
-      <!-- 跳过按钮 -->
       <view class="skip-row">
         <button class="skip-btn" bindtap="handleSkip">跳过此题</button>
       </view>
@@ -120,7 +119,7 @@
     <!-- 状态：评估中 -->
     <view wx:elif="{{phase === 'evaluating'}}" class="action-area">
       <view class="evaluating-wrap">
-        <image class="evaluating-spinner" src="/assets/icons/loader.svg" mode="aspectFit" />
+        <view class="spinner"></view>
         <text class="evaluating-text">AI正在评估你的回答...</text>
       </view>
     </view>
@@ -135,7 +134,7 @@
     <!-- 状态：加载中 -->
     <view wx:elif="{{phase === 'loading'}}" class="action-area">
       <view class="evaluating-wrap">
-        <image class="evaluating-spinner" src="/assets/icons/loader.svg" mode="aspectFit" />
+        <view class="spinner"></view>
         <text class="evaluating-text">正在准备测评...</text>
       </view>
     </view>

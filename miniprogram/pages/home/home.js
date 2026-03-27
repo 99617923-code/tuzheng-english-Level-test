@@ -1,9 +1,9 @@
 /**
  * 途正英语AI分级测评 - 欢迎页
+ * 小程序原生适配版
  */
 const app = getApp()
 const { checkLogin, getUserInfo } = require('../../utils/util')
-const { logout } = require('../../utils/api')
 
 Page({
   data: {
@@ -11,18 +11,28 @@ Page({
     isAuthenticated: false,
     userInfo: null,
     showVideo: false,
-    demoVideoUrl: '', // 后续由客户提供真实视频替换
+    demoVideoUrl: '',
+    // 导航布局
+    navBarHeight: 0,
+    navContentTop: 0,
+    navContentHeight: 0,
+    menuButtonRight: 0,
+    // 波纹装饰
     waveHeights: [8, 16, 12, 24, 16, 32, 20, 12, 28, 10, 22, 16, 30, 12, 20, 14, 26, 10, 18, 24, 14, 28, 16, 12]
   },
 
   onLoad() {
+    const navLayout = app.getNavLayout()
     this.setData({
-      logoUrl: app.globalData.logoUrl
+      logoUrl: app.globalData.logoUrl,
+      navBarHeight: navLayout.navBarHeight,
+      navContentTop: navLayout.navContentTop,
+      navContentHeight: navLayout.navContentHeight,
+      menuButtonRight: app.globalData.screenWidth - navLayout.menuButtonLeft + 16
     })
   },
 
   onShow() {
-    // 每次显示时刷新登录状态
     const isAuth = checkLogin()
     const userInfo = getUserInfo()
     this.setData({
@@ -33,6 +43,10 @@ Page({
 
   /** 开始测评 */
   handleStart() {
+    if (!checkLogin()) {
+      wx.navigateTo({ url: '/pages/login/login' })
+      return
+    }
     wx.navigateTo({ url: '/pages/rules/rules' })
   },
 
@@ -49,33 +63,12 @@ Page({
   /** 阻止冒泡 */
   preventClose() {},
 
-  /** 跳转登录 */
-  goLogin() {
-    wx.navigateTo({ url: '/pages/login/login' })
-  },
-
   /** 跳转历史记录 */
   goHistory() {
+    if (!checkLogin()) {
+      wx.navigateTo({ url: '/pages/login/login' })
+      return
+    }
     wx.navigateTo({ url: '/pages/history/history' })
-  },
-
-  /** 退出登录 */
-  handleLogout() {
-    wx.showModal({
-      title: '提示',
-      content: '确定要退出登录吗？',
-      success: (res) => {
-        if (res.confirm) {
-          logout().then(() => {
-            app.clearAuth()
-            this.setData({
-              isAuthenticated: false,
-              userInfo: null
-            })
-            wx.showToast({ title: '已退出登录', icon: 'success' })
-          })
-        }
-      }
-    })
   }
 })

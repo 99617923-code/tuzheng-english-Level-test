@@ -1,5 +1,6 @@
 /**
  * 途正英语AI分级测评 - 结果页
+ * 小程序原生适配：全局导航布局
  */
 const app = getApp()
 const { getTestResult, getQrcodeByLevel } = require('../../utils/api')
@@ -7,8 +8,9 @@ const { showError, formatDuration } = require('../../utils/util')
 
 Page({
   data: {
-    statusBarHeight: 20,
-    navHeight: 88,
+    navBarHeight: 0,
+    navContentTop: 0,
+    navContentHeight: 0,
     loading: true,
 
     // 等级信息
@@ -37,11 +39,12 @@ Page({
   _finalLevel: 0,
 
   onLoad(options) {
-    const systemInfo = wx.getWindowInfo()
-    const statusBarHeight = systemInfo.statusBarHeight || 20
-    const navHeight = statusBarHeight + 44
-
-    this.setData({ statusBarHeight, navHeight })
+    const navLayout = app.getNavLayout()
+    this.setData({
+      navBarHeight: navLayout.navBarHeight,
+      navContentTop: navLayout.navContentTop,
+      navContentHeight: navLayout.navContentHeight
+    })
 
     this._sessionId = options.sessionId || ''
     if (this._sessionId) {
@@ -61,12 +64,10 @@ Page({
       const config = app.getLevelConfig(this._finalLevel)
       const scores = data.scores || {}
 
-      // 构建星级数组（最多5颗星）
       const totalStars = 5
       const filledStars = config.stars || 1
       const starsArray = Array.from({ length: totalStars }, (_, i) => i < filledStars)
 
-      // 分项得分
       const scoreItems = [
         { label: '听力理解', value: scores.comprehension || 0, percent: scores.comprehension || 0, color: '#1B3F91' },
         { label: '语法运用', value: scores.grammar || 0, percent: scores.grammar || 0, color: '#2B5BA0' },
@@ -78,7 +79,6 @@ Page({
         scoreItems.push({ label: '发音准确度', value: scores.pronunciation, percent: scores.pronunciation, color: '#6a9a10' })
       }
 
-      // 等级背景渐变
       const bgGradients = {
         0: 'linear-gradient(135deg, rgba(138,149,165,0.08), rgba(200,210,220,0.08))',
         1: 'linear-gradient(135deg, rgba(27,63,145,0.08), rgba(43,91,160,0.06))',
@@ -86,7 +86,6 @@ Page({
         3: 'linear-gradient(135deg, rgba(43,91,160,0.08), rgba(27,63,145,0.06))'
       }
 
-      // 计算用时
       const totalDuration = data.totalDuration || 0
       const durationText = formatDuration(Math.round(totalDuration))
 
@@ -115,8 +114,6 @@ Page({
   /** 加入学习群 */
   async handleJoinGroup() {
     this.setData({ showQrModal: true })
-
-    // 尝试获取群二维码
     try {
       const data = await getQrcodeByLevel(this._finalLevel)
       if (data && data.qrcodeUrl) {

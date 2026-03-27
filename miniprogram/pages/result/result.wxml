@@ -1,30 +1,31 @@
 <!--
   途正英语AI分级测评 - 结果页
   等级展示 + 分项得分 + 群二维码弹窗
+  小程序原生适配：全局导航布局
 -->
 <view class="page">
   <!-- 自定义导航栏 -->
-  <view class="nav-bar" style="padding-top: {{statusBarHeight}}px;">
-    <view class="nav-content">
-      <view class="nav-placeholder"></view>
-      <text class="nav-title">测评报告</text>
-      <view class="nav-close" bindtap="goHome">
-        <image class="nav-close-icon" src="/assets/icons/x.svg" mode="aspectFit" />
+  <view class="custom-nav" style="height: {{navBarHeight}}px;">
+    <view class="custom-nav-content" style="margin-top: {{navContentTop}}px; height: {{navContentHeight}}px;">
+      <view class="nav-right-placeholder"></view>
+      <text class="nav-title-center">测评报告</text>
+      <view class="nav-back-btn" bindtap="goHome">
+        <image class="nav-back-icon" src="/assets/icons/x.svg" mode="aspectFit" />
       </view>
     </view>
   </view>
 
   <!-- 加载状态 -->
-  <view wx:if="{{loading}}" class="loading-wrap" style="padding-top: {{navHeight}}px;">
+  <view wx:if="{{loading}}" class="loading-wrap" style="padding-top: {{navBarHeight}}px;">
     <view class="loading-card glass-card-strong">
-      <image class="loading-spinner" src="/assets/icons/loader.svg" mode="aspectFit" />
+      <view class="spinner"></view>
       <text class="loading-title">正在生成测评报告</text>
       <text class="loading-desc">AI正在分析你的表现...</text>
     </view>
   </view>
 
   <!-- 结果内容 -->
-  <scroll-view wx:else scroll-y class="scroll-area" style="top: {{navHeight}}px;" enhanced show-scrollbar="{{false}}">
+  <scroll-view wx:else scroll-y class="scroll-area" style="top: {{navBarHeight}}px;" enhanced show-scrollbar="{{false}}">
     <!-- 等级卡片 -->
     <view class="level-card animate-fade-in" style="background: {{levelBgGradient}};">
       <view class="level-badge" style="background: {{levelColor}};">

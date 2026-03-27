@@ -1,82 +1,110 @@
 <!--
   途正英语AI分级测评 - 登录页
-  手机号 + 短信验证码登录
+  小程序原生适配：微信快捷登录 + 手机号验证码登录
 -->
 <view class="page">
-  <!-- 顶部渐变装饰区 -->
-  <view class="header-bg">
-    <view class="header-deco-1"></view>
-    <view class="header-deco-2"></view>
-    <view class="header-content">
-      <image class="avatar" src="{{aiAvatarUrl}}" mode="aspectFill" />
-      <image class="header-logo" src="{{logoUrl}}" mode="heightFix" />
-      <text class="header-subtitle">AI智能英语水平测评</text>
+  <!-- 自定义导航栏 -->
+  <view class="custom-nav" style="height: {{navBarHeight}}px;">
+    <view class="custom-nav-content" style="margin-top: {{navContentTop}}px; height: {{navContentHeight}}px;">
+      <view class="nav-back-btn" bindtap="goBack">
+        <image class="nav-back-icon" src="/assets/icons/chevron-left.svg" mode="aspectFit" />
+      </view>
+      <text class="nav-title-center">登录</text>
+      <view class="nav-right-placeholder"></view>
     </view>
-    <!-- 底部波浪 -->
-    <view class="wave-bottom"></view>
   </view>
 
-  <!-- 登录表单 -->
-  <view class="form-wrap">
-    <view class="form-card glass-card-strong">
-      <text class="form-title">手机号快捷登录</text>
-      <text class="form-desc">未注册的手机号将自动创建账号</text>
+  <!-- 主内容 -->
+  <view class="content" style="padding-top: {{navBarHeight}}px;">
+    <!-- 品牌区域 -->
+    <view class="brand-area">
+      <image class="brand-avatar" src="{{aiAvatarUrl}}" mode="aspectFill" />
+      <text class="brand-title">途正英语</text>
+      <text class="brand-subtitle">AI智能英语水平测评</text>
+    </view>
 
-      <!-- 手机号输入 -->
-      <view class="input-group">
-        <view class="input-wrap">
-          <image class="input-icon" src="/assets/icons/phone.svg" mode="aspectFit" />
-          <input
-            type="number"
-            placeholder="请输入手机号"
-            maxlength="11"
-            value="{{phone}}"
-            bindinput="onPhoneInput"
-            class="input-field"
-          />
-        </view>
+    <!-- 登录方式 -->
+    <view class="login-area">
+      <!-- 微信一键登录（推荐） -->
+      <view class="wx-login-section">
+        <button class="wx-login-btn" open-type="getPhoneNumber" bindgetphonenumber="onGetPhoneNumber">
+          <image class="wx-icon" src="/assets/icons/wechat.svg" mode="aspectFit" />
+          <text class="wx-login-text">微信手机号快捷登录</text>
+        </button>
+        <text class="wx-login-hint">推荐使用，无需输入手机号</text>
       </view>
 
-      <!-- 验证码输入 -->
-      <view class="input-group">
-        <view class="code-row">
-          <view class="input-wrap code-input-wrap">
-            <image class="input-icon" src="/assets/icons/shield-check.svg" mode="aspectFit" />
-            <input
-              type="number"
-              placeholder="请输入验证码"
-              maxlength="6"
-              value="{{smsCode}}"
-              bindinput="onCodeInput"
-              bindconfirm="handleLogin"
-              class="input-field"
-            />
+      <!-- 分割线 -->
+      <view class="divider-row">
+        <view class="divider-line"></view>
+        <text class="divider-text">或</text>
+        <view class="divider-line"></view>
+      </view>
+
+      <!-- 手机号验证码登录 -->
+      <view class="sms-login-section">
+        <view wx:if="{{!showSmsForm}}" class="sms-toggle" bindtap="toggleSmsForm">
+          <text class="sms-toggle-text">使用手机号验证码登录</text>
+        </view>
+
+        <view wx:else class="sms-form">
+          <!-- 手机号输入 -->
+          <view class="input-group">
+            <view class="input-wrap">
+              <image class="input-icon" src="/assets/icons/phone.svg" mode="aspectFit" />
+              <input
+                type="number"
+                placeholder="请输入手机号"
+                maxlength="11"
+                value="{{phone}}"
+                bindinput="onPhoneInput"
+                class="input-field"
+              />
+            </view>
           </view>
-          <button
-            class="send-code-btn {{countdown > 0 ? 'disabled' : ''}}"
-            bindtap="handleSendCode"
-            disabled="{{sendingCode || countdown > 0}}"
-          >
-            <text wx:if="{{sendingCode}}" class="sending-text">发送中...</text>
-            <text wx:elif="{{countdown > 0}}" class="countdown-text">{{countdown}}s 后重发</text>
-            <text wx:else class="send-text">获取验证码</text>
+
+          <!-- 验证码输入 -->
+          <view class="input-group">
+            <view class="code-row">
+              <view class="input-wrap code-input-wrap">
+                <image class="input-icon" src="/assets/icons/shield-check.svg" mode="aspectFit" />
+                <input
+                  type="number"
+                  placeholder="请输入验证码"
+                  maxlength="6"
+                  value="{{smsCode}}"
+                  bindinput="onCodeInput"
+                  bindconfirm="handleSmsLogin"
+                  class="input-field"
+                />
+              </view>
+              <button
+                class="send-code-btn {{countdown > 0 ? 'disabled' : ''}}"
+                bindtap="handleSendCode"
+                disabled="{{sendingCode || countdown > 0}}"
+              >
+                <text wx:if="{{sendingCode}}" class="code-btn-text">发送中...</text>
+                <text wx:elif="{{countdown > 0}}" class="code-btn-text">{{countdown}}s</text>
+                <text wx:else class="code-btn-text">获取验证码</text>
+              </button>
+            </view>
+          </view>
+
+          <!-- 登录按钮 -->
+          <button class="sms-login-btn" bindtap="handleSmsLogin" disabled="{{loading}}">
+            <text wx:if="{{loading}}" class="sms-btn-text">登录中...</text>
+            <text wx:else class="sms-btn-text">登录</text>
           </button>
         </view>
       </view>
-
-      <!-- 登录按钮 -->
-      <button class="login-btn" bindtap="handleLogin" disabled="{{loading}}">
-        <text wx:if="{{loading}}" class="login-btn-text">登录中...</text>
-        <text wx:else class="login-btn-text">登录</text>
-      </button>
-
-      <!-- 协议提示 -->
-      <text class="agreement">登录即表示同意《用户服务协议》和《隐私政策》</text>
     </view>
 
-    <!-- 底部品牌 -->
-    <view class="brand-footer">
-      <image class="brand-logo" src="{{logoUrl}}" mode="heightFix" />
+    <!-- 协议 -->
+    <view class="agreement">
+      <text class="agreement-text">登录即表示同意</text>
+      <text class="agreement-link">《用户服务协议》</text>
+      <text class="agreement-text">和</text>
+      <text class="agreement-link">《隐私政策》</text>
     </view>
   </view>
 </view>

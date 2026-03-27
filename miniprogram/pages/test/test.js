@@ -2,6 +2,7 @@
  * 途正英语AI分级测评 - 测评主页面
  * 核心交互：听AI语音 → 按住说话 → AI评分 → 下一题/出结果
  * 使用微信同声传译插件进行实时语音识别
+ * 小程序原生适配：全局导航布局
  */
 const app = getApp()
 const { startTest, evaluateAnswer, uploadAudio, terminateTest } = require('../../utils/api')
@@ -13,8 +14,10 @@ const plugin = requirePlugin('WechatSI')
 Page({
   data: {
     aiAvatarUrl: '',
-    statusBarHeight: 20,
-    navHeight: 88,
+    // 导航布局
+    navBarHeight: 0,
+    navContentTop: 0,
+    navContentHeight: 0,
 
     // 测评状态
     phase: 'loading', // loading | listening | answering | evaluating | feedback
@@ -61,17 +64,14 @@ Page({
   _sessionManager: null,
 
   onLoad() {
-    const systemInfo = wx.getWindowInfo()
-    const statusBarHeight = systemInfo.statusBarHeight || 20
-    const navHeight = statusBarHeight + 44
-
-    // 生成音频波形数据
+    const navLayout = app.getNavLayout()
     const audioWaves = Array.from({ length: 30 }, () => Math.floor(Math.random() * 32) + 8)
 
     this.setData({
       aiAvatarUrl: app.globalData.aiAvatarUrl,
-      statusBarHeight,
-      navHeight,
+      navBarHeight: navLayout.navBarHeight,
+      navContentTop: navLayout.navContentTop,
+      navContentHeight: navLayout.navContentHeight,
       audioWaves
     })
 
@@ -98,7 +98,6 @@ Page({
     if (this._recorderManager) {
       this._recorderManager.stop()
     }
-    // 停止语音识别
     try {
       plugin.voiceRecognizer.stop()
     } catch (e) {}
@@ -121,10 +120,8 @@ Page({
         progressPercent: 0
       })
 
-      // 开始计时
       this.startTimer()
 
-      // 自动播放音频
       if (data.firstQuestion.audioUrl) {
         await delay(500)
         this.playAudio()
@@ -193,7 +190,6 @@ Page({
     }
 
     if (!currentQuestion.audioUrl) {
-      // 无音频，直接进入回答阶段
       this.setData({ phase: 'answering', aiStatusText: '请用英语回答' })
       return
     }
@@ -209,20 +205,17 @@ Page({
       console.log('[Recorder] Started')
       this.setData({ isRecording: true, recordSeconds: 0, recordTimeDisplay: '0"' })
 
-      // 录音计时
       this._recordTimer = setInterval(() => {
         const secs = this.data.recordSeconds + 1
         this.setData({
           recordSeconds: secs,
           recordTimeDisplay: `${secs}"`
         })
-        // 最长60秒
         if (secs >= 60) {
           this.stopRecording()
         }
       }, 1000)
 
-      // 启动同声传译语音识别
       this.startVoiceRecognition()
     })
 
@@ -235,12 +228,10 @@ Page({
       this._recordFilePath = res.tempFilePath
       this.setData({ isRecording: false })
 
-      // 停止语音识别
       try {
         plugin.voiceRecognizer.stop()
       } catch (e) {}
 
-      // 提交评估
       this.submitAnswer()
     })
 
@@ -281,7 +272,6 @@ Page({
   cancelRecording() {
     if (!this.data.isRecording) return
     this._recorderManager.stop()
-    // 标记为取消
     this._recordFilePath = ''
     this.setData({ isRecording: false, realtimeText: '' })
     try {
@@ -324,7 +314,6 @@ Page({
   async submitAnswer() {
     const { sessionId, currentQuestion, userTranscription, recordSeconds } = this.data
 
-    // 如果取消了录音
     if (!this._recordFilePath) {
       this.setData({ phase: 'answering' })
       return
@@ -336,7 +325,6 @@ Page({
     })
 
     try {
-      // 1. 上传录音
       let audioUrl = ''
       try {
         const uploadRes = await uploadAudio(
@@ -349,7 +337,6 @@ Page({
         console.warn('[Upload] Failed, continuing with transcription only:', e)
       }
 
-      // 2. 提交评估
       const evalRes = await evaluateAnswer({
         sessionId,
         questionId: currentQuestion.questionId,
@@ -358,7 +345,6 @@ Page({
         answerDuration: recordSeconds
       })
 
-      // 3. 显示评价
       const { evaluation, nextQuestion, nextAction, result } = evalRes
       const score = evaluation ? evaluation.score : 0
       const scoreColor = score >= 80 ? '#83BA12' : score >= 60 ? '#2B5BA0' : '#e74c3c'
@@ -372,13 +358,8 @@ Page({
         isLastQuestion: nextAction === 'complete' || !nextQuestion
       })
 
-      // 保存下一题数据
-      if (nextQuestion) {
-        this._nextQuestion = nextQuestion
-      }
-      if (result) {
-        this._testResult = result
-      }
+      if (nextQuestion) this._nextQuestion = nextQuestion
+      if (result) this._testResult = result
 
     } catch (err) {
       console.error('[Evaluate] Error:', err)
@@ -393,7 +374,6 @@ Page({
     const { isLastQuestion, sessionId } = this.data
 
     if (isLastQuestion) {
-      // 跳转结果页
       const resultSessionId = this._testResult ? this._testResult.sessionId : sessionId
       wx.redirectTo({
         url: `/pages/result/result?sessionId=${resultSessionId}`
@@ -401,12 +381,9 @@ Page({
       return
     }
 
-    // 加载下一题
     if (this._nextQuestion) {
       const nextIndex = this.data.currentQuestionIndex + 1
       const progress = Math.min(((nextIndex) / this.data.totalQuestions) * 100, 100)
-
-      // 生成新的波形数据
       const audioWaves = Array.from({ length: 30 }, () => Math.floor(Math.random() * 32) + 8)
 
       this.setData({
@@ -426,7 +403,6 @@ Page({
       this._nextQuestion = null
       this._recordFilePath = ''
 
-      // 自动播放音频
       if (this.data.currentQuestion.audioUrl) {
         await delay(500)
         this.playAudio()
@@ -443,7 +419,6 @@ Page({
       content: '跳过后将直接进入下一题，确定要跳过吗？',
       success: async (res) => {
         if (res.confirm) {
-          // 提交空回答
           this.setData({
             phase: 'evaluating',
             aiStatusText: 'AI正在评估...',

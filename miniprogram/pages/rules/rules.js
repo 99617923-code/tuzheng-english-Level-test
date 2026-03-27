@@ -1,14 +1,18 @@
 /**
  * 途正英语AI分级测评 - 测评说明页
+ * 小程序原生适配：使用全局导航布局 + wx.authorize录音授权
  */
 const app = getApp()
-const { checkLogin, showToast } = require('../../utils/util')
+const { checkLogin } = require('../../utils/util')
 
 Page({
   data: {
     aiAvatarUrl: '',
-    statusBarHeight: 20,
-    navHeight: 88,
+    // 导航布局
+    navBarHeight: 0,
+    navContentTop: 0,
+    navContentHeight: 0,
+    // 录音权限
     recordPermission: 'unknown', // unknown | authorized | denied
     steps: [
       { title: '听AI外教说', desc: '听一段英语语音，理解对话内容', color: '#1B3F91', bgColor: 'rgba(27,63,145,0.10)' },
@@ -26,21 +30,22 @@ Page({
   },
 
   onLoad() {
-    const systemInfo = wx.getWindowInfo()
-    const menuRect = wx.getMenuButtonBoundingClientRect()
-    const statusBarHeight = systemInfo.statusBarHeight || 20
-    const navHeight = statusBarHeight + 44 // 44px for nav content
-
+    const navLayout = app.getNavLayout()
     this.setData({
       aiAvatarUrl: app.globalData.aiAvatarUrl,
-      statusBarHeight,
-      navHeight
+      navBarHeight: navLayout.navBarHeight,
+      navContentTop: navLayout.navContentTop,
+      navContentHeight: navLayout.navContentHeight
     })
-
     this.checkRecordPermission()
   },
 
-  /** 检查录音权限 */
+  onShow() {
+    // 从设置页返回时重新检查权限
+    this.checkRecordPermission()
+  },
+
+  /** 检查录音权限（小程序原生API） */
   checkRecordPermission() {
     wx.getSetting({
       success: (res) => {
@@ -55,12 +60,12 @@ Page({
     })
   },
 
-  /** 请求录音权限 */
+  /** 请求录音权限（小程序原生API） */
   requestPermission() {
     const { recordPermission } = this.data
 
     if (recordPermission === 'denied') {
-      // 已拒绝，引导去设置页
+      // 已拒绝过，引导去系统设置页开启
       wx.showModal({
         title: '需要录音权限',
         content: '请在设置中开启麦克风权限，否则无法进行测评',
@@ -71,6 +76,7 @@ Page({
               success: (settingRes) => {
                 if (settingRes.authSetting['scope.record']) {
                   this.setData({ recordPermission: 'authorized' })
+                  wx.showToast({ title: '授权成功', icon: 'success' })
                 }
               }
             })
@@ -80,6 +86,7 @@ Page({
       return
     }
 
+    // 首次请求，弹出系统授权弹窗
     wx.authorize({
       scope: 'scope.record',
       success: () => {
@@ -94,7 +101,6 @@ Page({
 
   /** 开始测评 */
   handleStartTest() {
-    // 检查登录
     if (!checkLogin()) {
       wx.showModal({
         title: '请先登录',
@@ -109,17 +115,15 @@ Page({
       return
     }
 
-    // 检查录音权限
     if (this.data.recordPermission !== 'authorized') {
       this.requestPermission()
       return
     }
 
-    // 进入测评页
     wx.navigateTo({ url: '/pages/test/test' })
   },
 
-  /** 返回 */
+  /** 返回上一页 */
   goBack() {
     wx.navigateBack()
   }

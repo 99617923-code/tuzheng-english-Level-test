@@ -33,6 +33,22 @@ function smsLogin(phone, code) {
   })
 }
 
+/** 微信手机号快捷登录 */
+function wxPhoneLogin(phoneCode, loginCode) {
+  return request('/api/v1/auth/wx-phone-login', {
+    method: 'POST',
+    data: { phoneCode, loginCode }
+  }).then(res => {
+    if (res.code !== 200) throw new Error(res.msg || '登录失败')
+    // 保存token和用户信息
+    setTokens(res.data.biz_token, res.data.refresh_token)
+    if (res.data.user_info) {
+      wx.setStorageSync('tz_user_info', res.data.user_info)
+    }
+    return res.data
+  })
+}
+
 /** 获取当前用户信息 */
 function getMe() {
   return request('/api/v1/auth/me').then(res => {
@@ -147,6 +163,7 @@ function getQrcodeByLevel(level) {
 module.exports = {
   sendSmsCode,
   smsLogin,
+  wxPhoneLogin,
   getMe,
   logout,
   startTest,

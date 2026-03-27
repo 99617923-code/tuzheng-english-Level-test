@@ -1,55 +1,10 @@
-/* 途正英语 - 测评说明页样式（简化版，一屏显示） */
+/* 途正英语 - 测评说明页样式（小程序原生适配版） */
 .page {
   min-height: 100vh;
   background: var(--bg-gradient);
 }
 
-/* 自定义导航栏 */
-.nav-bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
-  background: rgba(240,244,248,0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-}
-
-.nav-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 88rpx;
-  padding: 0 32rpx;
-}
-
-.nav-back {
-  width: 64rpx;
-  height: 64rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.6);
-}
-
-.nav-back-icon {
-  width: 36rpx;
-  height: 36rpx;
-}
-
-.nav-title {
-  font-size: 32rpx;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.nav-placeholder {
-  width: 64rpx;
-}
-
-/* 主体内容 - 不用scroll-view，直接flex布局 */
+/* 主体内容 - flex布局一屏显示 */
 .body {
   display: flex;
   flex-direction: column;
@@ -59,7 +14,7 @@
   box-sizing: border-box;
 }
 
-/* AI老师卡片 - 更紧凑 */
+/* AI老师卡片 */
 .teacher-card {
   display: flex;
   align-items: center;
@@ -95,7 +50,7 @@
   line-height: 1.4;
 }
 
-/* Section - 更紧凑间距 */
+/* Section */
 .section {
   margin-bottom: 28rpx;
 }
@@ -108,7 +63,7 @@
   margin-bottom: 16rpx;
 }
 
-/* Steps - 更紧凑 */
+/* Steps */
 .steps {
   display: flex;
   flex-direction: column;
@@ -152,7 +107,7 @@
   color: var(--text-muted);
 }
 
-/* Tips - 更紧凑 */
+/* Tips */
 .tips-card {
   padding: 24rpx;
 }
@@ -181,7 +136,7 @@
   line-height: 1.4;
 }
 
-/* Permission - 紧凑横排 */
+/* Permission */
 .permission-card {
   padding: 24rpx;
   margin-bottom: 28rpx;
@@ -192,12 +147,9 @@
   border: 2rpx solid rgba(27,63,145,0.12);
 }
 
-.permission-granted-card {
+.permission-card.permission-granted {
   background: rgba(131,186,18,0.06);
-  border: 2rpx solid rgba(131,186,18,0.30);
-  border-radius: var(--radius-card);
-  padding: 24rpx;
-  margin-bottom: 28rpx;
+  border-color: rgba(131,186,18,0.30);
 }
 
 .permission-row {
@@ -273,15 +225,15 @@
   border: none;
 }
 
-/* Bottom */
-.bottom-area {
-  margin-top: auto;
-  padding-top: 20rpx;
+/* 弹性空间 */
+.flex-spacer {
+  flex: 1;
+  min-height: 16rpx;
 }
 
-.btn-disabled {
-  background: #c0c8d5 !important;
-  box-shadow: none !important;
+/* Bottom */
+.bottom-area {
+  padding-top: 20rpx;
 }
 
 .bottom-hint {

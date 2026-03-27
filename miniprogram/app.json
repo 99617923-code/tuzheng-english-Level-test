@@ -20,9 +20,7 @@
       "provider": "wx069ba97219f66d99"
     }
   },
-  "requiredPrivateInfos": [
-    "getPhoneNumber"
-  ],
+  "requiredPrivateInfos": [],
   "permission": {
     "scope.record": {
       "desc": "测评需要录制你的英语语音回答"

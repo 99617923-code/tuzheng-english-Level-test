@@ -174,3 +174,9 @@
 - [x] 修复app.json中scope.record权限配置格式（需加requiredPrivateInfos声明）
 - [x] 排查首页timeout错误原因（网络请求超时）
 - [x] 优化request.js超时处理和错误提示
+
+## 新增功能 - 小程序分享
+- [x] 首页(home)添加onShareAppMessage分享给好友
+- [x] 首页(home)添加onShareTimeline分享到朋友圈
+- [x] 结果页(result)添加分享功能（分享测评结果 + 朋友圈）
+- [x] 测评说明页(rules)添加分享功能

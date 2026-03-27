@@ -126,5 +126,21 @@ Page({
   /** 返回上一页 */
   goBack() {
     wx.navigateBack()
+  },
+
+  /** 分享给好友 */
+  onShareAppMessage() {
+    return {
+      title: '途正英语AI智能测评 - 3分钟测出你的英语水平',
+      path: '/pages/home/home'
+    }
+  },
+
+  /** 分享到朋友圈 */
+  onShareTimeline() {
+    return {
+      title: '途正英语AI智能测评 - 3分钟测出你的英语水平',
+      query: ''
+    }
   }
 })

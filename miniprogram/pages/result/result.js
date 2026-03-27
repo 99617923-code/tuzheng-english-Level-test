@@ -190,12 +190,21 @@ Page({
     wx.reLaunch({ url: '/pages/home/home' })
   },
 
-  /** 分享 */
+  /** 分享给好友 */
   onShareAppMessage() {
     const { levelName, overallScore } = this.data
     return {
       title: `我在途正英语AI测评中获得了${levelName}（${overallScore}分），快来测测你的英语水平！`,
       path: '/pages/home/home'
+    }
+  },
+
+  /** 分享到朋友圈 */
+  onShareTimeline() {
+    const { levelName, overallScore } = this.data
+    return {
+      title: `我在途正英语AI测评中获得了${levelName}（${overallScore}分），快来测测你的英语水平！`,
+      query: `sessionId=${this._sessionId}`
     }
   }
 })

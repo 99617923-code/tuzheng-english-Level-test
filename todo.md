@@ -169,3 +169,8 @@
 - [x] history.js：确认历史记录接口字段映射正确
 - [x] 全面检查所有页面去掉mock/模拟数据残留
 - [x] 保存checkpoint并同步到GitHub
+
+## Bug修复 - 控制台报错（scope.record权限 + timeout）
+- [x] 修复app.json中scope.record权限配置格式（需加requiredPrivateInfos声明）
+- [x] 排查首页timeout错误原因（网络请求超时）
+- [x] 优化request.js超时处理和错误提示

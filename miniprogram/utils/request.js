@@ -7,6 +7,11 @@
 const BASE_URL = 'https://tzapp-admin.figo.cn'
 const APP_KEY = 'tzk_ce457c0a5a5daf5a5ba0af8c6952f345'
 
+// 默认超时时间（毫秒）
+const DEFAULT_TIMEOUT = 15000
+// 登录/评估等耗时接口的超时时间
+const LONG_TIMEOUT = 30000
+
 // ============ Token 管理 ============
 
 function getToken() {
@@ -18,8 +23,8 @@ function getRefreshToken() {
 }
 
 function setTokens(bizToken, refreshToken) {
-  wx.setStorageSync('tz_biz_token', bizToken)
-  wx.setStorageSync('tz_refresh_token', refreshToken)
+  if (bizToken) wx.setStorageSync('tz_biz_token', bizToken)
+  if (refreshToken) wx.setStorageSync('tz_refresh_token', refreshToken)
 }
 
 function clearTokens() {
@@ -34,6 +39,21 @@ let isRefreshing = false
 let refreshPromise = null
 
 /**
+ * 判断是否为耗时接口（需要更长超时时间）
+ */
+function isLongTimeoutUrl(url) {
+  const longUrls = [
+    '/auth/wx-phone-login',
+    '/test/evaluate',
+    '/test/transcribe',
+    '/test/tts',
+    '/test/start',
+    '/test/upload-audio'
+  ]
+  return longUrls.some(u => url.includes(u))
+}
+
+/**
  * 通用请求方法
  * @param {string} url - API路径（不含域名）
  * @param {object} options - 请求选项
@@ -41,10 +61,11 @@ let refreshPromise = null
  * @param {object} options.data - 请求数据
  * @param {object} options.header - 额外请求头
  * @param {boolean} options.noAuth - 是否跳过认证头
+ * @param {number} options.timeout - 自定义超时时间（毫秒）
  * @returns {Promise<object>} 响应数据
  */
 function request(url, options = {}) {
-  const { method = 'GET', data, header = {}, noAuth = false } = options
+  const { method = 'GET', data, header = {}, noAuth = false, timeout } = options
 
   const headers = {
     'Content-Type': 'application/json',
@@ -59,14 +80,29 @@ function request(url, options = {}) {
     }
   }
 
+  // 根据接口类型自动选择超时时间
+  const requestTimeout = timeout || (isLongTimeoutUrl(url) ? LONG_TIMEOUT : DEFAULT_TIMEOUT)
+
   return new Promise((resolve, reject) => {
     wx.request({
       url: `${BASE_URL}${url}`,
       method,
       data,
       header: headers,
+      timeout: requestTimeout,
       success(res) {
         const responseData = res.data
+
+        // HTTP状态码异常处理
+        if (res.statusCode >= 500) {
+          reject(new Error('服务器繁忙，请稍后重试'))
+          return
+        }
+
+        if (res.statusCode === 404) {
+          reject(new Error('接口不存在，请联系管理员'))
+          return
+        }
 
         // Token过期处理
         if (responseData.code === 401 || responseData.code === 10001) {
@@ -88,11 +124,12 @@ function request(url, options = {}) {
                 method,
                 data,
                 header: headers,
+                timeout: requestTimeout,
                 success(retryRes) {
                   resolve(retryRes.data)
                 },
                 fail(err) {
-                  reject(err)
+                  reject(new Error(err.errMsg || '网络请求失败'))
                 }
               })
             } else {
@@ -108,7 +145,15 @@ function request(url, options = {}) {
         resolve(responseData)
       },
       fail(err) {
-        reject(err)
+        console.error('[Request] Failed:', url, err)
+        // 区分超时和网络错误
+        if (err.errMsg && err.errMsg.includes('timeout')) {
+          reject(new Error('网络请求超时，请检查网络后重试'))
+        } else if (err.errMsg && err.errMsg.includes('fail')) {
+          reject(new Error('网络连接失败，请检查网络设置'))
+        } else {
+          reject(new Error(err.errMsg || '网络请求失败'))
+        }
       }
     })
   })
@@ -130,6 +175,7 @@ function tryRefreshToken() {
         'X-App-Key': APP_KEY
       },
       data: { refresh_token: refreshToken },
+      timeout: DEFAULT_TIMEOUT,
       success(res) {
         if (res.data && res.data.code === 200) {
           setTokens(res.data.data.biz_token, res.data.data.refresh_token)
@@ -169,6 +215,7 @@ function uploadFile(url, filePath, name = 'file', formData = {}) {
       name,
       formData,
       header: headers,
+      timeout: LONG_TIMEOUT,
       success(res) {
         try {
           const data = JSON.parse(res.data)
@@ -178,7 +225,12 @@ function uploadFile(url, filePath, name = 'file', formData = {}) {
         }
       },
       fail(err) {
-        reject(err)
+        console.error('[Upload] Failed:', url, err)
+        if (err.errMsg && err.errMsg.includes('timeout')) {
+          reject(new Error('上传超时，请检查网络后重试'))
+        } else {
+          reject(new Error(err.errMsg || '上传失败'))
+        }
       }
     })
   })

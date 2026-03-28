@@ -17,11 +17,11 @@
   <!-- 主体内容 -->
   <view class="body" style="padding-top: {{navBarHeight}}px;">
     <!-- AI外教卡片 -->
-    <view class="teacher-card glass-card animate-fade-in">
+    <view class="teacher-card glass-card-strong animate-fade-in">
       <image class="teacher-avatar" src="{{aiAvatarUrl}}" mode="aspectFill" />
       <view class="teacher-info">
         <text class="teacher-name">AI 外教</text>
-        <text class="teacher-desc">我将和你进行一段英语对话，评估你的英语水平</text>
+        <text class="teacher-desc">我将和你进行一段英语对话，通过自适应算法精准评估你的英语水平</text>
       </view>
     </view>
 
@@ -78,7 +78,7 @@
       <button class="btn-primary {{recordPermission !== 'authorized' ? 'btn-disabled' : ''}}" bindtap="handleStartTest">
         <text>{{recordPermission === 'authorized' ? '开始测评' : '请先授权麦克风'}}</text>
       </button>
-      <text class="bottom-hint">测评约需5分钟，共涵盖4个等级</text>
+      <text class="bottom-hint">测评约需3-5分钟，AI自适应精准定级</text>
     </view>
   </view>
 </view>

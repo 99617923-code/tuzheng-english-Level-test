@@ -1,7 +1,6 @@
 <!--
-  途正英语AI分级测评 - 结果页（自适应引擎 v2）
+  途正英语AI分级测评 - 结果页（全新UI设计）
   等级展示 + 分项得分 + 优劣势 + 学习建议 + 群二维码弹窗
-  小程序原生适配：全局导航布局
 -->
 <view class="page">
   <!-- 自定义导航栏 -->
@@ -17,8 +16,12 @@
 
   <!-- 加载状态 -->
   <view wx:if="{{loading}}" class="loading-wrap" style="padding-top: {{navBarHeight}}px;">
-    <view class="loading-card glass-card-strong">
-      <view class="spinner"></view>
+    <view class="loading-card">
+      <view class="loading-rings">
+        <view class="loading-ring ring-1"></view>
+        <view class="loading-ring ring-2"></view>
+        <view class="loading-ring ring-3"></view>
+      </view>
       <text class="loading-title">正在生成测评报告</text>
       <text class="loading-desc">AI正在分析你的表现...</text>
     </view>
@@ -26,68 +29,79 @@
 
   <!-- 结果内容 -->
   <scroll-view wx:else scroll-y class="scroll-area" style="top: {{navBarHeight}}px;" enhanced show-scrollbar="{{false}}">
-    <!-- 等级卡片 -->
-    <view class="level-card animate-fade-in" style="background: {{levelBgGradient}};">
-      <view class="level-badge" style="background: {{levelColor}};">
-        <text class="level-badge-text">{{levelName}}</text>
-      </view>
-      <text class="level-label">{{levelLabel}}</text>
-      <text wx:if="{{highestSubLevel}}" class="highest-sublevel">最高通过：{{highestSubLevel}}</text>
 
-      <!-- 星级 -->
-      <view class="stars-row">
-        <image wx:for="{{starsArray}}" wx:key="index"
-          class="star-icon"
-          src="{{item ? '/assets/icons/star.svg' : '/assets/icons/star-empty.svg'}}"
-          mode="aspectFit"
-          style="{{item ? 'opacity:1' : 'opacity:0.4'}}"
-        />
-      </view>
-
-      <!-- 综合得分 -->
-      <view class="overall-score-wrap">
-        <text class="overall-score">{{overallScore}}</text>
-        <text class="overall-label">综合得分</text>
-      </view>
-
-      <!-- 测评信息 -->
-      <view class="test-meta">
-        <view class="meta-item">
-          <text class="meta-value">{{totalQuestions}}</text>
-          <text class="meta-label">答题数</text>
+    <!-- 等级展示头部 -->
+    <view class="hero-card animate-fade-in">
+      <view class="hero-bg" style="background: {{heroBgGradient}};"></view>
+      <view class="hero-content">
+        <!-- 等级徽章 -->
+        <view class="hero-badge" style="background: {{levelColor}}; box-shadow: 0 8rpx 32rpx {{levelShadow}};">
+          <text class="hero-badge-text">{{levelName}}</text>
         </view>
-        <view class="meta-divider"></view>
-        <view class="meta-item">
-          <text class="meta-value">{{passedQuestions}}</text>
-          <text class="meta-label">通过数</text>
+        <text class="hero-label">{{levelLabel}}</text>
+        <text wx:if="{{highestSubLevel}}" class="hero-sublevel">最高通过：{{highestSubLevel}}</text>
+
+        <!-- 综合得分 - 圆环 -->
+        <view class="score-ring-wrap">
+          <view class="score-ring">
+            <view class="score-ring-bg"></view>
+            <view class="score-ring-fill" style="background: conic-gradient({{levelColor}} {{scorePercent}}%, transparent {{scorePercent}}%);"></view>
+            <view class="score-ring-inner">
+              <text class="score-number">{{overallScore}}</text>
+              <text class="score-unit">分</text>
+            </view>
+          </view>
         </view>
-        <view class="meta-divider"></view>
-        <view class="meta-item">
-          <text class="meta-value">{{durationText}}</text>
-          <text class="meta-label">用时</text>
+
+        <!-- 测评数据 -->
+        <view class="hero-stats">
+          <view class="hero-stat">
+            <text class="hero-stat-value">{{totalQuestions}}</text>
+            <text class="hero-stat-label">答题数</text>
+          </view>
+          <view class="hero-stat-line"></view>
+          <view class="hero-stat">
+            <text class="hero-stat-value">{{passedQuestions}}</text>
+            <text class="hero-stat-label">通过数</text>
+          </view>
+          <view class="hero-stat-line"></view>
+          <view class="hero-stat">
+            <text class="hero-stat-value">{{durationText}}</text>
+            <text class="hero-stat-label">用时</text>
+          </view>
         </view>
       </view>
     </view>
 
     <!-- 能力评估 -->
     <view class="section animate-fade-in-delay-1">
-      <text class="section-title">能力评估</text>
-      <view class="desc-card glass-card-strong">
+      <view class="section-header">
+        <view class="section-icon-wrap blue">
+          <image class="section-icon" src="/assets/icons/zap.svg" mode="aspectFit" />
+        </view>
+        <text class="section-title">能力评估</text>
+      </view>
+      <view class="content-card">
         <text class="desc-text">{{summary}}</text>
       </view>
     </view>
 
     <!-- 分项得分 -->
     <view wx:if="{{scoreItems.length > 0}}" class="section animate-fade-in-delay-2">
-      <text class="section-title">分项得分</text>
-      <view class="scores-card glass-card-strong">
+      <view class="section-header">
+        <view class="section-icon-wrap green">
+          <image class="section-icon" src="/assets/icons/bar-chart.svg" mode="aspectFit" />
+        </view>
+        <text class="section-title">分项得分</text>
+      </view>
+      <view class="content-card">
         <view class="score-item" wx:for="{{scoreItems}}" wx:key="label">
-          <view class="score-header">
+          <view class="score-row">
             <text class="score-label">{{item.label}}</text>
-            <text class="score-value" style="color: {{item.color}};">{{item.value}}</text>
+            <text class="score-val" style="color: {{item.color}};">{{item.value}}</text>
           </view>
-          <view class="score-bar-bg">
-            <view class="score-bar-fill" style="width: {{item.percent}}%; background: {{item.color}};"></view>
+          <view class="score-track">
+            <view class="score-fill" style="width: {{item.percent}}%; background: {{item.color}};"></view>
           </view>
         </view>
       </view>
@@ -95,56 +109,65 @@
 
     <!-- 优势 -->
     <view wx:if="{{strengths.length > 0}}" class="section animate-fade-in-delay-2">
-      <text class="section-title">你的优势</text>
-      <view class="list-card glass-card-strong">
-        <view class="list-item strength" wx:for="{{strengths}}" wx:key="index">
-          <text class="list-icon">✓</text>
-          <text class="list-text">{{item}}</text>
+      <view class="section-header">
+        <view class="section-icon-wrap green">
+          <image class="section-icon" src="/assets/icons/check-circle.svg" mode="aspectFit" />
+        </view>
+        <text class="section-title">你的优势</text>
+      </view>
+      <view class="content-card">
+        <view class="tag-list strength" wx:for="{{strengths}}" wx:key="index">
+          <view class="tag-dot green"></view>
+          <text class="tag-text">{{item}}</text>
         </view>
       </view>
     </view>
 
     <!-- 待提升 -->
     <view wx:if="{{weaknesses.length > 0}}" class="section animate-fade-in-delay-3">
-      <text class="section-title">待提升</text>
-      <view class="list-card glass-card-strong">
-        <view class="list-item weakness" wx:for="{{weaknesses}}" wx:key="index">
-          <text class="list-icon">→</text>
-          <text class="list-text">{{item}}</text>
+      <view class="section-header">
+        <view class="section-icon-wrap orange">
+          <image class="section-icon" src="/assets/icons/trending-up.svg" mode="aspectFit" />
+        </view>
+        <text class="section-title">待提升</text>
+      </view>
+      <view class="content-card">
+        <view class="tag-list weakness" wx:for="{{weaknesses}}" wx:key="index">
+          <view class="tag-dot orange"></view>
+          <text class="tag-text">{{item}}</text>
         </view>
       </view>
     </view>
 
     <!-- 学习建议 -->
     <view class="section animate-fade-in-delay-3">
-      <text class="section-title">学习建议</text>
-      <view class="recommend-card glass-card-strong">
-        <image class="recommend-icon" src="/assets/icons/award.svg" mode="aspectFit" />
+      <view class="section-header">
+        <view class="section-icon-wrap blue">
+          <image class="section-icon" src="/assets/icons/award.svg" mode="aspectFit" />
+        </view>
+        <text class="section-title">学习建议</text>
+      </view>
+      <view class="recommend-card">
         <text class="recommend-text">{{recommendation}}</text>
       </view>
     </view>
 
     <!-- 操作按钮 -->
     <view class="actions animate-fade-in-delay-4">
-      <!-- 主按钮组 -->
-      <view class="primary-actions">
-        <button class="btn-primary" bindtap="handleJoinGroup">
-          <image class="btn-icon" src="/assets/icons/users.svg" mode="aspectFit" />
+      <view class="action-row">
+        <button class="action-btn primary" bindtap="handleJoinGroup">
+          <image class="action-btn-icon" src="/assets/icons/users.svg" mode="aspectFit" />
           <text>加入学习群</text>
         </button>
-        <button class="btn-retake" bindtap="handleRetake">
-          <image class="btn-icon" src="/assets/icons/play.svg" mode="aspectFit" />
+        <button class="action-btn success" bindtap="handleRetake">
+          <image class="action-btn-icon" src="/assets/icons/play.svg" mode="aspectFit" />
           <text>重新测评</text>
         </button>
       </view>
-
-      <!-- 分享按钮 -->
-      <button class="btn-share" open-type="share">
-        <image class="btn-icon-sm" src="/assets/icons/share.svg" mode="aspectFit" />
+      <button class="share-btn" open-type="share">
+        <image class="share-btn-icon" src="/assets/icons/share.svg" mode="aspectFit" />
         <text>分享测评结果给好友</text>
       </button>
-
-      <!-- 回首页 -->
       <view class="home-link" bindtap="goHome">
         <text class="home-link-text">返回首页</text>
       </view>
@@ -156,7 +179,7 @@
 
   <!-- 群二维码弹窗 -->
   <view wx:if="{{showQrModal}}" class="modal-mask" bindtap="closeQrModal">
-    <view class="modal-content glass-card-strong" catchtap="preventClose">
+    <view class="modal-content" catchtap="preventClose">
       <view class="modal-header">
         <text class="modal-title">加入学习群</text>
         <view class="modal-close" bindtap="closeQrModal">

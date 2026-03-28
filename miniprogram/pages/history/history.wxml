@@ -1,6 +1,6 @@
 <!--
   途正英语AI分级测评 - 历史记录页
-  优化排版：左侧序号+右侧信息，日期完整显示，状态更醒目
+  全新UI设计：蓝色渐变头部 + 精致卡片列表
 -->
 <view class="page">
   <!-- 自定义导航栏 -->
@@ -31,86 +31,101 @@
 
     <!-- 空状态 -->
     <view wx:elif="{{!loading && list.length === 0}}" class="empty-state">
-      <view class="empty-icon-wrap">
-        <image class="empty-icon" src="/assets/icons/history.svg" mode="aspectFit" />
+      <view class="empty-illustration">
+        <view class="empty-circle">
+          <image class="empty-icon" src="/assets/icons/history.svg" mode="aspectFit" />
+        </view>
       </view>
       <text class="empty-title">暂无测评记录</text>
       <text class="empty-desc">完成一次测评后，记录将显示在这里</text>
-      <button class="empty-btn" bindtap="goTest">开始测评</button>
+      <button class="empty-btn" bindtap="goTest">
+        <text>开始第一次测评</text>
+      </button>
     </view>
 
-    <!-- 统计摘要 -->
-    <view wx:if="{{list.length > 0}}" class="summary-bar">
-      <view class="summary-item">
-        <text class="summary-value">{{list.length}}</text>
-        <text class="summary-label">总测评</text>
-      </view>
-      <view class="summary-divider"></view>
-      <view class="summary-item">
-        <text class="summary-value">{{completedCount}}</text>
-        <text class="summary-label">已完成</text>
-      </view>
-      <view class="summary-divider"></view>
-      <view class="summary-item">
-        <text class="summary-value {{bestLevel ? '' : 'muted'}}">{{bestLevel || '-'}}</text>
-        <text class="summary-label">最高等级</text>
-      </view>
-    </view>
-
-    <!-- 记录列表 -->
-    <view wx:if="{{list.length > 0}}" class="list">
-      <view
-        class="record-card glass-card animate-fade-in"
-        wx:for="{{list}}"
-        wx:key="sessionId"
-        bindtap="viewDetail"
-        data-session-id="{{item.sessionId}}"
-        style="animation-delay: {{index * 0.05}}s;"
-      >
-        <!-- 左侧：序号圆圈 + 状态色条 -->
-        <view class="card-left">
-          <view class="index-circle {{item.status === 'completed' ? 'completed' : ''}}">
-            <text class="index-num">{{index + 1}}</text>
+    <!-- 有数据时 -->
+    <block wx:if="{{list.length > 0}}">
+      <!-- 统计头部卡片 -->
+      <view class="stats-header animate-fade-in">
+        <view class="stats-bg"></view>
+        <view class="stats-content">
+          <view class="stats-row">
+            <view class="stat-block">
+              <text class="stat-number">{{list.length}}</text>
+              <text class="stat-label">总测评</text>
+            </view>
+            <view class="stat-divider"></view>
+            <view class="stat-block">
+              <text class="stat-number">{{completedCount}}</text>
+              <text class="stat-label">已完成</text>
+            </view>
+            <view class="stat-divider"></view>
+            <view class="stat-block">
+              <text class="stat-number {{bestLevel ? '' : 'no-data'}}">{{bestLevel || '-'}}</text>
+              <text class="stat-label">最高等级</text>
+            </view>
           </view>
-          <view class="status-line {{item.status === 'completed' ? 'completed' : ''}}"></view>
         </view>
+      </view>
 
-        <!-- 右侧：主信息 -->
-        <view class="card-right">
-          <!-- 第一行：等级 + 状态 -->
-          <view class="card-row-top">
-            <view wx:if="{{item.status === 'completed'}}" class="level-tag" style="background: {{item.levelColor}};">
-              <text class="level-tag-text">{{item.levelName}}</text>
+      <!-- 记录列表 -->
+      <view class="record-list">
+        <view
+          class="record-item animate-fade-in"
+          wx:for="{{list}}"
+          wx:key="sessionId"
+          bindtap="viewDetail"
+          data-session-id="{{item.sessionId}}"
+          style="animation-delay: {{index * 0.04}}s;"
+        >
+          <!-- 已完成的记录 -->
+          <block wx:if="{{item.status === 'completed'}}">
+            <view class="item-left">
+              <view class="level-badge-sm" style="background: {{item.levelColor}};">
+                <text class="level-badge-text">{{item.levelName}}</text>
+              </view>
             </view>
-            <view wx:else class="level-tag incomplete">
-              <text class="level-tag-text">未完成</text>
+            <view class="item-center">
+              <view class="item-main-row">
+                <text class="item-score">{{item.overallScore}}分</text>
+                <text wx:if="{{item.highestSubLevel}}" class="item-sublevel">{{item.highestSubLevel}}</text>
+              </view>
+              <view class="item-meta-row">
+                <text class="item-meta">{{item.totalQuestions}}题</text>
+                <text class="item-meta-dot">·</text>
+                <text class="item-meta">{{item.durationText}}</text>
+                <text class="item-meta-dot">·</text>
+                <text class="item-meta">{{item.completedAtFormatted}}</text>
+              </view>
             </view>
-            <view class="status-badge {{item.status === 'completed' ? 'done' : 'pending'}}">
-              <view class="status-dot"></view>
-              <text class="status-text">{{item.statusText}}</text>
+            <view class="item-right">
+              <image class="chevron-icon" src="/assets/icons/chevron-right.svg" mode="aspectFit" />
             </view>
-          </view>
+          </block>
 
-          <!-- 第二行：等级描述 -->
-          <text wx:if="{{item.levelLabel}}" class="level-desc">{{item.levelLabel}}</text>
-
-          <!-- 第三行：统计数据 -->
-          <view class="card-stats">
-            <view class="stat-chip">
-              <image class="stat-icon" src="/assets/icons/mic.svg" mode="aspectFit" />
-              <text class="stat-text">{{item.questionCount || 0}} 题</text>
+          <!-- 未完成的记录 -->
+          <block wx:else>
+            <view class="item-left">
+              <view class="level-badge-sm incomplete">
+                <text class="level-badge-text">未完成</text>
+              </view>
             </view>
-            <view class="stat-chip">
-              <image class="stat-icon" src="/assets/icons/clock.svg" mode="aspectFit" />
-              <text class="stat-text">{{item.durationText || '-'}}</text>
+            <view class="item-center">
+              <view class="item-main-row">
+                <text class="item-incomplete-label">测评中断</text>
+              </view>
+              <view class="item-meta-row">
+                <text class="item-meta">{{item.totalQuestions || 0}}题</text>
+                <text class="item-meta-dot">·</text>
+                <text class="item-meta">{{item.durationText}}</text>
+                <text class="item-meta-dot">·</text>
+                <text class="item-meta">{{item.completedAtFormatted}}</text>
+              </view>
             </view>
-          </view>
-
-          <!-- 第四行：日期 + 箭头 -->
-          <view class="card-row-bottom">
-            <text class="card-date">{{item.completedAtFormatted}}</text>
-            <image class="arrow-icon" src="/assets/icons/chevron-right.svg" mode="aspectFit" />
-          </view>
+            <view class="item-right">
+              <image class="chevron-icon" src="/assets/icons/chevron-right.svg" mode="aspectFit" />
+            </view>
+          </block>
         </view>
       </view>
 
@@ -120,9 +135,12 @@
         <text class="loading-more-text">加载中...</text>
       </view>
 
-      <view wx:elif="{{noMore}}" class="no-more">
+      <view wx:elif="{{noMore && list.length > 5}}" class="no-more">
         <text class="no-more-text">— 没有更多记录了 —</text>
       </view>
-    </view>
+
+      <!-- 底部安全区 -->
+      <view style="height: calc(env(safe-area-inset-bottom) + 32rpx);"></view>
+    </block>
   </scroll-view>
 </view>

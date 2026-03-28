@@ -35,6 +35,9 @@ Page({
     levelLabel: '',
     levelColor: '#1B3F91',
     levelBgGradient: 'linear-gradient(135deg, rgba(27,63,145,0.06), rgba(131,186,18,0.06))',
+    heroBgGradient: 'linear-gradient(135deg, rgba(27,63,145,0.06), rgba(131,186,18,0.06))',
+    levelShadow: 'rgba(27,63,145,0.25)',
+    scorePercent: 0,
     starsArray: [true, false, false, false],
     highestSubLevel: '',
 
@@ -133,11 +136,20 @@ Page({
 
       // 背景渐变
       const bgGradients = {
-        0: 'linear-gradient(135deg, rgba(138,149,165,0.08), rgba(200,210,220,0.08))',
-        1: 'linear-gradient(135deg, rgba(27,63,145,0.08), rgba(43,91,160,0.06))',
-        2: 'linear-gradient(135deg, rgba(131,186,18,0.08), rgba(106,154,16,0.06))',
-        3: 'linear-gradient(135deg, rgba(43,91,160,0.08), rgba(27,63,145,0.06))'
+        0: 'linear-gradient(135deg, rgba(138,149,165,0.06), rgba(200,210,220,0.06))',
+        1: 'linear-gradient(135deg, rgba(27,63,145,0.06), rgba(43,91,160,0.04))',
+        2: 'linear-gradient(135deg, rgba(131,186,18,0.06), rgba(106,154,16,0.04))',
+        3: 'linear-gradient(135deg, rgba(43,91,160,0.06), rgba(27,63,145,0.04))'
       }
+
+      const levelShadows = {
+        0: 'rgba(138,149,165,0.25)',
+        1: 'rgba(27,63,145,0.25)',
+        2: 'rgba(131,186,18,0.25)',
+        3: 'rgba(43,91,160,0.25)'
+      }
+
+      const scorePercent = Math.min(Math.round(data.overallScore || 0), 100)
 
       // 时长（后端返回毫秒）
       const totalDuration = data.totalDuration || 0
@@ -153,6 +165,9 @@ Page({
         levelLabel: config.label || '',
         levelColor: config.color,
         levelBgGradient: bgGradients[this._majorLevel] || bgGradients[1],
+        heroBgGradient: bgGradients[this._majorLevel] || bgGradients[1],
+        levelShadow: levelShadows[this._majorLevel] || levelShadows[1],
+        scorePercent,
         starsArray,
         highestSubLevel: data.highestSubLevel || '',
         // 得分

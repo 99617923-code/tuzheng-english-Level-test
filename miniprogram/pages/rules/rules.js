@@ -15,17 +15,18 @@ Page({
     // 录音权限
     recordPermission: 'unknown', // unknown | authorized | denied
     steps: [
-      { title: '听AI外教说', desc: '听一段英语语音，理解对话内容', color: '#1B3F91', bgColor: 'rgba(27,63,145,0.10)' },
-      { title: '跟着说英语', desc: '按住按钮，用英语回答问题', color: '#83BA12', bgColor: 'rgba(131,186,18,0.10)' },
-      { title: 'AI智能评估', desc: 'AI实时分析你的发音、语法和表达', color: '#2B5BA0', bgColor: 'rgba(43,91,160,0.10)' },
-      { title: '获取等级报告', desc: '完成测评后获得详细的等级评定报告', color: '#4a8a30', bgColor: 'rgba(74,138,48,0.10)' }
+      { title: '听题', desc: '听AI外教的英语提问，可点击重播', color: '#1B3F91', bgColor: 'rgba(27,63,145,0.10)', icon: 'headphones' },
+      { title: '录音作答', desc: '按住麦克风按钮，用英语回答', color: '#83BA12', bgColor: 'rgba(131,186,18,0.10)', icon: 'mic' },
+      { title: 'AI评分', desc: 'AI实时评估发音、语法和表达', color: '#2B5BA0', bgColor: 'rgba(43,91,160,0.10)', icon: 'zap' },
+      { title: '自适应升级', desc: '答对自动升级更高难度，精准定级', color: '#e67e22', bgColor: 'rgba(230,126,34,0.10)', icon: 'trending-up' },
+      { title: '获取报告', desc: '完成后获得等级评定和学习建议', color: '#4a8a30', bgColor: 'rgba(74,138,48,0.10)', icon: 'award' }
     ],
     tips: [
       { text: '请在安静的环境中进行测评', color: '#1B3F91' },
       { text: '说话时请靠近手机麦克风', color: '#83BA12' },
-      { text: '每道题有充足的准备和回答时间', color: '#2B5BA0' },
-      { text: '请用英语回答，不要使用中文', color: '#4a8a30' },
-      { text: '如果不会回答，可以说 "I don\'t know" 或跳过', color: '#8a95a5' }
+      { text: '请用英语回答，不要使用中文', color: '#2B5BA0' },
+      { text: '不会的题目可以点击"跳过"', color: '#4a8a30' },
+      { text: '测评中途退出可自动保存进度', color: '#e67e22' }
     ]
   },
 

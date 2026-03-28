@@ -1,23 +1,13 @@
 /**
  * 途正英语AI分级测评 - 结果页（自适应引擎 v2）
  * 
- * 数据来源：GET /api/v1/test/result/:sessionId
+ * 核心流程：
+ * 1. 显示测评结果（等级、得分、报告）
+ * 2. 用户可以"重新测评"（不满意当前结果）
+ * 3. 用户点击"确认最终评级"后锁定结果，显示班级群二维码
+ * 4. 确认后不可更改
  * 
- * v2 结果格式：
- * {
- *   majorLevel: 0-3,
- *   majorLevelName: "一级",
- *   highestSubLevel: "G3",
- *   overallScore: 68.5,
- *   totalQuestions: 8,
- *   passedQuestions: 5,
- *   totalDuration: 120000,  // 毫秒
- *   report: {
- *     pronunciation: 72, grammar: 65, vocabulary: 68, fluency: 66,
- *     summary: "...", strengths: [...], weaknesses: [...], recommendation: "..."
- *   },
- *   groupQrcode: { groupName: "...", qrcodeUrl: "..." }
- * }
+ * 数据来源：GET /api/v1/test/result/:sessionId
  */
 const app = getApp()
 const { getTestResult, getQrcodeByLevel } = require('../../utils/api')
@@ -29,6 +19,9 @@ Page({
     navContentTop: 0,
     navContentHeight: 0,
     loading: true,
+
+    // 确认状态
+    confirmed: false,
 
     // 等级信息
     levelName: '',
@@ -78,10 +71,37 @@ Page({
 
     this._sessionId = options.sessionId || ''
     if (this._sessionId) {
+      // 检查是否已经确认过
+      this._checkConfirmed()
       this.loadResult()
     } else {
       showError('缺少测评会话信息')
       this.setData({ loading: false })
+    }
+  },
+
+  /** 检查该sessionId是否已经确认过 */
+  _checkConfirmed() {
+    try {
+      const confirmedSessions = wx.getStorageSync('tz_confirmed_sessions') || {}
+      if (confirmedSessions[this._sessionId]) {
+        this.setData({ confirmed: true })
+      }
+    } catch (e) {}
+  },
+
+  /** 保存确认状态到本地 */
+  _saveConfirmed() {
+    try {
+      const confirmedSessions = wx.getStorageSync('tz_confirmed_sessions') || {}
+      confirmedSessions[this._sessionId] = {
+        confirmedAt: Date.now(),
+        majorLevel: this._majorLevel,
+        levelName: this.data.levelName
+      }
+      wx.setStorageSync('tz_confirmed_sessions', confirmedSessions)
+    } catch (e) {
+      console.warn('[Result] Save confirmed state failed:', e)
     }
   },
 
@@ -158,7 +178,7 @@ Page({
       const totalDuration = data.totalDuration || 0
       const durationText = formatDuration(Math.round(totalDuration / 1000))
 
-      // 群二维码（v2直接在result里返回）
+      // 群二维码（v2直接在result里返回，但不立即显示）
       const groupQrcode = data.groupQrcode || {}
 
       this.setData({
@@ -185,7 +205,7 @@ Page({
         recommendation: report.recommendation || config.recommendation || '',
         // 分项得分
         scoreItems,
-        // 群二维码（预填充）
+        // 群二维码（预存但不显示，确认后才可见）
         qrcodeUrl: groupQrcode.qrcodeUrl || '',
         groupName: groupQrcode.groupName || ''
       })
@@ -197,8 +217,39 @@ Page({
     }
   },
 
-  /** 加入学习群 */
+  /** 确认最终评级 */
+  handleConfirmLevel() {
+    wx.showModal({
+      title: '确认最终评级',
+      content: `你的评级为"${this.data.levelName}"（${this.data.overallScore}分）。确认后将不可更改，是否确认？`,
+      confirmText: '确认评级',
+      confirmColor: '#1B3F91',
+      cancelText: '再想想',
+      success: (res) => {
+        if (res.confirm) {
+          this.setData({ confirmed: true })
+          this._saveConfirmed()
+
+          wx.showToast({
+            title: '评级已确认！',
+            icon: 'success',
+            duration: 2000
+          })
+
+          // 清除测评缓存（确认后不再允许恢复）
+          try { wx.removeStorageSync('tz_test_session') } catch (e) {}
+        }
+      }
+    })
+  },
+
+  /** 加入学习群（仅确认后可用） */
   async handleJoinGroup() {
+    if (!this.data.confirmed) {
+      wx.showToast({ title: '请先确认评级', icon: 'none' })
+      return
+    }
+
     // 如果v2 result已经返回了二维码，直接显示
     if (this.data.qrcodeUrl) {
       this.setData({ showQrModal: true })
@@ -227,13 +278,19 @@ Page({
 
   preventClose() {},
 
-  /** 重新测评 */
+  /** 重新测评（仅未确认时可用） */
   handleRetake() {
+    if (this.data.confirmed) {
+      wx.showToast({ title: '评级已确认，不可更改', icon: 'none' })
+      return
+    }
+
     wx.showModal({
       title: '重新测评',
-      content: '将开始一次全新的测评，确定要继续吗？',
-      confirmText: '开始',
+      content: '将开始一次全新的测评，当前结果不会保留。确定要重新测评吗？',
+      confirmText: '重新测评',
       confirmColor: '#83BA12',
+      cancelText: '取消',
       success: (res) => {
         if (res.confirm) {
           // 清除中断恢复缓存
@@ -244,8 +301,13 @@ Page({
     })
   },
 
-  /** 保存测评海报 */
+  /** 保存测评海报（仅确认后可用） */
   async savePoster() {
+    if (!this.data.confirmed) {
+      wx.showToast({ title: '请先确认评级', icon: 'none' })
+      return
+    }
+
     if (this.data.posterSaving) return
     this.setData({ posterSaving: true })
 
@@ -295,15 +357,13 @@ Page({
 
       ctx.fillStyle = '#8a95a5'
       ctx.font = '26px sans-serif'
-      ctx.fillText('测评报告', W / 2, 120)
+      ctx.fillText('最终测评报告', W / 2, 120)
 
       // ===== 等级卡片 =====
       const cardX = 50, cardY = 160, cardW = W - 100, cardH = 440
-      // 卡片背景
       ctx.fillStyle = '#ffffff'
       this._roundRect(ctx, cardX, cardY, cardW, cardH, 24)
       ctx.fill()
-      // 卡片阴影
       ctx.shadowColor = 'rgba(27,63,145,0.08)'
       ctx.shadowBlur = 20
       ctx.shadowOffsetY = 8
@@ -331,13 +391,11 @@ Page({
 
       // 分数圆环
       const ringCX = W / 2, ringCY = badgeY + 220, ringR = 80
-      // 背景圆
       ctx.beginPath()
       ctx.arc(ringCX, ringCY, ringR, 0, Math.PI * 2)
       ctx.strokeStyle = 'rgba(27,63,145,0.08)'
       ctx.lineWidth = 14
       ctx.stroke()
-      // 进度圆
       const percent = this.data.scorePercent || 0
       const endAngle = -Math.PI / 2 + (percent / 100) * Math.PI * 2
       ctx.beginPath()
@@ -346,11 +404,10 @@ Page({
       ctx.lineWidth = 14
       ctx.lineCap = 'round'
       ctx.stroke()
-      // 分数文字
       ctx.fillStyle = '#1a2332'
       ctx.font = 'bold 56px sans-serif'
       ctx.textAlign = 'center'
-      ctx.fillText(String(this.data.overallScore || 0), ringCX, ringCY + 16)
+      ctx.fillText(String(this.data.overallScore), ringCX, ringCY + 18)
       ctx.fillStyle = '#8a95a5'
       ctx.font = '22px sans-serif'
       ctx.fillText('分', ringCX, ringCY + 46)
@@ -373,7 +430,6 @@ Page({
         ctx.font = '22px sans-serif'
         ctx.fillText(s.label, sx, statsY + 32)
       })
-      // 分割线
       ctx.strokeStyle = 'rgba(0,0,0,0.06)'
       ctx.lineWidth = 1
       for (let i = 1; i < 3; i++) {
@@ -394,22 +450,18 @@ Page({
       const items = this.data.scoreItems || []
       items.forEach((item, i) => {
         const iy = scoreY + 50 + i * 70
-        // 标签
         ctx.fillStyle = '#5a6577'
         ctx.font = '24px sans-serif'
         ctx.textAlign = 'left'
         ctx.fillText(item.label, cardX, iy)
-        // 分数
         ctx.fillStyle = item.color || '#1B3F91'
         ctx.font = 'bold 24px sans-serif'
         ctx.textAlign = 'right'
         ctx.fillText(String(item.value), cardX + cardW, iy)
-        // 进度条背景
         const barY = iy + 12, barH = 10, barW = cardW
         ctx.fillStyle = 'rgba(27,63,145,0.06)'
         this._roundRect(ctx, cardX, barY, barW, barH, 5)
         ctx.fill()
-        // 进度条填充
         ctx.fillStyle = item.color || '#1B3F91'
         this._roundRect(ctx, cardX, barY, barW * (item.percent / 100), barH, 5)
         ctx.fill()
@@ -422,7 +474,6 @@ Page({
       ctx.textAlign = 'left'
       ctx.fillText('能力评估', cardX, summaryY)
 
-      // 自动换行绘制摘要
       ctx.fillStyle = '#5a6577'
       ctx.font = '24px sans-serif'
       const summaryLines = this._wrapText(ctx, this.data.summary || '', cardW, 24)
@@ -515,7 +566,7 @@ Page({
       }
     }
     if (line) lines.push(line)
-    return lines.slice(0, 5) // 最多5行
+    return lines.slice(0, 5)
   },
 
   /** 回首页 */
@@ -525,9 +576,12 @@ Page({
 
   /** 分享给好友 */
   onShareAppMessage() {
-    const { levelName, overallScore } = this.data
+    const { levelName, overallScore, confirmed } = this.data
+    const title = confirmed
+      ? `我在途正英语AI分级测评中获得了${levelName}（${overallScore}分），快来测测你的英语水平！`
+      : `我正在途正英语AI分级测评中测试，快来一起测测吧！`
     return {
-      title: `我在途正英语AI分级测评中获得了${levelName}（${overallScore}分），快来测测你的英语水平！`,
+      title,
       path: '/pages/home/home',
       imageUrl: app.globalData.shareCoverUrl
     }

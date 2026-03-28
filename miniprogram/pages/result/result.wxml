@@ -1,13 +1,18 @@
 <!--
   途正英语AI分级测评 - 结果页（全新UI设计）
-  等级展示 + 分项得分 + 优劣势 + 学习建议 + 群二维码弹窗
+  
+  核心流程：
+  1. 测评结束后显示本次测评结果（等级、得分、报告）
+  2. 用户可以选择"重新测评"（不满意当前结果）
+  3. 用户点击"确认最终评级"后，锁定结果，显示班级群二维码
+  4. 确认后不可更改
 -->
 <view class="page">
   <!-- 自定义导航栏 -->
   <view class="custom-nav" style="height: {{navBarHeight}}px;">
     <view class="custom-nav-content" style="margin-top: {{navContentTop}}px; height: {{navContentHeight}}px;">
       <view class="nav-right-placeholder"></view>
-      <text class="nav-title-center">测评报告</text>
+      <text class="nav-title-center">{{confirmed ? '最终测评报告' : '测评报告（预览）'}}</text>
       <view class="nav-back-btn" bindtap="goHome">
         <image class="nav-back-icon" src="/assets/icons/x.svg" mode="aspectFit" />
       </view>
@@ -29,6 +34,21 @@
 
   <!-- 结果内容 -->
   <scroll-view wx:else scroll-y class="scroll-area" style="top: {{navBarHeight}}px;" enhanced show-scrollbar="{{false}}">
+
+    <!-- 未确认提示条 -->
+    <view wx:if="{{!confirmed}}" class="confirm-banner animate-fade-in">
+      <view class="confirm-banner-icon">💡</view>
+      <view class="confirm-banner-text">
+        <text class="confirm-banner-title">这是你的测评预览</text>
+        <text class="confirm-banner-desc">如果觉得不够准确，可以重新测评。确认后将锁定评级，不可更改。</text>
+      </view>
+    </view>
+
+    <!-- 已确认标记 -->
+    <view wx:if="{{confirmed}}" class="confirmed-badge animate-fade-in">
+      <text class="confirmed-badge-icon">✅</text>
+      <text class="confirmed-badge-text">评级已确认，不可更改</text>
+    </view>
 
     <!-- 等级展示头部 -->
     <view class="hero-card animate-fade-in">
@@ -152,26 +172,38 @@
       </view>
     </view>
 
-    <!-- 操作按钮 -->
+    <!-- 操作按钮区 -->
     <view class="actions animate-fade-in-delay-4">
-      <view class="action-row">
-        <button class="action-btn primary" bindtap="handleJoinGroup">
-          <image class="action-btn-icon" src="/assets/icons/users.svg" mode="aspectFit" />
-          <text>加入学习群</text>
+      <!-- 未确认状态：显示"重新测评"和"确认最终评级" -->
+      <view wx:if="{{!confirmed}}">
+        <view class="confirm-notice">
+          <text class="confirm-notice-text">如果你觉得这次测评最接近你的真实水平，请确认评级。确认后将不可更改。</text>
+        </view>
+        <button class="action-btn-full confirm-btn" bindtap="handleConfirmLevel">
+          <text>✓ 确认最终评级</text>
         </button>
-        <button class="action-btn success" bindtap="handleRetake">
+        <button class="action-btn-full retake-btn" bindtap="handleRetake">
           <image class="action-btn-icon" src="/assets/icons/play.svg" mode="aspectFit" />
-          <text>重新测评</text>
+          <text>不满意，重新测评</text>
         </button>
       </view>
-      <button class="share-btn" open-type="share">
-        <image class="share-btn-icon" src="/assets/icons/share.svg" mode="aspectFit" />
-        <text>分享测评结果给好友</text>
-      </button>
-      <button class="save-poster-btn" bindtap="savePoster" disabled="{{posterSaving}}">
-        <image class="save-poster-icon" src="/assets/icons/download.svg" mode="aspectFit" />
-        <text>{{posterSaving ? '正在生成...' : '保存测评海报'}}</text>
-      </button>
+
+      <!-- 已确认状态：显示群二维码入口 + 分享 -->
+      <view wx:if="{{confirmed}}">
+        <button class="action-btn-full join-group-btn" bindtap="handleJoinGroup">
+          <image class="action-btn-icon" src="/assets/icons/users.svg" mode="aspectFit" />
+          <text>加入{{levelName}}学习群</text>
+        </button>
+        <button class="share-btn" open-type="share">
+          <image class="share-btn-icon" src="/assets/icons/share.svg" mode="aspectFit" />
+          <text>分享测评结果给好友</text>
+        </button>
+        <button class="save-poster-btn" bindtap="savePoster" disabled="{{posterSaving}}">
+          <image class="save-poster-icon" src="/assets/icons/download.svg" mode="aspectFit" />
+          <text>{{posterSaving ? '正在生成...' : '保存测评海报'}}</text>
+        </button>
+      </view>
+
       <view class="home-link" bindtap="goHome">
         <text class="home-link-text">返回首页</text>
       </view>
@@ -184,8 +216,8 @@
   <!-- 离屏Canvas用于绘制海报 -->
   <canvas type="2d" id="posterCanvas" style="position: fixed; left: -9999px; top: -9999px; width: 750px; height: 1200px;"></canvas>
 
-  <!-- 群二维码弹窗 -->
-  <view wx:if="{{showQrModal}}" class="modal-mask" bindtap="closeQrModal">
+  <!-- 群二维码弹窗（仅确认后可见） -->
+  <view wx:if="{{showQrModal && confirmed}}" class="modal-mask" bindtap="closeQrModal">
     <view class="modal-content" catchtap="preventClose">
       <view class="modal-header">
         <text class="modal-title">加入学习群</text>

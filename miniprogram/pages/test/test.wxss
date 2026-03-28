@@ -612,3 +612,60 @@
   opacity: 0.9;
   transform: scale(0.98);
 }
+
+/* ============ 正在播放提示（listening阶段） ============ */
+.listening-hint-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20rpx;
+  padding: 24rpx 0;
+}
+
+.listening-dots {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.listening-dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  background: var(--brand-blue);
+  animation: listeningBounce 1.4s ease-in-out infinite;
+}
+
+.listening-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.listening-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes listeningBounce {
+  0%, 80%, 100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+  40% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+.listening-hint-text {
+  font-size: 28rpx;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* 录音按钮 tap 模式 active 反馈 */
+.record-btn:active {
+  transform: scale(0.95);
+}
+
+.record-btn.recording:active {
+  transform: scale(1.05);
+}

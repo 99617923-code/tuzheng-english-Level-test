@@ -1,6 +1,6 @@
 <!--
   途正英语AI分级测评 - 测评主页面（自适应引擎 v2）
-  核心交互：播放外教真人语音 → 按住录音回答 → AI评分 → 自适应升级 → 下一题/出结果
+  核心交互：自动播放外教语音 → 点击录音回答 → AI评分 → 自适应升级 → 下一题/出结果
   小程序原生适配：全局导航布局
 -->
 <view class="page">
@@ -44,12 +44,7 @@
         </view>
       </view>
 
-      <!-- 题目文本 -->
-      <view class="question-text-wrap">
-        <text class="question-text">{{currentQuestion.questionText || '正在加载题目...'}}</text>
-      </view>
-
-      <!-- AI语音播放条（外教真人录音） -->
+      <!-- AI语音播放条（外教真人录音） - 点击可重播 -->
       <view wx:if="{{currentQuestion.audioUrl}}" class="audio-bar" bindtap="playAudio">
         <view class="audio-play-btn">
           <image wx:if="{{!audioPlaying}}" class="audio-play-icon" src="/assets/icons/play.svg" mode="aspectFit" />
@@ -58,14 +53,6 @@
         <view class="audio-waves">
           <view wx:for="{{audioWaves}}" wx:key="index" class="audio-wave-bar {{audioPlaying ? 'playing' : ''}}" style="height: {{item}}rpx; animation-delay: {{index * 0.05}}s;"></view>
         </view>
-      </view>
-
-      <!-- 用户回答区域 -->
-      <view wx:if="{{userTranscription}}" class="user-answer">
-        <view class="user-answer-header">
-          <text class="user-answer-label">你的回答</text>
-        </view>
-        <text class="user-answer-text">{{userTranscription}}</text>
       </view>
 
       <!-- AI评价反馈 -->
@@ -79,12 +66,6 @@
       </view>
     </view>
 
-    <!-- 实时语音识别文字 -->
-    <view wx:if="{{isRecording && realtimeText}}" class="realtime-text glass-card">
-      <text class="realtime-label">正在识别...</text>
-      <text class="realtime-content">{{realtimeText}}</text>
-    </view>
-
     <!-- 升级提示 -->
     <view wx:if="{{showLevelUp}}" class="levelup-toast animate-fade-in">
       <text class="levelup-icon">🎉</text>
@@ -94,31 +75,33 @@
 
   <!-- 底部操作区 -->
   <view class="bottom-bar">
-    <!-- 状态：等待播放AI语音 -->
-    <view wx:if="{{phase === 'listening'}}" class="action-area">
-      <button class="listen-btn" bindtap="playAudio">
-        <image class="listen-icon" src="/assets/icons/volume.svg" mode="aspectFit" />
-        <text class="listen-text">{{audioPlaying ? '正在播放...' : '点击播放题目'}}</text>
-      </button>
-    </view>
-
-    <!-- 状态：准备回答 / 录音中 -->
-    <view wx:elif="{{phase === 'answering'}}" class="action-area">
+    <!-- 状态：准备回答 / 录音中（含自动播放后进入） -->
+    <view wx:if="{{phase === 'answering'}}" class="action-area">
       <view class="record-area">
         <view wx:if="{{isRecording}}" class="record-pulse-ring"></view>
         <view
           class="record-btn {{isRecording ? 'recording' : ''}}"
-          bindtouchstart="startRecording"
-          bindtouchend="stopRecording"
-          bindtouchcancel="cancelRecording"
+          bindtap="toggleRecording"
         >
-          <image class="record-mic-icon" src="/assets/icons/mic.svg" mode="aspectFit" />
+          <image class="record-mic-icon" src="/assets/icons/mic-white.svg" mode="aspectFit" />
         </view>
-        <text class="record-hint">{{isRecording ? '松开结束录音' : '按住说话'}}</text>
+        <text class="record-hint">{{isRecording ? '点击结束录音' : '点击开始录音'}}</text>
         <text wx:if="{{isRecording}}" class="record-timer">{{recordTimeDisplay}}</text>
       </view>
       <view class="skip-row">
         <button class="skip-btn" bindtap="handleSkip">跳过此题</button>
+      </view>
+    </view>
+
+    <!-- 状态：正在播放AI语音（自动播放中，不可操作） -->
+    <view wx:elif="{{phase === 'listening'}}" class="action-area">
+      <view class="listening-hint-wrap">
+        <view class="listening-dots">
+          <view class="listening-dot"></view>
+          <view class="listening-dot"></view>
+          <view class="listening-dot"></view>
+        </view>
+        <text class="listening-hint-text">正在播放题目，请仔细听...</text>
       </view>
     </view>
 
@@ -173,15 +156,15 @@
           <view class="guide-steps">
             <view class="guide-step-item">
               <text class="guide-step-num">1</text>
-              <text class="guide-step-text">我说英语，你听</text>
+              <text class="guide-step-text">听AI外教的英语提问</text>
             </view>
             <view class="guide-step-item">
               <text class="guide-step-num">2</text>
-              <text class="guide-step-text">按住麦克风，用英语回答</text>
+              <text class="guide-step-text">点击麦克风，用英语回答</text>
             </view>
             <view class="guide-step-item">
               <text class="guide-step-num">3</text>
-              <text class="guide-step-text">答对了，我出更难的题</text>
+              <text class="guide-step-text">答对了，AI出更难的题</text>
             </view>
             <view class="guide-step-item">
               <text class="guide-step-num">4</text>

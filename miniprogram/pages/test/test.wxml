@@ -151,5 +151,59 @@
         <text class="evaluating-text">正在准备测评...</text>
       </view>
     </view>
+
+    <!-- 状态：AI外教引导 -->
+    <view wx:elif="{{phase === 'guide'}}" class="action-area guide-area">
+      <!-- 引导气泡内容 -->
+      <view class="guide-bubble-wrap">
+        <!-- Step 1: 欢迎 -->
+        <view wx:if="{{guideStep === 1}}" class="guide-bubble animate-fade-in">
+          <text class="guide-emoji">👋</text>
+          <text class="guide-title">你好！我是你的AI外教</text>
+          <text class="guide-desc">接下来我会用英语和你对话，测出你的真实英语水平。很简单，跟着我的引导就好！</text>
+          <view class="guide-btns">
+            <button class="guide-btn-skip" bindtap="handleGuideSkip">跳过，直接开始</button>
+            <button class="guide-btn-next" bindtap="handleGuideNext">了解一下</button>
+          </view>
+        </view>
+
+        <!-- Step 2: 流程说明 -->
+        <view wx:elif="{{guideStep === 2}}" class="guide-bubble animate-fade-in">
+          <text class="guide-title">测评流程很简单</text>
+          <view class="guide-steps">
+            <view class="guide-step-item">
+              <text class="guide-step-num">1</text>
+              <text class="guide-step-text">我说英语，你听</text>
+            </view>
+            <view class="guide-step-item">
+              <text class="guide-step-num">2</text>
+              <text class="guide-step-text">按住麦克风，用英语回答</text>
+            </view>
+            <view class="guide-step-item">
+              <text class="guide-step-num">3</text>
+              <text class="guide-step-text">答对了，我出更难的题</text>
+            </view>
+            <view class="guide-step-item">
+              <text class="guide-step-num">4</text>
+              <text class="guide-step-text">直到测出你的真实水平</text>
+            </view>
+          </view>
+          <view class="guide-btns">
+            <button class="guide-btn-skip" bindtap="handleGuideSkip">跳过</button>
+            <button class="guide-btn-next" bindtap="handleGuideNext">明白了</button>
+          </view>
+        </view>
+
+        <!-- Step 3: 准备开始 -->
+        <view wx:elif="{{guideStep === 3}}" class="guide-bubble animate-fade-in">
+          <text class="guide-emoji">🌟</text>
+          <text class="guide-title">准备好了吗？</text>
+          <text class="guide-desc">请在安静的环境中进行，说话时靠近手机麦克风。不会的可以说 "I don't know" 或跳过。</text>
+          <view class="guide-btns">
+            <button class="guide-btn-start" bindtap="handleGuideStart">开始测评 →</button>
+          </view>
+        </view>
+      </view>
+    </view>
   </view>
 </view>

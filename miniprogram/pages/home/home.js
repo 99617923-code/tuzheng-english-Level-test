@@ -1,10 +1,11 @@
 /**
  * 途正英语AI分级测评 - 欢迎页
- * 小程序原生适配版
  * 
- * 功能：
- * - 品牌展示 + 开始测评入口
- * - 测评中断恢复检测（onShow时检查未完成的测评）
+ * 优化后的极简流程：
+ * - 首页点击"开始测评" → 自动授权录音 → 直接进入测评页
+ * - 不再经过独立的测评说明页
+ * - 保留测评示例视频入口
+ * - 保留中断恢复检测
  */
 const app = getApp()
 const { checkLogin, getUserInfo } = require('../../utils/util')
@@ -25,10 +26,12 @@ Page({
     waveHeights: [8, 16, 12, 24, 16, 32, 20, 12, 28, 10, 22, 16, 30, 12, 20, 14, 26, 10, 18, 24, 14, 28, 16, 12],
     // 中断恢复
     hasUnfinishedTest: false,
-    unfinishedInfo: ''
+    unfinishedInfo: '',
+    // 录音授权状态
+    recordAuthorized: false
   },
 
-  _resumeChecked: false, // 防止重复弹窗
+  _resumeChecked: false,
 
   onLoad() {
     const navLayout = app.getNavLayout()
@@ -39,6 +42,9 @@ Page({
       navContentHeight: navLayout.navContentHeight,
       menuButtonRight: app.globalData.screenWidth - navLayout.menuButtonLeft + 16
     })
+
+    // 预检查录音权限状态（不弹窗）
+    this._checkRecordAuth()
   },
 
   onShow() {
@@ -51,6 +57,90 @@ Page({
 
     // 检测未完成的测评
     this._checkUnfinishedTest()
+    // 刷新录音权限状态
+    this._checkRecordAuth()
+  },
+
+  /** 静默检查录音权限状态（不弹窗） */
+  _checkRecordAuth() {
+    wx.getSetting({
+      success: (res) => {
+        const authorized = res.authSetting['scope.record'] === true
+        this.setData({ recordAuthorized: authorized })
+      }
+    })
+  },
+
+  /** 请求录音授权（返回Promise） */
+  _requestRecordAuth() {
+    return new Promise((resolve) => {
+      // 先检查当前状态
+      wx.getSetting({
+        success: (res) => {
+          if (res.authSetting['scope.record'] === true) {
+            // 已授权
+            this.setData({ recordAuthorized: true })
+            resolve(true)
+          } else if (res.authSetting['scope.record'] === false) {
+            // 曾经拒绝过，需要引导去设置页
+            wx.showModal({
+              title: '需要录音权限',
+              content: '测评需要使用麦克风录制你的英语回答。请在设置中开启录音权限。',
+              confirmText: '去设置',
+              confirmColor: '#1B3F91',
+              success: (modalRes) => {
+                if (modalRes.confirm) {
+                  wx.openSetting({
+                    success: (settingRes) => {
+                      const granted = settingRes.authSetting['scope.record'] === true
+                      this.setData({ recordAuthorized: granted })
+                      resolve(granted)
+                    },
+                    fail: () => resolve(false)
+                  })
+                } else {
+                  resolve(false)
+                }
+              }
+            })
+          } else {
+            // 首次请求
+            wx.authorize({
+              scope: 'scope.record',
+              success: () => {
+                this.setData({ recordAuthorized: true })
+                resolve(true)
+              },
+              fail: () => {
+                this.setData({ recordAuthorized: false })
+                // 首次拒绝后引导
+                wx.showModal({
+                  title: '需要录音权限',
+                  content: '测评需要使用麦克风录制你的英语回答，没有此权限将无法进行测评。',
+                  confirmText: '重新授权',
+                  confirmColor: '#1B3F91',
+                  success: (modalRes) => {
+                    if (modalRes.confirm) {
+                      wx.openSetting({
+                        success: (settingRes) => {
+                          const granted = settingRes.authSetting['scope.record'] === true
+                          this.setData({ recordAuthorized: granted })
+                          resolve(granted)
+                        },
+                        fail: () => resolve(false)
+                      })
+                    } else {
+                      resolve(false)
+                    }
+                  }
+                })
+              }
+            })
+          }
+        },
+        fail: () => resolve(false)
+      })
+    })
   },
 
   /** 检测是否有未完成的测评 */
@@ -108,10 +198,8 @@ Page({
       cancelText: '重新开始',
       success: (res) => {
         if (res.confirm) {
-          // 继续测评 → 直接跳转到测评页（test.js会从后端恢复）
           wx.navigateTo({ url: '/pages/test/test?resume=1' })
         } else {
-          // 重新开始 → 清除缓存
           try { wx.removeStorageSync('tz_test_session') } catch (e) {}
           this.setData({ hasUnfinishedTest: false })
         }
@@ -119,8 +207,8 @@ Page({
     })
   },
 
-  /** 开始测评 */
-  handleStart() {
+  /** 开始测评 — 直接进入测评页（跳过说明页） */
+  async handleStart() {
     if (!checkLogin()) {
       wx.navigateTo({ url: '/pages/login/login' })
       return
@@ -135,7 +223,15 @@ Page({
       }
     }
 
-    wx.navigateTo({ url: '/pages/rules/rules' })
+    // 自动请求录音授权
+    const authorized = await this._requestRecordAuth()
+    if (!authorized) {
+      wx.showToast({ title: '需要录音权限才能测评', icon: 'none' })
+      return
+    }
+
+    // 直接进入测评页
+    wx.navigateTo({ url: '/pages/test/test' })
   },
 
   /** 继续未完成的测评（从banner点击） */

@@ -238,7 +238,7 @@ Page({
         if (res.confirm) {
           // 清除中断恢复缓存
           try { wx.removeStorageSync('tz_test_session') } catch (e) {}
-          wx.redirectTo({ url: '/pages/rules/rules' })
+          wx.redirectTo({ url: '/pages/test/test' })
         }
       }
     })

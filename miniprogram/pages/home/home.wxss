@@ -1,4 +1,4 @@
-/* 途正英语 - 欢迎页样式（小程序原生适配版） */
+/* 途正英语 - 欢迎页样式（极简流程版） */
 
 .page {
   min-height: 100vh;
@@ -24,7 +24,7 @@
   padding-bottom: calc(env(safe-area-inset-bottom) + 24rpx);
 }
 
-/* Logo行 - 固定在顶部，与胶囊按钮同行 */
+/* Logo行 */
 .logo-row {
   display: flex;
   align-items: flex-end;
@@ -55,8 +55,8 @@
 /* Hero */
 .hero {
   text-align: center;
-  margin-top: 48rpx;
-  margin-bottom: 48rpx;
+  margin-top: 40rpx;
+  margin-bottom: 32rpx;
 }
 
 .title-line1 {
@@ -80,103 +80,94 @@
   font-size: 26rpx;
   line-height: 1.6;
   color: var(--text-muted);
-  margin-top: 24rpx;
-  max-width: 560rpx;
-  margin-left: auto;
-  margin-right: auto;
+  margin-top: 16rpx;
 }
 
-/* Video Card */
-.video-card {
+/* ============ 核心CTA区域 ============ */
+.cta-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 40rpx;
+}
+
+.start-btn-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 脉冲光环 */
+.start-pulse-ring {
+  position: absolute;
   width: 100%;
-  overflow: hidden;
-  margin-bottom: 32rpx;
+  height: 100%;
+  border-radius: 100rpx;
+  border: 3rpx solid rgba(27,63,145,0.25);
+  animation: startPulse 2.5s ease-out infinite;
+  pointer-events: none;
 }
 
-.video-card:active {
-  opacity: 0.9;
+.start-pulse-ring.delay-1 {
+  animation-delay: 1.25s;
 }
 
-.video-area {
+@keyframes startPulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.35, 1.8);
+    opacity: 0;
+  }
+}
+
+.btn-start {
   position: relative;
-  height: 300rpx;
+  z-index: 2;
+  width: 480rpx;
+  height: 104rpx;
+  border-radius: 52rpx;
+  background: linear-gradient(135deg, #1B3F91 0%, #2B5BA0 50%, #1B3F91 100%);
+  background-size: 200% 200%;
+  animation: gradientShift 3s ease infinite;
+  color: #ffffff;
+  font-size: 36rpx;
+  font-weight: 700;
+  letter-spacing: 4rpx;
+  border: none;
+  box-shadow: 0 12rpx 40rpx rgba(27,63,145,0.35), 0 4rpx 12rpx rgba(27,63,145,0.20);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(27,63,145,0.06), rgba(131,186,18,0.06));
+  line-height: 1;
 }
 
-.play-btn-wrap {
-  position: relative;
+.btn-start::after {
+  border: none;
 }
 
-.play-pulse {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 128rpx;
-  height: 128rpx;
-  margin-top: -64rpx;
-  margin-left: -64rpx;
-  border-radius: 50%;
-  background: rgba(27,63,145,0.10);
-  animation: pulseRing 2s ease-out infinite;
+.btn-start:active {
+  transform: scale(0.96);
+  box-shadow: 0 6rpx 20rpx rgba(27,63,145,0.30);
 }
 
-.play-btn {
-  position: relative;
-  width: 112rpx;
-  height: 112rpx;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #1B3F91, #2B5BA0);
-  box-shadow: 0 8rpx 24rpx rgba(27,63,145,0.30);
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
 }
 
-.play-icon {
-  width: 48rpx;
-  height: 48rpx;
-  margin-left: 6rpx;
-}
-
-.wave-bars {
-  position: absolute;
-  bottom: 20rpx;
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: center;
-  gap: 5rpx;
-}
-
-.wave-bar {
-  width: 4rpx;
-  border-radius: 4rpx;
-  background: rgba(27,63,145,0.20);
-}
-
-.video-info {
-  padding: 20rpx 28rpx;
+.cta-sub-hint {
+  display: block;
+  font-size: 22rpx;
+  color: var(--text-placeholder);
+  margin-top: 20rpx;
   text-align: center;
 }
 
-.video-title {
-  display: block;
-  font-size: 28rpx;
-  font-weight: 600;
-  color: var(--brand-blue);
-}
-
-.video-desc {
-  display: block;
-  font-size: 22rpx;
-  color: var(--text-muted);
-  margin-top: 4rpx;
-}
-
-/* 未完成测评恢复 Banner */
+/* ============ 未完成测评恢复 Banner ============ */
 .resume-banner {
   margin-bottom: 24rpx;
 }
@@ -263,13 +254,103 @@
   background: rgba(0,0,0,0.08);
 }
 
-/* History Entry */
+/* ============ Video Card ============ */
+.video-card {
+  width: 100%;
+  overflow: hidden;
+  margin-bottom: 24rpx;
+}
+
+.video-card:active {
+  opacity: 0.9;
+}
+
+.video-area {
+  position: relative;
+  height: 260rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(27,63,145,0.06), rgba(131,186,18,0.06));
+}
+
+.play-btn-wrap {
+  position: relative;
+}
+
+.play-pulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 128rpx;
+  height: 128rpx;
+  margin-top: -64rpx;
+  margin-left: -64rpx;
+  border-radius: 50%;
+  background: rgba(27,63,145,0.10);
+  animation: pulseRing 2s ease-out infinite;
+}
+
+.play-btn {
+  position: relative;
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1B3F91, #2B5BA0);
+  box-shadow: 0 8rpx 24rpx rgba(27,63,145,0.30);
+}
+
+.play-icon {
+  width: 40rpx;
+  height: 40rpx;
+  margin-left: 6rpx;
+}
+
+.wave-bars {
+  position: absolute;
+  bottom: 20rpx;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 5rpx;
+}
+
+.wave-bar {
+  width: 4rpx;
+  border-radius: 4rpx;
+  background: rgba(27,63,145,0.20);
+}
+
+.video-info {
+  padding: 16rpx 28rpx;
+  text-align: center;
+}
+
+.video-title {
+  display: block;
+  font-size: 26rpx;
+  font-weight: 600;
+  color: var(--brand-blue);
+}
+
+.video-desc {
+  display: block;
+  font-size: 22rpx;
+  color: var(--text-muted);
+  margin-top: 4rpx;
+}
+
+/* ============ History Entry ============ */
 .history-entry {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 28rpx 32rpx;
-  margin-bottom: 32rpx;
+  margin-bottom: 24rpx;
 }
 
 .history-entry:active {
@@ -312,23 +393,21 @@
 /* 弹性空间 */
 .flex-spacer {
   flex: 1;
-  min-height: 24rpx;
+  min-height: 16rpx;
 }
 
-/* CTA */
-.cta-wrap {
+/* 底部提示 */
+.bottom-hint {
   padding-bottom: 16rpx;
+  text-align: center;
 }
 
-.cta-hint {
-  display: block;
-  text-align: center;
+.hint-text {
   font-size: 22rpx;
   color: var(--text-placeholder);
-  margin-top: 20rpx;
 }
 
-/* Video Modal */
+/* ============ Video Modal ============ */
 .video-modal {
   position: fixed;
   top: 0;

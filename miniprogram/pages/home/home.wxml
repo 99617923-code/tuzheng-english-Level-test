@@ -1,6 +1,6 @@
 <!--
   途正英语AI分级测评 - 欢迎页
-  小程序原生适配：Logo避开胶囊按钮，去掉H5式登录/退出按钮
+  极简流程：点击"开始测评" → 自动授权 → 直接进入测评
 -->
 <view class="page">
   <!-- 装饰性背景元素 -->
@@ -10,7 +10,7 @@
 
   <!-- 主内容 -->
   <view class="content" style="padding-top: {{navBarHeight}}px;">
-    <!-- Logo区域（与胶囊按钮同行，不重叠） -->
+    <!-- Logo区域（与胶囊按钮同行） -->
     <view class="logo-row" style="position:fixed; top:0; left:0; right:0; z-index:50; height:{{navBarHeight}}px; padding-top:{{navContentTop}}px;">
       <view class="logo-inner" style="height:{{navContentHeight}}px; padding-right:{{menuButtonRight}}px;">
         <image class="logo-img" src="{{logoUrl}}" mode="heightFix" />
@@ -26,7 +26,37 @@
     <view class="hero animate-fade-in-delay-1">
       <text class="title-line1">英语水平</text>
       <text class="title-line2">AI 智能测评</text>
-      <text class="subtitle">和AI外教对话，3分钟精准评定你的英语水平，开启专属学习之旅</text>
+      <text class="subtitle">和AI外教对话，3分钟精准评定你的英语水平</text>
+    </view>
+
+    <!-- 核心CTA区域 - 置于视觉焦点位置 -->
+    <view class="cta-hero animate-fade-in-delay-1">
+      <view class="start-btn-wrap">
+        <view class="start-pulse-ring"></view>
+        <view class="start-pulse-ring delay-1"></view>
+        <button class="btn-start" bindtap="handleStart">开始测评</button>
+      </view>
+      <text class="cta-sub-hint">
+        <text wx:if="{{recordAuthorized}}">✓ 录音权限已就绪</text>
+        <text wx:else>点击后将请求录音权限</text>
+      </text>
+    </view>
+
+    <!-- 未完成测评恢复提示 -->
+    <view wx:if="{{hasUnfinishedTest}}" class="resume-banner animate-fade-in-delay-2">
+      <view class="resume-banner-inner glass-card-strong">
+        <view class="resume-info">
+          <view class="resume-dot-pulse"></view>
+          <view class="resume-text-wrap">
+            <text class="resume-title">有未完成的测评</text>
+            <text class="resume-desc">{{unfinishedInfo}}</text>
+          </view>
+        </view>
+        <view class="resume-actions">
+          <view class="resume-btn-continue" bindtap="handleResume">继续</view>
+          <view class="resume-btn-discard" bindtap="handleDiscardTest">放弃</view>
+        </view>
+      </view>
     </view>
 
     <!-- 测评示例视频 -->
@@ -48,23 +78,6 @@
       </view>
     </view>
 
-    <!-- 未完成测评恢复提示 -->
-    <view wx:if="{{hasUnfinishedTest}}" class="resume-banner animate-fade-in-delay-2">
-      <view class="resume-banner-inner glass-card-strong">
-        <view class="resume-info">
-          <view class="resume-dot-pulse"></view>
-          <view class="resume-text-wrap">
-            <text class="resume-title">有未完成的测评</text>
-            <text class="resume-desc">{{unfinishedInfo}}</text>
-          </view>
-        </view>
-        <view class="resume-actions">
-          <view class="resume-btn-continue" bindtap="handleResume">继续</view>
-          <view class="resume-btn-discard" bindtap="handleDiscardTest">放弃</view>
-        </view>
-      </view>
-    </view>
-
     <!-- 查看测评记录 -->
     <view class="history-entry glass-card animate-fade-in-delay-3" bindtap="goHistory">
       <view class="history-left">
@@ -79,10 +92,9 @@
     <!-- 弹性空间 -->
     <view class="flex-spacer"></view>
 
-    <!-- 底部CTA -->
-    <view class="cta-wrap">
-      <button class="btn-primary" bindtap="handleStart">开始测评</button>
-      <text class="cta-hint">测评约需5分钟，请确保在安静环境中进行</text>
+    <!-- 底部提示 -->
+    <view class="bottom-hint">
+      <text class="hint-text">测评约需5分钟 · 请在安静环境中进行</text>
     </view>
   </view>
 

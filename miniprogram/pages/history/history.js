@@ -174,7 +174,7 @@ Page({
 
   /** 去测评 */
   goTest() {
-    wx.navigateTo({ url: '/pages/rules/rules' })
+    wx.navigateTo({ url: '/pages/test/test' })
   },
 
   /** 返回 */

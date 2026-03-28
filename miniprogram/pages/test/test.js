@@ -48,7 +48,11 @@ Page({
     navContentHeight: 0,
 
     // 测评状态
-    phase: 'loading', // loading | listening | answering | evaluating | feedback | levelup
+    phase: 'loading', // guide | loading | listening | answering | evaluating | feedback | levelup
+
+    // 首次引导
+    showGuide: false,           // 是否显示引导气泡
+    guideStep: 0,               // 引导步骤 0=未开始
     sessionId: '',
 
     // 当前题目（v2格式）
@@ -331,24 +335,16 @@ Page({
         majorLevelDisplay: MAJOR_LEVEL_NAMES[majorLevel] || '零级 · 预备',
         questionCountDisplay: `第 ${(data.totalAnswered || 0) + 1} 题`,
         progressPercent: 0,
-        phase: 'listening',
-        aiStatusText: '请听题目'
+        phase: 'guide',
+        showGuide: true,
+        guideStep: 1,
+        aiStatusText: '你好！我是你的AI外教'
       })
 
       this._previousSubLevel = subLevel
-      this.startTimer()
 
       // 保存测评状态（用于中断恢复）
       this._saveTestSession()
-
-      // 播放外教真人语音
-      if (question && question.audioUrl) {
-        await delay(500)
-        this.playAudio()
-      } else {
-        // 没有音频直接进入回答
-        this.setData({ phase: 'answering', aiStatusText: '请用英语回答' })
-      }
     } catch (err) {
       console.error('[Test] Init error:', err)
 
@@ -864,5 +860,52 @@ Page({
   getNextButtonText() {
     if (!this._lastEvalResponse) return '下一题'
     return this._lastEvalResponse.status === 'finished' ? '查看测评报告' : '下一题'
+  },
+
+  // ============ AI外教引导气泡 ============
+
+  /** 引导气泡 - 下一步 */
+  handleGuideNext() {
+    const step = this.data.guideStep
+    if (step === 1) {
+      // 第一步 → 第二步
+      this.setData({
+        guideStep: 2,
+        aiStatusText: '测评流程说明'
+      })
+    } else if (step === 2) {
+      // 第二步 → 第三步
+      this.setData({
+        guideStep: 3,
+        aiStatusText: '准备好了吗？'
+      })
+    }
+  },
+
+  /** 引导气泡 - 开始测评（关闭引导，进入听题） */
+  handleGuideStart() {
+    const question = this.data.currentQuestion
+    this.setData({
+      showGuide: false,
+      guideStep: 0,
+      phase: 'listening',
+      aiStatusText: '请听题目'
+    })
+
+    this.startTimer()
+
+    // 播放外教语音
+    if (question && question.audioUrl) {
+      setTimeout(() => {
+        this.playAudio()
+      }, 500)
+    } else {
+      this.setData({ phase: 'answering', aiStatusText: '请用英语回答' })
+    }
+  },
+
+  /** 引导气泡 - 跳过引导直接开始 */
+  handleGuideSkip() {
+    this.handleGuideStart()
   }
 })

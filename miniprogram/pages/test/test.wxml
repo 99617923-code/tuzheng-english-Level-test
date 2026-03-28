@@ -45,7 +45,7 @@
       </view>
 
       <!-- AI语音播放条（外教真人录音） - 点击可重播 -->
-      <view wx:if="{{currentQuestion.audioUrl}}" class="audio-bar" bindtap="playAudio">
+      <view wx:if="{{phase !== 'guide' && phase !== 'loading' && currentQuestion}}" class="audio-bar" bindtap="playAudio">
         <view class="audio-play-btn">
           <image wx:if="{{!audioPlaying}}" class="audio-play-icon" src="/assets/icons/play.svg" mode="aspectFit" />
           <image wx:else class="audio-play-icon" src="/assets/icons/pause.svg" mode="aspectFit" />

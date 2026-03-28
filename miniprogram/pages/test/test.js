@@ -10,6 +10,12 @@
  * 
  * 前端保底规则：至少答完10题才允许定级结束
  * 如果后端在10题内返回finished，前端会继续请求新题目
+ * 
+ * 关键修复（v3）：
+ * - InnerAudioContext每次播放前销毁重建（解决onEnded不触发的bug）
+ * - 增加播放超时保护（15秒内无onEnded则强制进入answering）
+ * - 新测评题号强制从1开始（不依赖后端totalAnswered）
+ * - 录音上传失败时仍然提交evaluate（让后端处理）
  */
 const app = getApp()
 const { startTest, evaluateAnswer, uploadAudio, terminateTest, transcribeAudio, textToSpeech } = require('../../utils/api')
@@ -41,6 +47,9 @@ const MAJOR_LEVEL_NAMES = {
 
 // 最少答题数（前端保底，至少答完这么多题才允许结束）
 const MIN_QUESTIONS_BEFORE_FINISH = 10
+
+// 音频播放超时（毫秒）- 超过此时间没有onEnded则强制进入answering
+const AUDIO_PLAY_TIMEOUT = 15000
 
 Page({
   data: {
@@ -116,7 +125,8 @@ Page({
   _isNavigating: false,
   _isSubmitting: false,
   _initRetryCount: 0,
-  _forceMinQuestions: true,  // 前端保底：至少10题
+  _audioPlayTimeout: null,   // 音频播放超时定时器
+  _frontendQuestionCount: 0, // 前端自己维护的答题计数（不依赖后端）
 
   onLoad(options) {
     const navLayout = app.getNavLayout()
@@ -131,13 +141,10 @@ Page({
     })
 
     this._recorderManager = wx.getRecorderManager()
-    this._audioContext = wx.createInnerAudioContext()
-    // 设置音频属性，确保在小程序中可以播放
-    this._audioContext.obeyMuteSwitch = false  // 不受静音开关影响
     this._isNavigating = false
     this._isSubmitting = false
     this._initRetryCount = 0
-    this._setupAudioEvents()
+    this._frontendQuestionCount = 0
     this._setupRecorderEvents()
 
     // 检查是否是恢复测评
@@ -162,13 +169,8 @@ Page({
       clearInterval(this._recordTimer)
       this._recordTimer = null
     }
-    if (this._audioContext) {
-      try {
-        this._audioContext.stop()
-        this._audioContext.destroy()
-      } catch (e) {}
-      this._audioContext = null
-    }
+    this._clearAudioTimeout()
+    this._destroyAudioContext()
     if (this._recorderManager) {
       try { this._recorderManager.stop() } catch (e) {}
     }
@@ -200,10 +202,12 @@ Page({
 
       const sessionData = {
         sessionId, currentSubLevel, currentMajorLevel, questionIndex,
-        totalAnswered, totalSeconds, currentQuestion, savedAt: Date.now()
+        totalAnswered, totalSeconds, currentQuestion,
+        frontendQuestionCount: this._frontendQuestionCount,
+        savedAt: Date.now()
       }
       wx.setStorageSync('tz_test_session', sessionData)
-      console.log('[Test] Session saved:', sessionId, 'answered:', totalAnswered)
+      console.log('[Test] Session saved:', sessionId, 'answered:', totalAnswered, 'frontendCount:', this._frontendQuestionCount)
     } catch (e) {
       console.warn('[Test] Save session failed:', e)
     }
@@ -248,6 +252,9 @@ Page({
       const isResumed = data.sessionId === saved.sessionId
       const totalAnswered = data.totalAnswered || 0
 
+      // 恢复前端计数
+      this._frontendQuestionCount = isResumed ? (saved.frontendQuestionCount || totalAnswered) : 0
+
       this.setData({
         sessionId: data.sessionId,
         currentQuestion: question,
@@ -258,8 +265,8 @@ Page({
         totalSeconds: isResumed ? (saved.totalSeconds || 0) : 0,
         subLevelDisplay: subLevel,
         majorLevelDisplay: MAJOR_LEVEL_NAMES[majorLevel] || '零级 · 预备',
-        questionCountDisplay: `第 ${totalAnswered + 1} 题`,
-        progressPercent: Math.min((totalAnswered / 34) * 100, 95),
+        questionCountDisplay: `第 ${this._frontendQuestionCount + 1} 题`,
+        progressPercent: Math.min((this._frontendQuestionCount / 34) * 100, 95),
         phase: 'listening',
         aiStatusText: isResumed ? '已恢复，请听题目' : '请听题目'
       })
@@ -269,12 +276,12 @@ Page({
       this._saveTestSession()
 
       if (isResumed) {
-        wx.showToast({ title: `已恢复测评（第${totalAnswered + 1}题）`, icon: 'none', duration: 2000 })
+        wx.showToast({ title: `已恢复测评（第${this._frontendQuestionCount + 1}题）`, icon: 'none', duration: 2000 })
       }
 
       // 自动播放语音
       await delay(800)
-      this._autoPlayAudio()
+      this._playQuestionAudio()
 
     } catch (err) {
       console.error('[Test] Resume failed:', err)
@@ -307,13 +314,15 @@ Page({
   async initTest() {
     this.setData({ phase: 'loading', aiStatusText: '正在准备测评...' })
 
+    // 新测评：前端计数强制归零
+    this._frontendQuestionCount = 0
+
     try {
       const data = await startTest()
 
       const question = data.question
       const subLevel = data.currentSubLevel || (question && question.subLevel) || 'PRE1'
       const majorLevel = data.currentMajorLevel !== undefined ? data.currentMajorLevel : (SUB_LEVEL_MAJOR[subLevel] || 0)
-      const totalAnswered = data.totalAnswered || 0
 
       this.setData({
         sessionId: data.sessionId,
@@ -321,11 +330,10 @@ Page({
         currentSubLevel: subLevel,
         currentMajorLevel: majorLevel,
         questionIndex: data.questionIndex || 1,
-        totalAnswered: totalAnswered,
+        totalAnswered: 0,  // 新测评强制从0开始
         subLevelDisplay: subLevel,
         majorLevelDisplay: MAJOR_LEVEL_NAMES[majorLevel] || '零级 · 预备',
-        // 题号从 totalAnswered+1 开始（正常新测评 totalAnswered=0 → 第1题）
-        questionCountDisplay: `第 ${totalAnswered + 1} 题`,
+        questionCountDisplay: '第 1 题',  // 强制显示第1题
         progressPercent: 0,
         phase: 'guide',
         showGuide: true,
@@ -382,46 +390,130 @@ Page({
     }
   },
 
-  // ============ 音频播放 ============
+  // ============ 音频播放（核心修复：每次重建audioContext） ============
 
-  _setupAudioEvents() {
-    this._audioContext.onPlay(() => {
-      console.log('[Audio] Playing')
+  /**
+   * 销毁当前audioContext
+   * 微信小程序的InnerAudioContext在复用时onEnded经常不触发
+   * 所以每次播放新音频前必须销毁旧的并重新创建
+   */
+  _destroyAudioContext() {
+    if (this._audioContext) {
+      try {
+        this._audioContext.stop()
+      } catch (e) {}
+      try {
+        this._audioContext.destroy()
+      } catch (e) {}
+      this._audioContext = null
+    }
+  },
+
+  /**
+   * 创建新的audioContext并绑定事件
+   * @returns {InnerAudioContext}
+   */
+  _createAudioContext() {
+    this._destroyAudioContext()
+
+    const ctx = wx.createInnerAudioContext()
+    ctx.obeyMuteSwitch = false  // 不受静音开关影响
+
+    ctx.onPlay(() => {
+      console.log('[Audio] onPlay fired')
+      this._clearAudioTimeout()
       this.setData({ audioPlaying: true, aiSpeaking: true, aiStatusText: '外教正在提问...' })
+      // 开始播放后设置超时保护
+      this._setAudioTimeout()
     })
 
-    this._audioContext.onEnded(() => {
-      console.log('[Audio] Ended')
-      this.setData({
-        audioPlaying: false,
-        aiSpeaking: false,
-        aiStatusText: '请用英语回答',
-        phase: 'answering'
-      })
+    ctx.onEnded(() => {
+      console.log('[Audio] onEnded fired')
+      this._clearAudioTimeout()
+      this._onAudioFinished()
     })
 
-    this._audioContext.onError((err) => {
-      console.error('[Audio] Play error:', err)
-      // 音频播放失败 → 尝试TTS降级
+    ctx.onError((err) => {
+      console.error('[Audio] onError:', err)
+      this._clearAudioTimeout()
+      // 音频播放出错 → 尝试TTS降级
       this._tryTTSFallback()
     })
 
-    this._audioContext.onStop(() => {
+    ctx.onStop(() => {
+      console.log('[Audio] onStop fired')
+      // onStop是手动stop触发的，不自动进入answering
       this.setData({ audioPlaying: false, aiSpeaking: false })
+    })
+
+    this._audioContext = ctx
+    return ctx
+  },
+
+  /**
+   * 音频播放完成后的统一处理
+   */
+  _onAudioFinished() {
+    this.setData({
+      audioPlaying: false,
+      aiSpeaking: false,
+      aiStatusText: '请用英语回答',
+      phase: 'answering'
     })
   },
 
-  /** 自动播放音频（进入题目后自动调用） */
-  _autoPlayAudio() {
+  /**
+   * 设置音频播放超时保护
+   * 如果15秒内没有onEnded/onError触发，强制进入answering阶段
+   */
+  _setAudioTimeout() {
+    this._clearAudioTimeout()
+    this._audioPlayTimeout = setTimeout(() => {
+      console.warn('[Audio] Play timeout! Force entering answering phase.')
+      // 检查当前是否还在listening阶段
+      if (this.data.phase === 'listening') {
+        this._destroyAudioContext()
+        this._onAudioFinished()
+      }
+    }, AUDIO_PLAY_TIMEOUT)
+  },
+
+  /**
+   * 清除音频播放超时定时器
+   */
+  _clearAudioTimeout() {
+    if (this._audioPlayTimeout) {
+      clearTimeout(this._audioPlayTimeout)
+      this._audioPlayTimeout = null
+    }
+  },
+
+  /**
+   * 播放题目音频（核心方法）
+   * 每次调用都会重建audioContext，确保事件回调正常
+   */
+  _playQuestionAudio() {
     const { currentQuestion } = this.data
 
-    if (currentQuestion && currentQuestion.audioUrl) {
-      console.log('[Audio] Auto-playing:', currentQuestion.audioUrl)
+    if (!currentQuestion) {
+      console.error('[Audio] No currentQuestion')
+      this._onAudioFinished()
+      return
+    }
+
+    const audioUrl = currentQuestion.audioUrl
+    if (audioUrl) {
+      console.log('[Audio] Playing question audio:', audioUrl)
       this.setData({ phase: 'listening', aiStatusText: '外教正在提问...' })
-      this._audioContext.src = currentQuestion.audioUrl
-      this._audioContext.play()
+
+      const ctx = this._createAudioContext()
+      ctx.src = audioUrl
+      ctx.play()
+
+      // 设置初始超时（等待onPlay触发后会重新设置）
+      this._setAudioTimeout()
     } else {
-      // 没有audioUrl → 尝试TTS
+      // 没有audioUrl → 尝试TTS降级
       console.log('[Audio] No audioUrl, trying TTS fallback')
       this._tryTTSFallback()
     }
@@ -432,14 +524,20 @@ Page({
     const { currentQuestion, audioPlaying } = this.data
 
     if (audioPlaying) {
-      this._audioContext.stop()
+      this._clearAudioTimeout()
+      if (this._audioContext) {
+        try { this._audioContext.stop() } catch (e) {}
+      }
       return
     }
 
     if (!currentQuestion || !currentQuestion.audioUrl) return
 
-    this._audioContext.src = currentQuestion.audioUrl
-    this._audioContext.play()
+    // 重播也要重建audioContext
+    const ctx = this._createAudioContext()
+    ctx.src = currentQuestion.audioUrl
+    ctx.play()
+    this._setAudioTimeout()
   },
 
   /** TTS降级：audioUrl不可用时用后端TTS生成语音 */
@@ -447,7 +545,8 @@ Page({
     const { currentQuestion } = this.data
     if (!currentQuestion || !currentQuestion.questionText) {
       // 连文本都没有，直接进入回答阶段
-      this.setData({ phase: 'answering', aiStatusText: '请用英语回答', audioPlaying: false, aiSpeaking: false })
+      console.warn('[TTS] No questionText available, skip to answering')
+      this._onAudioFinished()
       return
     }
 
@@ -462,19 +561,23 @@ Page({
         // 更新currentQuestion的audioUrl以便重播
         const updatedQuestion = { ...currentQuestion, audioUrl: ttsUrl }
         this.setData({ currentQuestion: updatedQuestion })
-        this._audioContext.src = ttsUrl
-        this._audioContext.play()
+
+        const ctx = this._createAudioContext()
+        ctx.src = ttsUrl
+        ctx.play()
+        this._setAudioTimeout()
       } else {
         // TTS也失败了，直接进入回答
-        this.setData({ phase: 'answering', aiStatusText: '请用英语回答', audioPlaying: false, aiSpeaking: false })
+        console.warn('[TTS] No audio URL returned, skip to answering')
+        this._onAudioFinished()
       }
     } catch (e) {
       console.warn('[TTS] Fallback failed:', e)
-      this.setData({ phase: 'answering', aiStatusText: '请用英语回答', audioPlaying: false, aiSpeaking: false })
+      this._onAudioFinished()
     }
   },
 
-  // ============ 录音（改为tap切换模式） ============
+  // ============ 录音（tap切换模式） ============
 
   _setupRecorderEvents() {
     this._recorderManager.onStart(() => {
@@ -666,6 +769,7 @@ Page({
         console.log('[Upload] Audio uploaded:', audioUrl)
       } catch (e) {
         console.warn('[Upload] Failed:', e.message)
+        // 上传失败不阻断流程，继续提交evaluate
       }
 
       // 第二步：如果同声传译没识别到文字 + 有audioUrl → 用后端Whisper转写
@@ -682,13 +786,20 @@ Page({
       }
 
       // 第三步：调用v2 evaluate接口
-      const evalRes = await evaluateAnswer({
+      // 即使audioUrl和recognizedText都为空，也要提交（让后端判断）
+      const evalParams = {
         sessionId,
         questionId: currentQuestion.questionId,
-        audioUrl: audioUrl || undefined,
         recognizedText: finalTranscription || '',
         duration: recordSeconds * 1000
-      })
+      }
+      // 只有audioUrl有值时才传
+      if (audioUrl) {
+        evalParams.audioUrl = audioUrl
+      }
+
+      console.log('[Evaluate] Submitting:', JSON.stringify(evalParams).substring(0, 300))
+      const evalRes = await evaluateAnswer(evalParams)
 
       // 缓存完整响应
       this._lastEvalResponse = evalRes
@@ -700,17 +811,20 @@ Page({
       const feedback = evaluation.feedback || ''
       const scoreColor = score >= 80 ? '#83BA12' : score >= 60 ? '#2B5BA0' : '#e74c3c'
 
-      // 前端保底：检查是否满足最少题数
-      const newTotalAnswered = (evalRes.totalAnswered || (this.data.totalAnswered + 1))
-      const isFinished = evalRes.status === 'finished'
-      const shouldForceContine = isFinished && newTotalAnswered < MIN_QUESTIONS_BEFORE_FINISH
+      // 更新答题计数（前端自己维护 + 后端返回的取较大值）
+      this._frontendQuestionCount += 1
+      const backendTotal = evalRes.totalAnswered || this._frontendQuestionCount
+      const newTotalAnswered = Math.max(this._frontendQuestionCount, backendTotal)
 
-      if (shouldForceContine) {
+      const isFinished = evalRes.status === 'finished'
+      const shouldForceContinue = isFinished && newTotalAnswered < MIN_QUESTIONS_BEFORE_FINISH
+
+      if (shouldForceContinue) {
         console.log(`[Test] Backend says finished at ${newTotalAnswered} questions, but min is ${MIN_QUESTIONS_BEFORE_FINISH}. Forcing continue.`)
       }
 
       // 如果后端说finished但不够10题，按钮文字仍然是"下一题"
-      const buttonText = (isFinished && !shouldForceContine) ? '查看测评报告' : '下一题'
+      const buttonText = (isFinished && !shouldForceContinue) ? '查看测评报告' : '下一题'
 
       this.setData({
         evaluationFeedback: feedback,
@@ -718,6 +832,7 @@ Page({
         evaluationPassed: passed,
         scoreColor,
         totalAnswered: newTotalAnswered,
+        questionCountDisplay: `第 ${newTotalAnswered} 题`,
         phase: 'feedback',
         aiStatusText: passed ? '回答正确！' : '继续加油！',
         nextButtonText: buttonText
@@ -797,7 +912,7 @@ Page({
         this._saveTestSession()
 
         await delay(500)
-        this._autoPlayAudio()
+        this._playQuestionAudio()
         return
       } catch (err) {
         console.error('[Test] Force continue failed:', err)
@@ -876,7 +991,7 @@ Page({
 
     // 自动播放下一题语音
     await delay(500)
-    this._autoPlayAudio()
+    this._playQuestionAudio()
   },
 
   /** 跳过此题 */
@@ -901,7 +1016,12 @@ Page({
 
             this._lastEvalResponse = evalRes
             const evaluation = evalRes.evaluation || {}
-            const newTotalAnswered = evalRes.totalAnswered || (this.data.totalAnswered + 1)
+
+            // 跳过也算答了一题
+            this._frontendQuestionCount += 1
+            const backendTotal = evalRes.totalAnswered || this._frontendQuestionCount
+            const newTotalAnswered = Math.max(this._frontendQuestionCount, backendTotal)
+
             const isFinished = evalRes.status === 'finished'
             const shouldForceContinue = isFinished && newTotalAnswered < MIN_QUESTIONS_BEFORE_FINISH
             const buttonText = (isFinished && !shouldForceContinue) ? '查看测评报告' : '下一题'
@@ -912,6 +1032,7 @@ Page({
               evaluationPassed: false,
               scoreColor: '#8a95a5',
               totalAnswered: newTotalAnswered,
+              questionCountDisplay: `第 ${newTotalAnswered} 题`,
               phase: 'feedback',
               aiStatusText: '已跳过',
               nextButtonText: buttonText
@@ -969,7 +1090,7 @@ Page({
 
     // 自动播放外教语音
     setTimeout(() => {
-      this._autoPlayAudio()
+      this._playQuestionAudio()
     }, 500)
   },
 

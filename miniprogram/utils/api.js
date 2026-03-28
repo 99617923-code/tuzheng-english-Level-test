@@ -133,10 +133,11 @@ function evaluateAnswer(params) {
   if (params.audioUrl) {
     data.audioUrl = params.audioUrl
   }
-  if (params.recognizedText) {
+  if (params.recognizedText !== undefined && params.recognizedText !== '') {
     data.recognizedText = params.recognizedText
   }
   if (params.duration !== undefined && params.duration !== null) {
+    // 后端接受毫秒，前端传入时已转换
     data.duration = params.duration
   }
 

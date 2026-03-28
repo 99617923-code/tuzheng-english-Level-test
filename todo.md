@@ -195,3 +195,17 @@
 - [x] result.wxml：新增优势/劣势列表、最高通过小级展示
 - [x] result.wxss：新增优劣势列表样式、最高通过小级样式
 - [x] history.js：适配v2字段（majorLevel、highestSubLevel、overallScore等）
+
+## Bug修复 - 测评功能无法使用
+- [x] 修复test.js start接口调用报"服务器繁忙"（增强错误处理+自动重试+详细日志）
+- [x] 修复录音器启动失败（录音前检查scope.record权限+引导用户去设置+try-catch包裹）
+- [x] 修复页面跳转重复（增加_isNavigating防重复跳转标志+navigateBack失败降级reLaunch）
+- [x] 修复scope.record权限配置警告（优化permission描述文案）
+- [x] request.js增强token刷新竞态处理（订阅者队列模式替代单Promise）
+- [x] request.js增加详细日志输出（请求/响应/错误全链路日志）
+- [x] request.js增加HTTP 403处理和upload状态码检查
+- [x] test.js增加防重复提交保护（_isSubmitting标志）
+- [x] test.js增加初始化自动重试（最多2次）+重试耗尽弹窗确认
+- [x] test.wxml修复按钮文字引用错误（改用data中的nextButtonText）
+- [x] app.js增加全局onError和onUnhandledRejection处理
+- [x] evaluate接口超时时间从30s增加到45s（AI评估耗时较长）

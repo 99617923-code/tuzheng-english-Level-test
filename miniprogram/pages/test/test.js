@@ -92,7 +92,10 @@ Page({
     // 升级提示
     levelUpFrom: '',
     levelUpTo: '',
-    showLevelUp: false
+    showLevelUp: false,
+
+    // 下一步按钮文字
+    nextButtonText: '下一题'
   },
 
   // 内部状态
@@ -103,6 +106,9 @@ Page({
   _recordFilePath: '',
   _lastEvalResponse: null,  // 缓存最近一次evaluate的完整响应
   _previousSubLevel: '',    // 上一题的小级（用于检测升级）
+  _isNavigating: false,     // 防止重复跳转
+  _isSubmitting: false,     // 防止重复提交
+  _initRetryCount: 0,       // 初始化重试次数
 
   onLoad() {
     const navLayout = app.getNavLayout()
@@ -118,6 +124,9 @@ Page({
 
     this._recorderManager = wx.getRecorderManager()
     this._audioContext = wx.createInnerAudioContext()
+    this._isNavigating = false
+    this._isSubmitting = false
+    this._initRetryCount = 0
     this._setupAudioEvents()
     this._setupRecorderEvents()
 
@@ -130,11 +139,20 @@ Page({
 
   /** 清理资源 */
   cleanup() {
-    if (this._timer) clearInterval(this._timer)
-    if (this._recordTimer) clearInterval(this._recordTimer)
+    if (this._timer) {
+      clearInterval(this._timer)
+      this._timer = null
+    }
+    if (this._recordTimer) {
+      clearInterval(this._recordTimer)
+      this._recordTimer = null
+    }
     if (this._audioContext) {
-      this._audioContext.stop()
-      this._audioContext.destroy()
+      try {
+        this._audioContext.stop()
+        this._audioContext.destroy()
+      } catch (e) {}
+      this._audioContext = null
     }
     if (this._recorderManager) {
       try { this._recorderManager.stop() } catch (e) {}
@@ -185,8 +203,51 @@ Page({
       }
     } catch (err) {
       console.error('[Test] Init error:', err)
-      showError(err.message || '创建测评失败')
-      setTimeout(() => wx.navigateBack(), 1500)
+
+      // 如果是登录过期，不重试
+      if (err.message && (err.message.includes('登录') || err.message.includes('AUTH'))) {
+        showError('请先登录后再开始测评')
+        setTimeout(() => {
+          if (!this._isNavigating) {
+            this._isNavigating = true
+            wx.navigateBack({ fail: () => {
+              wx.reLaunch({ url: '/pages/home/home' })
+            }})
+          }
+        }, 1500)
+        return
+      }
+
+      // 自动重试（最多2次）
+      this._initRetryCount = (this._initRetryCount || 0) + 1
+      if (this._initRetryCount <= 2) {
+        console.log(`[Test] Retrying init (${this._initRetryCount}/2)...`)
+        showToast(`正在重试...(${this._initRetryCount}/2)`)
+        await delay(2000)
+        this.initTest()
+        return
+      }
+
+      // 重试耗尽，提示用户
+      wx.showModal({
+        title: '创建测评失败',
+        content: err.message || '服务器响应异常，请稍后再试',
+        confirmText: '重试',
+        cancelText: '返回',
+        success: (modalRes) => {
+          if (modalRes.confirm) {
+            this._initRetryCount = 0
+            this.initTest()
+          } else {
+            if (!this._isNavigating) {
+              this._isNavigating = true
+              wx.navigateBack({ fail: () => {
+                wx.reLaunch({ url: '/pages/home/home' })
+              }})
+            }
+          }
+        }
+      })
     }
   },
 
@@ -304,15 +365,58 @@ Page({
   startRecording() {
     if (this.data.isRecording || this.data.phase !== 'answering') return
 
-    this.setData({ realtimeText: '', userTranscription: '', evaluationFeedback: '' })
+    // 先检查录音权限
+    wx.getSetting({
+      success: (res) => {
+        if (res.authSetting['scope.record'] === false) {
+          // 权限被拒绝，引导用户去设置
+          wx.showModal({
+            title: '需要录音权限',
+            content: '请在设置中开启麦克风权限，否则无法进行测评',
+            confirmText: '去设置',
+            success: (modalRes) => {
+              if (modalRes.confirm) {
+                wx.openSetting()
+              }
+            }
+          })
+          return
+        }
 
-    this._recorderManager.start({
-      duration: 60000,
-      sampleRate: 16000,
-      numberOfChannels: 1,
-      encodeBitRate: 96000,
-      format: 'mp3',
-      frameSize: 50
+        // 权限OK或未询问过，尝试开始录音
+        this.setData({ realtimeText: '', userTranscription: '', evaluationFeedback: '' })
+
+        try {
+          this._recorderManager.start({
+            duration: 60000,
+            sampleRate: 16000,
+            numberOfChannels: 1,
+            encodeBitRate: 96000,
+            format: 'mp3',
+            frameSize: 50
+          })
+        } catch (e) {
+          console.error('[Recorder] Start exception:', e)
+          showError('录音启动失败，请重试')
+        }
+      },
+      fail: () => {
+        // getSetting失败，仍尝试录音
+        this.setData({ realtimeText: '', userTranscription: '', evaluationFeedback: '' })
+        try {
+          this._recorderManager.start({
+            duration: 60000,
+            sampleRate: 16000,
+            numberOfChannels: 1,
+            encodeBitRate: 96000,
+            format: 'mp3',
+            frameSize: 50
+          })
+        } catch (e) {
+          console.error('[Recorder] Start exception:', e)
+          showError('录音启动失败，请重试')
+        }
+      }
     })
   },
 
@@ -380,6 +484,13 @@ Page({
       return
     }
 
+    // 防止重复提交
+    if (this._isSubmitting) {
+      console.warn('[Submit] Already submitting, skip')
+      return
+    }
+    this._isSubmitting = true
+
     this.setData({
       phase: 'evaluating',
       aiStatusText: '正在评估你的回答...'
@@ -425,13 +536,16 @@ Page({
         evaluationPassed: passed,
         scoreColor,
         phase: 'feedback',
-        aiStatusText: passed ? '回答正确！' : '继续加油！'
+        aiStatusText: passed ? '回答正确！' : '继续加油！',
+        nextButtonText: evalRes.status === 'finished' ? '查看测评报告' : '下一题'
       })
 
     } catch (err) {
       console.error('[Evaluate] Error:', err)
       showError(err.message || '评估失败')
       this.setData({ phase: 'answering', aiStatusText: '请重新回答' })
+    } finally {
+      this._isSubmitting = false
     }
   },
 
@@ -444,10 +558,13 @@ Page({
     const status = evalRes.status
 
     if (status === 'finished') {
-      // 测评结束 → 跳转结果页
-      // 传递sessionId，结果页从后端获取完整报告
+      // 测评结束 → 跳转结果页（防重复跳转）
+      if (this._isNavigating) return
+      this._isNavigating = true
+      this.cleanup()
       wx.redirectTo({
-        url: `/pages/result/result?sessionId=${this.data.sessionId}`
+        url: `/pages/result/result?sessionId=${this.data.sessionId}`,
+        fail: () => { this._isNavigating = false }
       })
       return
     }
@@ -455,9 +572,13 @@ Page({
     // status === 'continue' → 加载下一题
     const nextQuestion = evalRes.question
     if (!nextQuestion) {
-      // 安全兜底：没有下一题也跳结果页
+      // 安全兗底：没有下一题也跳结果页
+      if (this._isNavigating) return
+      this._isNavigating = true
+      this.cleanup()
       wx.redirectTo({
-        url: `/pages/result/result?sessionId=${this.data.sessionId}`
+        url: `/pages/result/result?sessionId=${this.data.sessionId}`,
+        fail: () => { this._isNavigating = false }
       })
       return
     }
@@ -505,7 +626,8 @@ Page({
       evaluationScore: 0,
       evaluationPassed: false,
       realtimeText: '',
-      audioWaves
+      audioWaves,
+      nextButtonText: '下一题'
     })
 
     this._previousSubLevel = newSubLevel
@@ -552,7 +674,8 @@ Page({
               evaluationPassed: false,
               scoreColor: '#8a95a5',
               phase: 'feedback',
-              aiStatusText: '已跳过'
+              aiStatusText: '已跳过',
+              nextButtonText: evalRes.status === 'finished' ? '查看测评报告' : '下一题'
             })
 
           } catch (err) {
@@ -573,11 +696,15 @@ Page({
       confirmColor: '#e74c3c',
       success: async (res) => {
         if (res.confirm) {
+          if (this._isNavigating) return
+          this._isNavigating = true
           this.cleanup()
           try {
             await terminateTest(this.data.sessionId, 'user_quit')
           } catch (e) {}
-          wx.navigateBack()
+          wx.navigateBack({ fail: () => {
+            wx.reLaunch({ url: '/pages/home/home' })
+          }})
         }
       }
     })

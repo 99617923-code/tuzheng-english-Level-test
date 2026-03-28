@@ -38,6 +38,17 @@ App({
     this.checkAuth()
   },
 
+  /** 全局错误处理 */
+  onError(msg) {
+    console.error('[App] Global error:', msg)
+  },
+
+  /** 未捕获的Promise拒绝 */
+  onUnhandledRejection(event) {
+    console.warn('[App] Unhandled rejection:', event.reason)
+    // 防止未处理的Promise拒绝导致小程序崩溃
+  },
+
   /** 初始化系统信息（状态栏、胶囊按钮、导航栏高度） */
   initSystemInfo() {
     try {

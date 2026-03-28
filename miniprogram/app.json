@@ -23,7 +23,7 @@
   "requiredPrivateInfos": [],
   "permission": {
     "scope.record": {
-      "desc": "测评需要录制你的英语语音回答"
+      "desc": "途正英语AI分级测评需要使用你的麦克风来录制英语语音回答"
     }
   },
   "sitemapLocation": "sitemap.json",

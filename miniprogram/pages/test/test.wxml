@@ -133,7 +133,7 @@
     <!-- 状态：显示评价，等待下一题 / 查看结果 -->
     <view wx:elif="{{phase === 'feedback'}}" class="action-area">
       <button class="btn-primary" bindtap="handleNext">
-        <text>{{_lastEvalResponse.status === 'finished' ? '查看测评报告' : '下一题'}}</text>
+        <text>{{nextButtonText}}</text>
       </button>
     </view>
 

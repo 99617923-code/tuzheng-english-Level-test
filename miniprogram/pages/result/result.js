@@ -56,6 +56,9 @@ Page({
     // 分项得分
     scoreItems: [],
 
+    // 海报
+    posterSaving: false,
+
     // 二维码弹窗
     showQrModal: false,
     qrcodeUrl: '',
@@ -239,6 +242,280 @@ Page({
         }
       }
     })
+  },
+
+  /** 保存测评海报 */
+  async savePoster() {
+    if (this.data.posterSaving) return
+    this.setData({ posterSaving: true })
+
+    try {
+      // 获取canvas节点
+      const query = this.createSelectorQuery()
+      const canvas = await new Promise((resolve) => {
+        query.select('#posterCanvas')
+          .fields({ node: true, size: true })
+          .exec((res) => resolve(res[0]))
+      })
+
+      if (!canvas || !canvas.node) {
+        throw new Error('无法初始化画布')
+      }
+
+      const canvasNode = canvas.node
+      const ctx = canvasNode.getContext('2d')
+
+      // 设置画布尺寸（高分辨率）
+      const dpr = wx.getWindowInfo().pixelRatio || 2
+      const W = 750
+      const H = 1200
+      canvasNode.width = W * dpr
+      canvasNode.height = H * dpr
+      ctx.scale(dpr, dpr)
+
+      // ===== 绘制背景 =====
+      const bgGrad = ctx.createLinearGradient(0, 0, W, H)
+      bgGrad.addColorStop(0, '#f0f4f8')
+      bgGrad.addColorStop(1, '#e8edf2')
+      ctx.fillStyle = bgGrad
+      ctx.fillRect(0, 0, W, H)
+
+      // 顶部装饰条
+      const topGrad = ctx.createLinearGradient(0, 0, W, 0)
+      topGrad.addColorStop(0, '#1B3F91')
+      topGrad.addColorStop(1, '#2B5BA0')
+      ctx.fillStyle = topGrad
+      ctx.fillRect(0, 0, W, 8)
+
+      // ===== 标题区 =====
+      ctx.fillStyle = '#1B3F91'
+      ctx.font = 'bold 42px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText('途正英语AI分级测评', W / 2, 80)
+
+      ctx.fillStyle = '#8a95a5'
+      ctx.font = '26px sans-serif'
+      ctx.fillText('测评报告', W / 2, 120)
+
+      // ===== 等级卡片 =====
+      const cardX = 50, cardY = 160, cardW = W - 100, cardH = 440
+      // 卡片背景
+      ctx.fillStyle = '#ffffff'
+      this._roundRect(ctx, cardX, cardY, cardW, cardH, 24)
+      ctx.fill()
+      // 卡片阴影
+      ctx.shadowColor = 'rgba(27,63,145,0.08)'
+      ctx.shadowBlur = 20
+      ctx.shadowOffsetY = 8
+      ctx.fill()
+      ctx.shadowColor = 'transparent'
+      ctx.shadowBlur = 0
+      ctx.shadowOffsetY = 0
+
+      // 等级徽章
+      const badgeW = 200, badgeH = 64
+      const badgeX = (W - badgeW) / 2, badgeY = cardY + 40
+      const levelColor = this.data.levelColor || '#1B3F91'
+      ctx.fillStyle = levelColor
+      this._roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 32)
+      ctx.fill()
+      ctx.fillStyle = '#ffffff'
+      ctx.font = 'bold 34px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText(this.data.levelName || '未定级', W / 2, badgeY + 44)
+
+      // 等级描述
+      ctx.fillStyle = '#5a6577'
+      ctx.font = '26px sans-serif'
+      ctx.fillText(this.data.levelLabel || '', W / 2, badgeY + 100)
+
+      // 分数圆环
+      const ringCX = W / 2, ringCY = badgeY + 220, ringR = 80
+      // 背景圆
+      ctx.beginPath()
+      ctx.arc(ringCX, ringCY, ringR, 0, Math.PI * 2)
+      ctx.strokeStyle = 'rgba(27,63,145,0.08)'
+      ctx.lineWidth = 14
+      ctx.stroke()
+      // 进度圆
+      const percent = this.data.scorePercent || 0
+      const endAngle = -Math.PI / 2 + (percent / 100) * Math.PI * 2
+      ctx.beginPath()
+      ctx.arc(ringCX, ringCY, ringR, -Math.PI / 2, endAngle)
+      ctx.strokeStyle = levelColor
+      ctx.lineWidth = 14
+      ctx.lineCap = 'round'
+      ctx.stroke()
+      // 分数文字
+      ctx.fillStyle = '#1a2332'
+      ctx.font = 'bold 56px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText(String(this.data.overallScore || 0), ringCX, ringCY + 16)
+      ctx.fillStyle = '#8a95a5'
+      ctx.font = '22px sans-serif'
+      ctx.fillText('分', ringCX, ringCY + 46)
+
+      // 统计数据
+      const statsY = cardY + cardH - 70
+      const stats = [
+        { label: '答题数', value: String(this.data.totalQuestions || 0) },
+        { label: '通过数', value: String(this.data.passedQuestions || 0) },
+        { label: '用时', value: this.data.durationText || '-' }
+      ]
+      const statW = cardW / 3
+      stats.forEach((s, i) => {
+        const sx = cardX + statW * i + statW / 2
+        ctx.fillStyle = '#1a2332'
+        ctx.font = 'bold 32px sans-serif'
+        ctx.textAlign = 'center'
+        ctx.fillText(s.value, sx, statsY)
+        ctx.fillStyle = '#8a95a5'
+        ctx.font = '22px sans-serif'
+        ctx.fillText(s.label, sx, statsY + 32)
+      })
+      // 分割线
+      ctx.strokeStyle = 'rgba(0,0,0,0.06)'
+      ctx.lineWidth = 1
+      for (let i = 1; i < 3; i++) {
+        const lx = cardX + statW * i
+        ctx.beginPath()
+        ctx.moveTo(lx, statsY - 24)
+        ctx.lineTo(lx, statsY + 40)
+        ctx.stroke()
+      }
+
+      // ===== 分项得分 =====
+      const scoreY = cardY + cardH + 40
+      ctx.fillStyle = '#1a2332'
+      ctx.font = 'bold 30px sans-serif'
+      ctx.textAlign = 'left'
+      ctx.fillText('分项得分', cardX, scoreY)
+
+      const items = this.data.scoreItems || []
+      items.forEach((item, i) => {
+        const iy = scoreY + 50 + i * 70
+        // 标签
+        ctx.fillStyle = '#5a6577'
+        ctx.font = '24px sans-serif'
+        ctx.textAlign = 'left'
+        ctx.fillText(item.label, cardX, iy)
+        // 分数
+        ctx.fillStyle = item.color || '#1B3F91'
+        ctx.font = 'bold 24px sans-serif'
+        ctx.textAlign = 'right'
+        ctx.fillText(String(item.value), cardX + cardW, iy)
+        // 进度条背景
+        const barY = iy + 12, barH = 10, barW = cardW
+        ctx.fillStyle = 'rgba(27,63,145,0.06)'
+        this._roundRect(ctx, cardX, barY, barW, barH, 5)
+        ctx.fill()
+        // 进度条填充
+        ctx.fillStyle = item.color || '#1B3F91'
+        this._roundRect(ctx, cardX, barY, barW * (item.percent / 100), barH, 5)
+        ctx.fill()
+      })
+
+      // ===== 能力评估 =====
+      const summaryY = scoreY + 50 + items.length * 70 + 40
+      ctx.fillStyle = '#1a2332'
+      ctx.font = 'bold 30px sans-serif'
+      ctx.textAlign = 'left'
+      ctx.fillText('能力评估', cardX, summaryY)
+
+      // 自动换行绘制摘要
+      ctx.fillStyle = '#5a6577'
+      ctx.font = '24px sans-serif'
+      const summaryLines = this._wrapText(ctx, this.data.summary || '', cardW, 24)
+      summaryLines.forEach((line, i) => {
+        ctx.fillText(line, cardX, summaryY + 40 + i * 36)
+      })
+
+      // ===== 底部品牌 =====
+      const footerY = H - 60
+      ctx.fillStyle = '#b0b8c4'
+      ctx.font = '22px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText('途正英语 · AI智能分级测评', W / 2, footerY)
+
+      // ===== 保存到相册 =====
+      const tempFilePath = await new Promise((resolve, reject) => {
+        wx.canvasToTempFilePath({
+          canvas: canvasNode,
+          x: 0,
+          y: 0,
+          width: W * dpr,
+          height: H * dpr,
+          destWidth: W * 2,
+          destHeight: H * 2,
+          fileType: 'png',
+          quality: 1,
+          success: (res) => resolve(res.tempFilePath),
+          fail: reject
+        })
+      })
+
+      await new Promise((resolve, reject) => {
+        wx.saveImageToPhotosAlbum({
+          filePath: tempFilePath,
+          success: resolve,
+          fail: (err) => {
+            if (err.errMsg && err.errMsg.indexOf('auth deny') > -1) {
+              wx.showModal({
+                title: '需要相册权限',
+                content: '请在设置中开启相册权限，才能保存海报',
+                confirmText: '去设置',
+                success: (res) => {
+                  if (res.confirm) wx.openSetting()
+                }
+              })
+            }
+            reject(err)
+          }
+        })
+      })
+
+      wx.showToast({ title: '已保存到相册', icon: 'success' })
+    } catch (err) {
+      console.error('[Poster] Save error:', err)
+      if (err.errMsg && err.errMsg.indexOf('auth deny') === -1) {
+        wx.showToast({ title: '保存失败', icon: 'none' })
+      }
+    } finally {
+      this.setData({ posterSaving: false })
+    }
+  },
+
+  /** 绘制圆角矩形路径 */
+  _roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath()
+    ctx.moveTo(x + r, y)
+    ctx.lineTo(x + w - r, y)
+    ctx.arcTo(x + w, y, x + w, y + r, r)
+    ctx.lineTo(x + w, y + h - r)
+    ctx.arcTo(x + w, y + h, x + w - r, y + h, r)
+    ctx.lineTo(x + r, y + h)
+    ctx.arcTo(x, y + h, x, y + h - r, r)
+    ctx.lineTo(x, y + r)
+    ctx.arcTo(x, y, x + r, y, r)
+    ctx.closePath()
+  },
+
+  /** 文本自动换行 */
+  _wrapText(ctx, text, maxWidth, fontSize) {
+    const lines = []
+    let line = ''
+    for (let i = 0; i < text.length; i++) {
+      const testLine = line + text[i]
+      const metrics = ctx.measureText(testLine)
+      if (metrics.width > maxWidth && line.length > 0) {
+        lines.push(line)
+        line = text[i]
+      } else {
+        line = testLine
+      }
+    }
+    if (line) lines.push(line)
+    return lines.slice(0, 5) // 最多5行
   },
 
   /** 回首页 */

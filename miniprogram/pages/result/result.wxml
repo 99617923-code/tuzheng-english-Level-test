@@ -168,6 +168,10 @@
         <image class="share-btn-icon" src="/assets/icons/share.svg" mode="aspectFit" />
         <text>分享测评结果给好友</text>
       </button>
+      <button class="save-poster-btn" bindtap="savePoster" disabled="{{posterSaving}}">
+        <image class="save-poster-icon" src="/assets/icons/download.svg" mode="aspectFit" />
+        <text>{{posterSaving ? '正在生成...' : '保存测评海报'}}</text>
+      </button>
       <view class="home-link" bindtap="goHome">
         <text class="home-link-text">返回首页</text>
       </view>
@@ -176,6 +180,9 @@
     <!-- 底部间距 -->
     <view style="height: calc(env(safe-area-inset-bottom) + 48rpx);"></view>
   </scroll-view>
+
+  <!-- 离屏Canvas用于绘制海报 -->
+  <canvas type="2d" id="posterCanvas" style="position: fixed; left: -9999px; top: -9999px; width: 750px; height: 1200px;"></canvas>
 
   <!-- 群二维码弹窗 -->
   <view wx:if="{{showQrModal}}" class="modal-mask" bindtap="closeQrModal">

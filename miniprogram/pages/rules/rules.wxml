@@ -15,7 +15,7 @@
   </view>
 
   <!-- 主体内容 -->
-  <view class="body" style="padding-top: {{navBarHeight}}px;">
+  <scroll-view scroll-y class="body" style="padding-top: {{navBarHeight}}px;">
     <!-- AI外教卡片 -->
     <view class="teacher-card glass-card-strong animate-fade-in">
       <image class="teacher-avatar" src="{{aiAvatarUrl}}" mode="aspectFill" />
@@ -25,17 +25,38 @@
       </view>
     </view>
 
-    <!-- 测评流程 -->
+    <!-- 测评原理简介 -->
+    <view class="intro-card glass-card animate-fade-in-delay-1">
+      <text class="intro-title">测评原理</text>
+      <text class="intro-text">系统从基础题目开始，每答对一题自动升级到更高难度。题目会越来越难，直到找到你的真实水平为止。答题越多、通过的级别越高，最终等级就越高。</text>
+    </view>
+
+    <!-- 测评流程 - 带循环标记 -->
     <view class="section animate-fade-in-delay-1">
       <text class="section-title">测评流程</text>
-      <view class="steps">
-        <view class="step-item" wx:for="{{steps}}" wx:key="index">
-          <view class="step-num-wrap" style="background: {{item.bgColor}};">
-            <text class="step-num" style="color: {{item.color}};">{{index + 1}}</text>
+      <view class="flow-steps">
+        <view class="flow-step" wx:for="{{steps}}" wx:key="index">
+          <!-- 左侧时间线 -->
+          <view class="flow-timeline">
+            <view class="flow-dot" style="background: {{item.color}};"></view>
+            <view class="flow-line" wx:if="{{index < steps.length - 1}}" style="{{item.isLoop ? 'border-left-style: dashed; border-left-color: #e67e22;' : ''}}"></view>
           </view>
-          <view class="step-content">
-            <text class="step-title">{{item.title}}</text>
-            <text class="step-desc">{{item.desc}}</text>
+          <!-- 右侧内容 -->
+          <view class="flow-content">
+            <view class="flow-header">
+              <view class="flow-icon-wrap" style="background: {{item.bgColor}};">
+                <image class="flow-icon" src="/assets/icons/{{item.icon}}.svg" mode="aspectFit" />
+              </view>
+              <text class="flow-title" style="color: {{item.color}};">{{item.title}}</text>
+              <view class="flow-loop-badge" wx:if="{{item.isLoop}}">
+                <text class="flow-loop-text">循环</text>
+              </view>
+            </view>
+            <text class="flow-desc">{{item.desc}}</text>
+            <!-- 循环提示 -->
+            <view class="loop-hint-card" wx:if="{{item.isLoop}}">
+              <text class="loop-hint-text">🔄 步骤 ①~④ 会反复进行：听题 → 录音 → AI评估 → 过关升级 → 听更难的题……直到测出你的真实水平</text>
+            </view>
           </view>
         </view>
       </view>
@@ -70,15 +91,12 @@
       </view>
     </view>
 
-    <!-- 弹性空间 -->
-    <view class="flex-spacer"></view>
-
     <!-- 底部按钮 -->
     <view class="bottom-area">
       <button class="btn-primary {{recordPermission !== 'authorized' ? 'btn-disabled' : ''}}" bindtap="handleStartTest">
         <text>{{recordPermission === 'authorized' ? '开始测评' : '请先授权麦克风'}}</text>
       </button>
-      <text class="bottom-hint">测评约需3-5分钟，AI自适应精准定级</text>
+      <text class="bottom-hint">测评约需3-5分钟，从基础开始逐步升级</text>
     </view>
-  </view>
+  </scroll-view>
 </view>

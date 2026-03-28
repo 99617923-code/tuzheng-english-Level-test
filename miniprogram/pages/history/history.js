@@ -136,6 +136,18 @@ Page({
     }
   },
 
+  /** 下拉刷新 */
+  async onPullDownRefresh() {
+    this.setData({
+      page: 1,
+      list: [],
+      noMore: false,
+      loading: true
+    })
+    await this.loadHistory()
+    wx.stopPullDownRefresh()
+  },
+
   /** 加载更多 */
   loadMore() {
     if (this.data.loadingMore || this.data.noMore) return

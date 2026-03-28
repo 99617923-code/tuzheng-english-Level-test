@@ -176,6 +176,93 @@
   margin-top: 4rpx;
 }
 
+/* 未完成测评恢复 Banner */
+.resume-banner {
+  margin-bottom: 24rpx;
+}
+
+.resume-banner-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 28rpx;
+  border: 2rpx solid rgba(131,186,18,0.25);
+  background: rgba(131,186,18,0.06) !important;
+}
+
+.resume-info {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  flex: 1;
+}
+
+.resume-dot-pulse {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  background: #83BA12;
+  flex-shrink: 0;
+  animation: dotPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes dotPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+.resume-text-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.resume-title {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.resume-desc {
+  font-size: 22rpx;
+  color: var(--text-muted);
+}
+
+.resume-actions {
+  display: flex;
+  gap: 16rpx;
+  flex-shrink: 0;
+  margin-left: 16rpx;
+}
+
+.resume-btn-continue {
+  padding: 10rpx 28rpx;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, #83BA12, #6a9a10);
+  color: #ffffff;
+  font-size: 24rpx;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.resume-btn-continue:active {
+  opacity: 0.85;
+}
+
+.resume-btn-discard {
+  padding: 10rpx 24rpx;
+  border-radius: var(--radius-full);
+  background: rgba(0,0,0,0.04);
+  color: var(--text-muted);
+  font-size: 24rpx;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.resume-btn-discard:active {
+  background: rgba(0,0,0,0.08);
+}
+
 /* History Entry */
 .history-entry {
   display: flex;

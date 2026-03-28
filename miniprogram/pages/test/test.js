@@ -110,7 +110,7 @@ Page({
   _isSubmitting: false,     // 防止重复提交
   _initRetryCount: 0,       // 初始化重试次数
 
-  onLoad() {
+  onLoad(options) {
     const navLayout = app.getNavLayout()
     const audioWaves = Array.from({ length: 30 }, () => Math.floor(Math.random() * 32) + 8)
 
@@ -130,7 +130,12 @@ Page({
     this._setupAudioEvents()
     this._setupRecorderEvents()
 
-    this.initTest()
+    // 检查是否是恢复测评
+    if (options && options.resume === '1') {
+      this._resumeTest()
+    } else {
+      this.initTest()
+    }
   },
 
   onUnload() {
@@ -160,6 +165,146 @@ Page({
     try {
       plugin.voiceRecognizer.stop()
     } catch (e) {}
+  },
+
+  // ============ 测评中断恢复 ============
+
+  /** 保存测评状态到本地存储（每次答题后调用） */
+  _saveTestSession() {
+    try {
+      const { sessionId, currentSubLevel, currentMajorLevel, questionIndex,
+              totalAnswered, totalSeconds, currentQuestion } = this.data
+      if (!sessionId) return
+
+      const sessionData = {
+        sessionId,
+        currentSubLevel,
+        currentMajorLevel,
+        questionIndex,
+        totalAnswered,
+        totalSeconds,
+        currentQuestion,
+        savedAt: Date.now()
+      }
+      wx.setStorageSync('tz_test_session', sessionData)
+      console.log('[Test] Session saved:', sessionId, 'answered:', totalAnswered)
+    } catch (e) {
+      console.warn('[Test] Save session failed:', e)
+    }
+  },
+
+  /** 清除缓存的测评状态 */
+  _clearTestSession() {
+    try {
+      wx.removeStorageSync('tz_test_session')
+      console.log('[Test] Session cache cleared')
+    } catch (e) {}
+  },
+
+  /** 检查是否有未完成的测评可恢复 */
+  _getSavedSession() {
+    try {
+      const saved = wx.getStorageSync('tz_test_session')
+      if (!saved || !saved.sessionId) return null
+
+      // 检查是否过期（30分钟内有效）
+      const elapsed = Date.now() - (saved.savedAt || 0)
+      if (elapsed > 30 * 60 * 1000) {
+        console.log('[Test] Saved session expired, clearing')
+        this._clearTestSession()
+        return null
+      }
+
+      return saved
+    } catch (e) {
+      return null
+    }
+  },
+
+  /** 恢复中断的测评 */
+  async _resumeTest() {
+    this.setData({ phase: 'loading', aiStatusText: '正在恢复测评...' })
+
+    const saved = this._getSavedSession()
+    if (!saved) {
+      console.log('[Test] No saved session found, starting new test')
+      this.initTest()
+      return
+    }
+
+    console.log('[Test] Resuming session:', saved.sessionId)
+
+    try {
+      // 尝试用保存的sessionId调用start接口
+      // 后端如果支持会返回当前进度，如果不支持则创建新的
+      const data = await startTest()
+
+      // 后端返回了新的session，使用新数据
+      const question = data.question
+      const subLevel = data.currentSubLevel || (question && question.subLevel) || 'PRE1'
+      const majorLevel = data.currentMajorLevel !== undefined ? data.currentMajorLevel : (SUB_LEVEL_MAJOR[subLevel] || 0)
+
+      // 检查后端是否返回了同一个session（支持恢复）
+      const isResumed = data.sessionId === saved.sessionId
+      const totalAnswered = data.totalAnswered || 0
+
+      this.setData({
+        sessionId: data.sessionId,
+        currentQuestion: question,
+        currentSubLevel: subLevel,
+        currentMajorLevel: majorLevel,
+        questionIndex: data.questionIndex || 1,
+        totalAnswered: totalAnswered,
+        totalSeconds: isResumed ? (saved.totalSeconds || 0) : 0,
+        subLevelDisplay: subLevel,
+        majorLevelDisplay: MAJOR_LEVEL_NAMES[majorLevel] || '零级 · 预备',
+        questionCountDisplay: `第 ${totalAnswered + 1} 题`,
+        progressPercent: Math.min((totalAnswered / 34) * 100, 95),
+        phase: 'listening',
+        aiStatusText: isResumed ? '已恢复，请听题目' : '请听题目'
+      })
+
+      this._previousSubLevel = subLevel
+      this.startTimer()
+      this._saveTestSession()
+
+      if (isResumed) {
+        wx.showToast({ title: `已恢复测评（第${totalAnswered + 1}题）`, icon: 'none', duration: 2000 })
+      }
+
+      // 播放语音
+      if (question && question.audioUrl) {
+        await delay(800)
+        this.playAudio()
+      } else {
+        this.setData({ phase: 'answering', aiStatusText: '请用英语回答' })
+      }
+
+    } catch (err) {
+      console.error('[Test] Resume failed:', err)
+      // 恢复失败，提示用户重新开始
+      wx.showModal({
+        title: '恢复失败',
+        content: '无法恢复上次的测评，是否开始新测评？',
+        confirmText: '重新开始',
+        confirmColor: '#83BA12',
+        cancelText: '返回',
+        success: (res) => {
+          if (res.confirm) {
+            this._clearTestSession()
+            this.initTest()
+          } else {
+            this._clearTestSession()
+            if (!this._isNavigating) {
+              this._isNavigating = true
+              wx.navigateBack({ fail: () => {
+                wx.reLaunch({ url: '/pages/home/home' })
+              }})
+            }
+          }
+        }
+      })
+    }
   },
 
   // ============ 初始化测评（v2） ============
@@ -192,6 +337,9 @@ Page({
 
       this._previousSubLevel = subLevel
       this.startTimer()
+
+      // 保存测评状态（用于中断恢复）
+      this._saveTestSession()
 
       // 播放外教真人语音
       if (question && question.audioUrl) {
@@ -558,9 +706,10 @@ Page({
     const status = evalRes.status
 
     if (status === 'finished') {
-      // 测评结束 → 跳转结果页（防重复跳转）
+      // 测评结束 → 清除缓存 + 跳转结果页（防重复跳转）
       if (this._isNavigating) return
       this._isNavigating = true
+      this._clearTestSession()
       this.cleanup()
       wx.redirectTo({
         url: `/pages/result/result?sessionId=${this.data.sessionId}`,
@@ -634,6 +783,9 @@ Page({
     this._lastEvalResponse = null
     this._recordFilePath = ''
 
+    // 保存测评状态（用于中断恢复）
+    this._saveTestSession()
+
     // 播放下一题的外教真人语音
     if (nextQuestion.audioUrl) {
       await delay(500)
@@ -691,17 +843,15 @@ Page({
   handleQuit() {
     wx.showModal({
       title: '退出测评',
-      content: '退出后本次测评进度将不会保存，确定要退出吗？',
+      content: '退出后可以在首页继续未完成的测评，确定要退出吗？',
       confirmText: '退出',
       confirmColor: '#e74c3c',
       success: async (res) => {
         if (res.confirm) {
           if (this._isNavigating) return
           this._isNavigating = true
+          // 不清除缓存，保留中断恢复能力（用户主动退出不调terminate）
           this.cleanup()
-          try {
-            await terminateTest(this.data.sessionId, 'user_quit')
-          } catch (e) {}
           wx.navigateBack({ fail: () => {
             wx.reLaunch({ url: '/pages/home/home' })
           }})

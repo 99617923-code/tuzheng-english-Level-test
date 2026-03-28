@@ -48,6 +48,23 @@
       </view>
     </view>
 
+    <!-- 未完成测评恢复提示 -->
+    <view wx:if="{{hasUnfinishedTest}}" class="resume-banner animate-fade-in-delay-2">
+      <view class="resume-banner-inner glass-card-strong">
+        <view class="resume-info">
+          <view class="resume-dot-pulse"></view>
+          <view class="resume-text-wrap">
+            <text class="resume-title">有未完成的测评</text>
+            <text class="resume-desc">{{unfinishedInfo}}</text>
+          </view>
+        </view>
+        <view class="resume-actions">
+          <view class="resume-btn-continue" bindtap="handleResume">继续</view>
+          <view class="resume-btn-discard" bindtap="handleDiscardTest">放弃</view>
+        </view>
+      </view>
+    </view>
+
     <!-- 查看测评记录 -->
     <view class="history-entry glass-card animate-fade-in-delay-3" bindtap="goHistory">
       <view class="history-left">

@@ -126,14 +126,27 @@
 
     <!-- 操作按钮 -->
     <view class="actions animate-fade-in-delay-4">
-      <button class="btn-primary" bindtap="handleJoinGroup">
-        <image class="btn-icon" src="/assets/icons/users.svg" mode="aspectFit" />
-        <text>加入学习群</text>
+      <!-- 主按钮组 -->
+      <view class="primary-actions">
+        <button class="btn-primary" bindtap="handleJoinGroup">
+          <image class="btn-icon" src="/assets/icons/users.svg" mode="aspectFit" />
+          <text>加入学习群</text>
+        </button>
+        <button class="btn-retake" bindtap="handleRetake">
+          <image class="btn-icon" src="/assets/icons/play.svg" mode="aspectFit" />
+          <text>重新测评</text>
+        </button>
+      </view>
+
+      <!-- 分享按钮 -->
+      <button class="btn-share" open-type="share">
+        <image class="btn-icon-sm" src="/assets/icons/share.svg" mode="aspectFit" />
+        <text>分享测评结果给好友</text>
       </button>
 
-      <view class="secondary-actions">
-        <button class="secondary-btn" bindtap="handleRetake">重新测评</button>
-        <button class="secondary-btn" open-type="share">分享结果</button>
+      <!-- 回首页 -->
+      <view class="home-link" bindtap="goHome">
+        <text class="home-link-text">返回首页</text>
       </view>
     </view>
 

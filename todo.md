@@ -209,3 +209,12 @@
 - [x] test.wxml修复按钮文字引用错误（改用data中的nextButtonText）
 - [x] app.js增加全局onError和onUnhandledRejection处理
 - [x] evaluate接口超时时间从30s增加到45s（AI评估耗时较长）
+
+## 结果页功能增强 + 测评中断恢复
+- [x] 结果页增加“重新测评”按钮（绿色渐变按钮+确认弹窗+清除缓存后跳转规则页）
+- [x] 结果页增加“分享结果”按钮（open-type=share调用wx.shareAppMessage+朋友圈分享）
+- [x] 结果页按钮样式重新设计（双主按钮并排+分享按钮+返回首页链接）
+- [x] 测评中断恢复：test.js在initTest和handleNext后自动保存状态到Storage
+- [x] 测评中断恢复：home.js onShow检测未完成测评+弹窗提示+banner显示
+- [x] 测评中断恢复：用户选择继续时跳转test?resume=1恢复，选择放弃时清除缓存
+- [x] 测评正常结束时自动清除缓存，用户主动退出时保留缓存（30分钟过期）

@@ -211,7 +211,19 @@ Page({
 
   /** 重新测评 */
   handleRetake() {
-    wx.redirectTo({ url: '/pages/rules/rules' })
+    wx.showModal({
+      title: '重新测评',
+      content: '将开始一次全新的测评，确定要继续吗？',
+      confirmText: '开始',
+      confirmColor: '#83BA12',
+      success: (res) => {
+        if (res.confirm) {
+          // 清除中断恢复缓存
+          try { wx.removeStorageSync('tz_test_session') } catch (e) {}
+          wx.redirectTo({ url: '/pages/rules/rules' })
+        }
+      }
+    })
   },
 
   /** 回首页 */

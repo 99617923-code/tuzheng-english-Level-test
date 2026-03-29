@@ -85,7 +85,14 @@ function startTest() {
     method: 'POST'
   }).then(res => {
     if (res.code !== 200) throw new Error(res.msg || '创建测评失败')
-    return res.data
+    const data = res.data
+    // 兼容下划线命名（后端可能用session_id而不是sessionId）
+    if (!data.sessionId && data.session_id) data.sessionId = data.session_id
+    if (!data.totalAnswered && data.total_answered !== undefined) data.totalAnswered = data.total_answered
+    if (!data.currentSubLevel && data.current_sub_level) data.currentSubLevel = data.current_sub_level
+    if (data.currentMajorLevel === undefined && data.current_major_level !== undefined) data.currentMajorLevel = data.current_major_level
+    if (!data.questionIndex && data.question_index) data.questionIndex = data.question_index
+    return data
   })
 }
 
@@ -124,20 +131,24 @@ function startTest() {
  * }
  */
 function evaluateAnswer(params) {
+  // 同时发送驼峰和下划线两种格式，确保后端能识别
   const data = {
     sessionId: params.sessionId,
-    questionId: params.questionId
+    session_id: params.sessionId,
+    questionId: params.questionId,
+    question_id: params.questionId
   }
 
   // 可选字段 - 只传有值的
   if (params.audioUrl) {
     data.audioUrl = params.audioUrl
+    data.audio_url = params.audioUrl
   }
   if (params.recognizedText !== undefined && params.recognizedText !== '') {
     data.recognizedText = params.recognizedText
+    data.recognized_text = params.recognizedText
   }
   if (params.duration !== undefined && params.duration !== null) {
-    // 后端接受毫秒，前端传入时已转换
     data.duration = params.duration
   }
 
@@ -146,7 +157,14 @@ function evaluateAnswer(params) {
     data
   }).then(res => {
     if (res.code !== 200) throw new Error(res.msg || '评估失败')
-    return res.data
+    const result = res.data
+    // 兼容下划线命名
+    if (!result.totalAnswered && result.total_answered !== undefined) result.totalAnswered = result.total_answered
+    if (!result.currentSubLevel && result.current_sub_level) result.currentSubLevel = result.current_sub_level
+    if (result.currentMajorLevel === undefined && result.current_major_level !== undefined) result.currentMajorLevel = result.current_major_level
+    if (!result.questionIndex && result.question_index) result.questionIndex = result.question_index
+    if (!result.sessionId && result.session_id) result.sessionId = result.session_id
+    return result
   })
 }
 
@@ -171,10 +189,16 @@ function getTestResult(sessionId) {
 function uploadAudio(filePath, sessionId, questionId) {
   return uploadFile('/api/v1/test/upload-audio', filePath, 'file', {
     sessionId,
-    questionId
+    session_id: sessionId,
+    questionId,
+    question_id: questionId
   }).then(res => {
     if (res.code !== 200) throw new Error(res.msg || '上传失败')
-    return res.data
+    const data = res.data
+    // 兼容下划线命名
+    if (!data.audioUrl && data.audio_url) data.audioUrl = data.audio_url
+    if (!data.audioUrl && data.url) data.audioUrl = data.url
+    return data
   })
 }
 
@@ -182,10 +206,13 @@ function uploadAudio(filePath, sessionId, questionId) {
 function transcribeAudio(audioUrl, language = 'en') {
   return request('/api/v1/test/transcribe', {
     method: 'POST',
-    data: { audioUrl, language }
+    data: { audioUrl, audio_url: audioUrl, language }
   }).then(res => {
     if (res.code !== 200) throw new Error(res.msg || '转写失败')
-    return res.data
+    const data = res.data
+    // 兼容下划线命名
+    if (!data.text && data.transcription) data.text = data.transcription
+    return data
   })
 }
 

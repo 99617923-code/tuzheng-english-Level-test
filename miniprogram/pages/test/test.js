@@ -251,10 +251,19 @@ Page({
     try {
       const data = await startTest()
       const question = data.question
-      const subLevel = data.currentSubLevel || (question && question.subLevel) || 'PRE1'
-      const majorLevel = data.currentMajorLevel !== undefined ? data.currentMajorLevel : (SUB_LEVEL_MAJOR[subLevel] || 0)
+      // 兼容下划线命名
+      if (question) {
+        console.log('[Resume] Question keys:', Object.keys(question).join(', '))
+        if (!question.audioUrl && question.audio_url) question.audioUrl = question.audio_url
+        if (!question.questionText && question.question_text) question.questionText = question.question_text
+        if (!question.questionId && question.question_id) question.questionId = question.question_id
+        if (!question.subLevel && question.sub_level) question.subLevel = question.sub_level
+        console.log('[Resume] audioUrl:', question.audioUrl)
+      }
+      const subLevel = data.currentSubLevel || data.current_sub_level || (question && question.subLevel) || 'PRE1'
+      const majorLevel = data.currentMajorLevel !== undefined ? data.currentMajorLevel : (data.current_major_level !== undefined ? data.current_major_level : (SUB_LEVEL_MAJOR[subLevel] || 0))
       const isResumed = data.sessionId === saved.sessionId
-      const totalAnswered = data.totalAnswered || 0
+      const totalAnswered = data.totalAnswered || data.total_answered || 0
 
       // 恢复前端计数
       this._frontendQuestionCount = isResumed ? (saved.frontendQuestionCount || totalAnswered) : 0
@@ -326,9 +335,36 @@ Page({
     try {
       const data = await startTest()
 
+      // 打印后端返回的完整数据，方便调试
+      console.log('[Test] startTest raw response:', JSON.stringify(data).substring(0, 500))
+
       const question = data.question
-      const subLevel = data.currentSubLevel || (question && question.subLevel) || 'PRE1'
-      const majorLevel = data.currentMajorLevel !== undefined ? data.currentMajorLevel : (SUB_LEVEL_MAJOR[subLevel] || 0)
+      if (question) {
+        console.log('[Test] Question object keys:', Object.keys(question).join(', '))
+        console.log('[Test] Question audioUrl:', question.audioUrl)
+        console.log('[Test] Question audio_url:', question.audio_url)
+        console.log('[Test] Question questionText:', question.questionText)
+        console.log('[Test] Question question_text:', question.question_text)
+        // 兼容下划线命名：后端可能返回 audio_url 而不是 audioUrl
+        if (!question.audioUrl && question.audio_url) {
+          question.audioUrl = question.audio_url
+        }
+        if (!question.questionText && question.question_text) {
+          question.questionText = question.question_text
+        }
+        if (!question.questionId && question.question_id) {
+          question.questionId = question.question_id
+        }
+        if (!question.subLevel && question.sub_level) {
+          question.subLevel = question.sub_level
+        }
+        console.log('[Test] Question after normalization - audioUrl:', question.audioUrl, 'questionText:', question.questionText)
+      } else {
+        console.error('[Test] No question in response!')
+      }
+
+      const subLevel = data.currentSubLevel || data.current_sub_level || (question && question.subLevel) || 'PRE1'
+      const majorLevel = data.currentMajorLevel !== undefined ? data.currentMajorLevel : (data.current_major_level !== undefined ? data.current_major_level : (SUB_LEVEL_MAJOR[subLevel] || 0))
 
       this.setData({
         sessionId: data.sessionId,
@@ -865,8 +901,21 @@ Page({
       console.log('[Evaluate] Submitting:', JSON.stringify(evalParams).substring(0, 300))
       const evalRes = await evaluateAnswer(evalParams)
 
+      // 打印后端返回的完整数据
+      console.log('[Evaluate] Response:', JSON.stringify(evalRes).substring(0, 500))
+
       // 缓存完整响应
       this._lastEvalResponse = evalRes
+
+      // 兼容下划线命名：evaluate返回的下一题question
+      if (evalRes.question) {
+        const q = evalRes.question
+        if (!q.audioUrl && q.audio_url) q.audioUrl = q.audio_url
+        if (!q.questionText && q.question_text) q.questionText = q.question_text
+        if (!q.questionId && q.question_id) q.questionId = q.question_id
+        if (!q.subLevel && q.sub_level) q.subLevel = q.sub_level
+        console.log('[Evaluate] Next question audioUrl:', q.audioUrl)
+      }
 
       // 第四步：处理评估结果
       const evaluation = evalRes.evaluation || {}
@@ -877,7 +926,7 @@ Page({
 
       // 更新答题计数（前端自己维护 + 后端返回的取较大值）
       this._frontendQuestionCount += 1
-      const backendTotal = evalRes.totalAnswered || this._frontendQuestionCount
+      const backendTotal = evalRes.totalAnswered || evalRes.total_answered || this._frontendQuestionCount
       const newTotalAnswered = Math.max(this._frontendQuestionCount, backendTotal)
 
       const isFinished = evalRes.status === 'finished'
@@ -944,8 +993,15 @@ Page({
       try {
         const data = await startTest()
         const question = data.question
-        const subLevel = data.currentSubLevel || (question && question.subLevel) || this.data.currentSubLevel
-        const majorLevel = data.currentMajorLevel !== undefined ? data.currentMajorLevel : (SUB_LEVEL_MAJOR[subLevel] || 0)
+        // 兼容下划线命名
+        if (question) {
+          if (!question.audioUrl && question.audio_url) question.audioUrl = question.audio_url
+          if (!question.questionText && question.question_text) question.questionText = question.question_text
+          if (!question.questionId && question.question_id) question.questionId = question.question_id
+          if (!question.subLevel && question.sub_level) question.subLevel = question.sub_level
+        }
+        const subLevel = data.currentSubLevel || data.current_sub_level || (question && question.subLevel) || this.data.currentSubLevel
+        const majorLevel = data.currentMajorLevel !== undefined ? data.currentMajorLevel : (data.current_major_level !== undefined ? data.current_major_level : (SUB_LEVEL_MAJOR[subLevel] || 0))
 
         const audioWaves = Array.from({ length: 30 }, () => Math.floor(Math.random() * 32) + 8)
 
@@ -997,6 +1053,14 @@ Page({
 
     // status === 'continue' → 加载下一题
     const nextQuestion = evalRes.question
+    // 兼容下划线命名
+    if (nextQuestion) {
+      if (!nextQuestion.audioUrl && nextQuestion.audio_url) nextQuestion.audioUrl = nextQuestion.audio_url
+      if (!nextQuestion.questionText && nextQuestion.question_text) nextQuestion.questionText = nextQuestion.question_text
+      if (!nextQuestion.questionId && nextQuestion.question_id) nextQuestion.questionId = nextQuestion.question_id
+      if (!nextQuestion.subLevel && nextQuestion.sub_level) nextQuestion.subLevel = nextQuestion.sub_level
+      console.log('[Next] Question audioUrl:', nextQuestion.audioUrl, 'questionText:', nextQuestion.questionText)
+    }
     if (!nextQuestion) {
       if (this._isNavigating) return
       this._isNavigating = true
@@ -1008,8 +1072,8 @@ Page({
       return
     }
 
-    const newSubLevel = evalRes.currentSubLevel || nextQuestion.subLevel || this.data.currentSubLevel
-    const newMajorLevel = evalRes.currentMajorLevel !== undefined ? evalRes.currentMajorLevel : (SUB_LEVEL_MAJOR[newSubLevel] || 0)
+    const newSubLevel = evalRes.currentSubLevel || evalRes.current_sub_level || nextQuestion.subLevel || this.data.currentSubLevel
+    const newMajorLevel = evalRes.currentMajorLevel !== undefined ? evalRes.currentMajorLevel : (evalRes.current_major_level !== undefined ? evalRes.current_major_level : (SUB_LEVEL_MAJOR[newSubLevel] || 0))
     const questionIndex = evalRes.questionIndex || 1
 
     // 检测是否升级到新的小级

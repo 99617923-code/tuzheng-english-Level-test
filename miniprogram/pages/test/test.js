@@ -111,7 +111,11 @@ Page({
     showLevelUp: false,
 
     // 下一步按钮文字
-    nextButtonText: '下一题'
+    nextButtonText: '下一题',
+
+    // 音频失败时显示题目文字（兆底）
+    showQuestionText: false,
+    questionTextDisplay: ''
   },
 
   // 内部状态
@@ -268,7 +272,9 @@ Page({
         questionCountDisplay: `第 ${this._frontendQuestionCount + 1} 题`,
         progressPercent: Math.min((this._frontendQuestionCount / 34) * 100, 95),
         phase: 'listening',
-        aiStatusText: isResumed ? '已恢复，请听题目' : '请听题目'
+        aiStatusText: isResumed ? '已恢复，请听题目' : '请听题目',
+        showQuestionText: false,
+        questionTextDisplay: ''
       })
 
       this._previousSubLevel = subLevel
@@ -338,7 +344,9 @@ Page({
         phase: 'guide',
         showGuide: true,
         guideStep: 1,
-        aiStatusText: '你好！我是你的AI外教'
+        aiStatusText: '你好！我是你的AI外教',
+        showQuestionText: false,
+        questionTextDisplay: ''
       })
 
       this._previousSubLevel = subLevel
@@ -540,25 +548,67 @@ Page({
     this._setAudioTimeout()
   },
 
-  /** TTS降级：audioUrl不可用时用后端TTS生成语音 */
-  async _tryTTSFallback() {
+  /**
+   * TTS降级方案（三级降级）：
+   * 1. 优先用微信同声传译插件的textToSpeech（前端直接合成，不依赖后端）
+   * 2. 插件不可用时尝试后端TTS接口
+   * 3. 都失败时显示题目文字让用户看着回答
+   */
+  _tryTTSFallback() {
     const { currentQuestion } = this.data
     if (!currentQuestion || !currentQuestion.questionText) {
-      // 连文本都没有，直接进入回答阶段
       console.warn('[TTS] No questionText available, skip to answering')
       this._onAudioFinished()
       return
     }
 
+    console.log('[TTS] Generating speech for:', currentQuestion.questionText)
+    this.setData({ phase: 'listening', aiStatusText: '正在生成语音...' })
+
+    // 第一级：用微信同声传译插件的TTS（前端直接合成）
+    if (plugin && plugin.textToSpeech) {
+      console.log('[TTS] Using WechatSI plugin textToSpeech')
+      const self = this
+      plugin.textToSpeech({
+        lang: 'en_US',
+        tts: true,
+        content: currentQuestion.questionText.substring(0, 50), // 插件限制50字符
+        success: function(res) {
+          console.log('[TTS] WechatSI success, retcode:', res.retcode, 'filename:', res.filename)
+          if (res.filename) {
+            // 用InnerAudioContext播放合成的语音
+            const updatedQuestion = { ...currentQuestion, audioUrl: res.filename }
+            self.setData({ currentQuestion: updatedQuestion })
+
+            const ctx = self._createAudioContext()
+            ctx.src = res.filename
+            ctx.play()
+            self._setAudioTimeout()
+          } else {
+            console.warn('[TTS] WechatSI returned no filename, trying backend TTS')
+            self._tryBackendTTS()
+          }
+        },
+        fail: function(err) {
+          console.warn('[TTS] WechatSI failed:', err)
+          self._tryBackendTTS()
+        }
+      })
+    } else {
+      console.warn('[TTS] WechatSI plugin not available, trying backend TTS')
+      this._tryBackendTTS()
+    }
+  },
+
+  /** 第二级降级：后端TTS接口 */
+  async _tryBackendTTS() {
+    const { currentQuestion } = this.data
     try {
-      console.log('[TTS] Generating speech for:', currentQuestion.questionText)
-      this.setData({ phase: 'listening', aiStatusText: '正在生成语音...' })
       const ttsRes = await textToSpeech(currentQuestion.questionText)
       const ttsUrl = ttsRes.audioUrl || ttsRes.audio_url || ttsRes.url || ''
 
       if (ttsUrl) {
-        console.log('[TTS] Playing generated audio:', ttsUrl)
-        // 更新currentQuestion的audioUrl以便重播
+        console.log('[TTS] Backend TTS success:', ttsUrl)
         const updatedQuestion = { ...currentQuestion, audioUrl: ttsUrl }
         this.setData({ currentQuestion: updatedQuestion })
 
@@ -567,14 +617,28 @@ Page({
         ctx.play()
         this._setAudioTimeout()
       } else {
-        // TTS也失败了，直接进入回答
-        console.warn('[TTS] No audio URL returned, skip to answering')
-        this._onAudioFinished()
+        console.warn('[TTS] Backend TTS returned no URL, showing question text')
+        this._showQuestionTextFallback()
       }
     } catch (e) {
-      console.warn('[TTS] Fallback failed:', e)
-      this._onAudioFinished()
+      console.warn('[TTS] Backend TTS failed:', e)
+      this._showQuestionTextFallback()
     }
+  },
+
+  /** 第三级降级：显示题目文字让用户看着回答 */
+  _showQuestionTextFallback() {
+    const { currentQuestion } = this.data
+    console.log('[TTS] All TTS failed, showing question text as fallback')
+    // 设置一个标记让UI显示题目文字
+    this.setData({
+      showQuestionText: true,
+      questionTextDisplay: currentQuestion.questionText || 'Please answer the question.'
+    })
+    // 给用户3秒阅读时间后进入回答阶段
+    setTimeout(() => {
+      this._onAudioFinished()
+    }, 3000)
   },
 
   // ============ 录音（tap切换模式） ============
@@ -903,7 +967,9 @@ Page({
           evaluationPassed: false,
           realtimeText: '',
           audioWaves,
-          nextButtonText: '下一题'
+          nextButtonText: '下一题',
+          showQuestionText: false,
+          questionTextDisplay: ''
         })
 
         this._previousSubLevel = subLevel
@@ -980,7 +1046,9 @@ Page({
       evaluationPassed: false,
       realtimeText: '',
       audioWaves,
-      nextButtonText: '下一题'
+      nextButtonText: '下一题',
+      showQuestionText: false,
+      questionTextDisplay: ''
     })
 
     this._previousSubLevel = newSubLevel

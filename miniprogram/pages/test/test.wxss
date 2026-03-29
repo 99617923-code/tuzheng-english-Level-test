@@ -669,3 +669,28 @@
 .record-btn.recording:active {
   transform: scale(1.05);
 }
+
+/* 音频失败时显示题目文字（兜底） */
+.question-text-fallback {
+  margin-top: 24rpx;
+  padding: 24rpx;
+  background: rgba(43, 91, 160, 0.08);
+  border-radius: var(--radius-lg, 16rpx);
+  border-left: 6rpx solid var(--brand-blue, #2B5BA0);
+}
+
+.question-text-label {
+  display: block;
+  font-size: 24rpx;
+  color: var(--text-muted, #8a95a5);
+  margin-bottom: 12rpx;
+}
+
+.question-text-content {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--text-primary, #1a2a3a);
+  line-height: 1.6;
+  font-family: 'Nunito', sans-serif;
+}

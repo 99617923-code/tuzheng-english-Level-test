@@ -55,6 +55,12 @@
         </view>
       </view>
 
+      <!-- 音频失败时显示题目文字（兆底） -->
+      <view wx:if="{{showQuestionText}}" class="question-text-fallback">
+        <text class="question-text-label">📝 请阅读题目并用英语回答：</text>
+        <text class="question-text-content">{{questionTextDisplay}}</text>
+      </view>
+
       <!-- AI评价反馈 -->
       <view wx:if="{{evaluationFeedback}}" class="feedback-area">
         <view class="feedback-score-row">

@@ -33,6 +33,70 @@ function clearTokens() {
   wx.removeStorageSync('tz_user_info')
 }
 
+// ============ Token 提前检查 ============
+
+/**
+ * 解码JWT的payload部分（不验签名，仅读取过期时间）
+ * 微信小程序没有atob，用wx.arrayBufferToBase64的逆操作来解码
+ */
+function decodeJWTPayload(token) {
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) return null
+    // base64url → base64
+    let payload = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+    // 补齐padding
+    while (payload.length % 4 !== 0) {
+      payload += '='
+    }
+    // 小程序环境解码base64
+    const raw = wx.base64ToArrayBuffer(payload)
+    const bytes = new Uint8Array(raw)
+    let str = ''
+    for (let i = 0; i < bytes.length; i++) {
+      str += String.fromCharCode(bytes[i])
+    }
+    return JSON.parse(str)
+  } catch (e) {
+    console.warn('[Token] Failed to decode JWT:', e.message)
+    return null
+  }
+}
+
+/**
+ * 检查Token是否即将过期，如果剩余有效期不足2分钟则主动刷新
+ * 纯本地计算，不发网络请求（除非需要刷新）
+ * @returns {Promise<void>}
+ */
+async function ensureTokenValid() {
+  const token = getToken()
+  if (!token) return // 没有token，让后续请求自己处理
+
+  const payload = decodeJWTPayload(token)
+  if (!payload || !payload.exp) return // 解码失败或没有exp字段，跳过
+
+  const nowSec = Math.floor(Date.now() / 1000)
+  const remainingSec = payload.exp - nowSec
+
+  if (remainingSec > 120) {
+    // Token还有超过2分钟有效期，无需刷新
+    return
+  }
+
+  // Token即将过期或已过期，主动刷新
+  console.log(`[Token] Token expires in ${remainingSec}s, proactively refreshing...`)
+  try {
+    const refreshed = await tryRefreshToken()
+    if (refreshed) {
+      console.log('[Token] Proactive refresh successful')
+    } else {
+      console.warn('[Token] Proactive refresh failed, will rely on 401 retry')
+    }
+  } catch (e) {
+    console.warn('[Token] Proactive refresh error:', e.message)
+  }
+}
+
 // ============ 请求封装 ============
 
 let isRefreshing = false
@@ -348,6 +412,7 @@ module.exports = {
   getRefreshToken,
   setTokens,
   clearTokens,
+  ensureTokenValid,
   BASE_URL,
   APP_KEY
 }

@@ -20,6 +20,7 @@
 const app = getApp()
 const { startTest, evaluateAnswer, uploadAudio, terminateTest, transcribeAudio, textToSpeech } = require('../../utils/api')
 const { formatTime, showToast, showError, delay } = require('../../utils/util')
+const { ensureTokenValid } = require('../../utils/request')
 
 // 同声传译插件
 let plugin = null
@@ -850,6 +851,9 @@ Page({
       return
     }
     this._isSubmitting = true
+
+    // 提前检查Token有效性，快过期时主动刷新（避免上传/评估过程中遇到401）
+    await ensureTokenValid()
 
     this.setData({
       phase: 'evaluating',

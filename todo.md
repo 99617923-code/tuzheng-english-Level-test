@@ -306,3 +306,7 @@
 ## Bug修复（第六轮）- Token过期导致upload失败→evaluate 0分
 - [x] upload-audio遇到30时，token刷新后自动重试上传（不能直接跳过）
 - [x] request.js中uploadFile函数增加401检测+token刷新+自动重试机制（与request函数保持一致）
+
+## 优化 - Token提前检查（第六轮补充）
+- [x] request.js增加ensureTokenValid函数（本地JWT解码检查过期时间，剩余<2分钟时主动刷新）
+- [x] test.js submitAnswer开始前调用ensureTokenValid（避免上传/评估过程中遇到401）

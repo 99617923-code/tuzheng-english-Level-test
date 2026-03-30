@@ -247,7 +247,7 @@ function tryRefreshToken() {
 }
 
 /**
- * 上传文件
+ * 上传文件（带401 Token刷新重试）
  * @param {string} url - API路径
  * @param {string} filePath - 本地文件路径
  * @param {string} name - 文件字段名
@@ -255,47 +255,89 @@ function tryRefreshToken() {
  * @returns {Promise<object>} 响应数据
  */
 function uploadFile(url, filePath, name = 'file', formData = {}) {
-  const token = getToken()
-  const headers = {
-    'X-App-Key': APP_KEY
-  }
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`
-  }
-
   console.log(`[Upload] ${url}, file: ${filePath}`)
 
-  return new Promise((resolve, reject) => {
-    wx.uploadFile({
-      url: `${BASE_URL}${url}`,
-      filePath,
-      name,
-      formData,
-      header: headers,
-      timeout: LONG_TIMEOUT,
-      success(res) {
-        console.log(`[Upload] ${url} → HTTP ${res.statusCode}`)
-        try {
-          const data = JSON.parse(res.data)
-          if (res.statusCode >= 400) {
-            reject(new Error(data.msg || `上传失败(${res.statusCode})`))
-          } else {
-            resolve(data)
+  function doUpload() {
+    const token = getToken()
+    const headers = { 'X-App-Key': APP_KEY }
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
+    return new Promise((resolve, reject) => {
+      wx.uploadFile({
+        url: `${BASE_URL}${url}`,
+        filePath,
+        name,
+        formData,
+        header: headers,
+        timeout: LONG_TIMEOUT,
+        success(res) {
+          console.log(`[Upload] ${url} → HTTP ${res.statusCode}`)
+          try {
+            const data = JSON.parse(res.data)
+            if (res.statusCode === 401) {
+              // Token过期，触发刷新后重试
+              reject({ isAuthError: true, data })
+            } else if (res.statusCode >= 400) {
+              reject(new Error(data.msg || `上传失败(${res.statusCode})`))
+            } else {
+              resolve(data)
+            }
+          } catch (e) {
+            console.error('[Upload] Parse response failed:', res.data)
+            reject(new Error('解析响应失败'))
           }
-        } catch (e) {
-          console.error('[Upload] Parse response failed:', res.data)
-          reject(new Error('解析响应失败'))
+        },
+        fail(err) {
+          console.error('[Upload] Failed:', url, err)
+          if (err.errMsg && err.errMsg.includes('timeout')) {
+            reject(new Error('上传超时，请检查网络后重试'))
+          } else {
+            reject(new Error(err.errMsg || '上传失败'))
+          }
         }
-      },
-      fail(err) {
-        console.error('[Upload] Failed:', url, err)
-        if (err.errMsg && err.errMsg.includes('timeout')) {
-          reject(new Error('上传超时，请检查网络后重试'))
-        } else {
-          reject(new Error(err.errMsg || '上传失败'))
-        }
-      }
+      })
     })
+  }
+
+  // 第一次尝试上传
+  return doUpload().catch(err => {
+    // 如果是401 Token过期，刷新后重试一次
+    if (err && err.isAuthError) {
+      console.warn(`[Upload] Auth expired for ${url}, attempting refresh and retry...`)
+
+      if (!isRefreshing) {
+        isRefreshing = true
+        tryRefreshToken().then(refreshed => {
+          isRefreshing = false
+          onTokenRefreshed(refreshed)
+        }).catch(() => {
+          isRefreshing = false
+          onTokenRefreshed(false)
+        })
+      }
+
+      return new Promise((resolve, reject) => {
+        subscribeTokenRefresh((refreshed) => {
+          if (refreshed) {
+            console.log('[Upload] Token refreshed, retrying upload...')
+            doUpload().then(resolve).catch(retryErr => {
+              // 重试失败，不再刷新
+              if (retryErr && retryErr.isAuthError) {
+                reject(new Error('未认证或Token已过期'))
+              } else {
+                reject(retryErr)
+              }
+            })
+          } else {
+            reject(new Error('未认证或Token已过期'))
+          }
+        })
+      })
+    }
+    // 其他错误直接抛出
+    throw err
   })
 }
 

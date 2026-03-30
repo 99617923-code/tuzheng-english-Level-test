@@ -298,3 +298,11 @@
 - [x] 排查Whisper转写返回空文本的原因（增加完整返回值日志+多字段名尝试）
 - [x] 修复recognizedText为空时evaluate仍返回0分的问题（空字符串也始终传递给后端）
 - [x] 后端需配合：当recognizedText为空但audioUrl存在时，后端应自己用audioUrl转写再评分
+
+## Bug修复（第六轮）- 第一道题播放时Error: timeout
+- [ ] 排查playQuestionAudio中的超时保护逻辑，定位timeout错误来源
+- [ ] 修复timeout错误（音频已正常播放但仍报timeout）
+
+## Bug修复（第六轮）- Token过期导致upload失败→evaluate 0分
+- [x] upload-audio遇到30时，token刷新后自动重试上传（不能直接跳过）
+- [x] request.js中uploadFile函数增加401检测+token刷新+自动重试机制（与request函数保持一致）

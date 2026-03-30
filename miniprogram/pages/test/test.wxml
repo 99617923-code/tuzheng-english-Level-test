@@ -4,15 +4,11 @@
   小程序原生适配：全局导航布局
 -->
 <view class="page">
-  <!-- 自定义导航栏 -->
+  <!-- 自定义导航栏（只保留返回按钮和计时器） -->
   <view class="custom-nav" style="height: {{navBarHeight}}px;">
     <view class="custom-nav-content" style="margin-top: {{navContentTop}}px; height: {{navContentHeight}}px;">
       <view class="nav-back-btn" bindtap="handleQuit">
         <image class="nav-back-icon" src="/assets/icons/x.svg" mode="aspectFit" />
-      </view>
-      <view class="nav-center-info">
-        <text class="nav-level">{{majorLevelDisplay}}</text>
-        <text class="nav-progress">{{questionCountDisplay}} · {{subLevelDisplay}}</text>
       </view>
       <view class="nav-timer-wrap">
         <image class="timer-icon" src="/assets/icons/clock.svg" mode="aspectFit" />
@@ -29,7 +25,14 @@
   </view>
 
   <!-- 主内容区 -->
-  <view class="main-area" style="padding-top: {{navBarHeight + 40}}px;">
+  <view class="main-area" style="padding-top: {{navBarHeight + 20}}px;">
+    <!-- 级别 & 题号信息条（从导航栏移出，放在内容区顶部） -->
+    <view class="level-info-bar">
+      <view class="level-info-left">
+        <text class="level-info-level">{{majorLevelDisplay}}</text>
+        <text class="level-info-progress">{{questionCountDisplay}} · {{subLevelDisplay}}</text>
+      </view>
+    </view>
     <!-- 题目卡片 -->
     <view class="question-card glass-card-strong animate-fade-in">
       <!-- AI头像 + 状态 -->

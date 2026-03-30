@@ -345,3 +345,6 @@
 - [x] 测评页：AI对话卡片增加顶部间距（main-area padding-top从+20改为+40）
 - [x] 测评页：语音播放波形铺满整个播音条（bar数量30→60，flex:1+justify-content:space-between）
 - [x] 测评页：优化中间空白布局（padding-top增加）
+
+## UI修复（第八轮）
+- [x] 测评页：级别/题号从导航栏移出到内容区顶部（level-info-bar），导航栏只保留返回+计时器

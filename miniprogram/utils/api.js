@@ -139,6 +139,13 @@ function evaluateAnswer(params) {
     question_id: params.questionId
   }
 
+  // 传递questionText给后端，确保LLM评分使用正确的题目上下文
+  // 这是防止网络中断导致前后端题目状态不同步的关键
+  if (params.questionText) {
+    data.questionText = params.questionText
+    data.question_text = params.questionText
+  }
+
   // 可选字段 - 只传有值的
   if (params.audioUrl) {
     data.audioUrl = params.audioUrl

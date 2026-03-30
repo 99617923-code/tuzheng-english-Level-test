@@ -885,11 +885,13 @@ Page({
         }
       }
 
-      // 第三步：调用v2 evaluate接口
+      // 第三步：调用v2 evaluate接口（带重试机制）
       // 即使audioUrl和recognizedText都为空，也要提交（让后端判断）
       const evalParams = {
         sessionId,
         questionId: currentQuestion.questionId,
+        // 传递questionText给后端，确保LLM评分使用正确的题目上下文
+        questionText: currentQuestion.questionText || '',
         recognizedText: finalTranscription || '',
         duration: recordSeconds * 1000
       }
@@ -898,11 +900,51 @@ Page({
         evalParams.audioUrl = audioUrl
       }
 
-      console.log('[Evaluate] Submitting:', JSON.stringify(evalParams).substring(0, 300))
-      const evalRes = await evaluateAnswer(evalParams)
+      console.log('[Evaluate] Submitting:', JSON.stringify(evalParams).substring(0, 500))
 
-      // 打印后端返回的完整数据
-      console.log('[Evaluate] Response:', JSON.stringify(evalRes).substring(0, 500))
+      // evaluate网络失败自动重试（最多3次）
+      // 避免网络中断导致跳过评分，造成前后端题目状态不同步
+      const MAX_EVALUATE_RETRIES = 3
+      let evalRes = null
+      let lastError = null
+      for (let attempt = 1; attempt <= MAX_EVALUATE_RETRIES; attempt++) {
+        try {
+          console.log(`[Evaluate] Attempt ${attempt}/${MAX_EVALUATE_RETRIES}`)
+          evalRes = await evaluateAnswer(evalParams)
+          console.log('[Evaluate] Response:', JSON.stringify(evalRes).substring(0, 500))
+          break // 成功则跳出重试循环
+        } catch (retryErr) {
+          lastError = retryErr
+          console.warn(`[Evaluate] Attempt ${attempt} failed:`, retryErr.message)
+          if (attempt < MAX_EVALUATE_RETRIES) {
+            // 等待1.5秒后重试
+            this.setData({ aiStatusText: `网络异常，正在重试(${attempt}/${MAX_EVALUATE_RETRIES})...` })
+            await delay(1500)
+          }
+        }
+      }
+
+      // 3次重试都失败 → 不跳下一题，提示用户重新提交
+      if (!evalRes) {
+        console.error('[Evaluate] All retries failed:', lastError?.message)
+        wx.showModal({
+          title: '网络异常',
+          content: '评估请求失败，请检查网络后点击“重新提交”',
+          confirmText: '重新提交',
+          cancelText: '跳过此题',
+          success: (res) => {
+            if (res.confirm) {
+              // 用户点“重新提交”→ 重新调用submitAnswer
+              this._isSubmitting = false
+              this.submitAnswer()
+            } else {
+              // 用户点“跳过此题”→ 回到answering状态，不跳下一题
+              this.setData({ phase: 'answering', aiStatusText: '请重新录音回答' })
+            }
+          }
+        })
+        return // 不继续执行后续逻辑
+      }
 
       // 缓存完整响应
       this._lastEvalResponse = evalRes

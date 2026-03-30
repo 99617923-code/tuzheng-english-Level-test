@@ -287,3 +287,9 @@
 - [x] TTS三级降级：WechatSI插件TTS→后端TTS→显示题目文字让用户看着回答
 - [x] 音频播放失败时自动进入TTS降级流程（三级降级确保用户能听到或看到题目）
 - [x] timeout保护已有（15秒强制进入answering）
+
+## Bug修复（第四轮）- 网络异常重试机制 + LLM评分题目上下文修复
+- [x] evaluate网络失败时自动重试3次（每次间隔1.5秒，避免网络中断导致题目错位）
+- [x] 重试都失败后弹窗提示用户"重新提交"或"跳过此题"（不静默跳过）
+- [x] evaluate接口增加questionText参数，确保LLM评分使用正确的题目上下文（修复"回答父亲年龄"却被评为"早餐"的bug）
+- [x] api.js中evaluateAnswer同时传递questionText和question_text两种格式（兼容后端命名）

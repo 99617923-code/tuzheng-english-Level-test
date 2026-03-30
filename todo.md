@@ -293,3 +293,8 @@
 - [x] 重试都失败后弹窗提示用户"重新提交"或"跳过此题"（不静默跳过）
 - [x] evaluate接口增加questionText参数，确保LLM评分使用正确的题目上下文（修复"回答父亲年龄"却被评为"早餐"的bug）
 - [x] api.js中evaluateAnswer同时传递questionText和question_text两种格式（兼容后端命名）
+
+## Bug修复（第五轮）- evaluate返回0分"No answer provided"
+- [x] 排查Whisper转写返回空文本的原因（增加完整返回值日志+多字段名尝试）
+- [x] 修复recognizedText为空时evaluate仍返回0分的问题（空字符串也始终传递给后端）
+- [x] 后端需配合：当recognizedText为空但audioUrl存在时，后端应自己用audioUrl转写再评分

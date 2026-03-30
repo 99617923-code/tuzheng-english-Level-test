@@ -146,15 +146,15 @@ function evaluateAnswer(params) {
     data.question_text = params.questionText
   }
 
-  // 可选字段 - 只传有值的
+  // audioUrl：始终传递（后端需要用audioUrl做兜底转写）
   if (params.audioUrl) {
     data.audioUrl = params.audioUrl
     data.audio_url = params.audioUrl
   }
-  if (params.recognizedText !== undefined && params.recognizedText !== '') {
-    data.recognizedText = params.recognizedText
-    data.recognized_text = params.recognizedText
-  }
+  // recognizedText：始终传递（即使为空也传，让后端知道前端没识别到，需要后端自己转写）
+  // 之前的bug：空字符串时不传这个字段，后端以为前端没传 → 直接返回0分
+  data.recognizedText = params.recognizedText || ''
+  data.recognized_text = params.recognizedText || ''
   if (params.duration !== undefined && params.duration !== null) {
     data.duration = params.duration
   }

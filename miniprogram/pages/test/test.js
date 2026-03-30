@@ -876,13 +876,20 @@ Page({
       let finalTranscription = userTranscription || ''
       if (!finalTranscription && audioUrl) {
         try {
-          console.log('[Whisper] Transcribing uploaded audio...')
+          console.log('[Whisper] Transcribing uploaded audio...', audioUrl)
           const whisperRes = await transcribeAudio(audioUrl, 'en')
-          finalTranscription = whisperRes.text || whisperRes.transcription || ''
-          console.log('[Whisper] Result:', finalTranscription)
+          // 打印完整返回值便于排查字段名不匹配问题
+          console.log('[Whisper] Full response:', JSON.stringify(whisperRes).substring(0, 500))
+          // 尝试多种可能的字段名
+          finalTranscription = whisperRes.text || whisperRes.transcription || whisperRes.result || whisperRes.content || whisperRes.recognized_text || ''
+          console.log('[Whisper] Extracted text:', finalTranscription)
         } catch (e) {
           console.warn('[Whisper] Transcribe failed:', e.message)
         }
+      }
+      // 如果Whisper也转写失败，记录日志但仍然提交evaluate（后端有audioUrl可以自己转写）
+      if (!finalTranscription) {
+        console.warn('[Whisper] No transcription available, will submit evaluate with audioUrl only. Backend should do its own transcription.')
       }
 
       // 第三步：调用v2 evaluate接口（带重试机制）

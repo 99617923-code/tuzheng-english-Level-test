@@ -310,3 +310,38 @@
 ## 优化 - Token提前检查（第六轮补充）
 - [x] request.js增加ensureTokenValid函数（本地JWT解码检查过期时间，剩余<2分钟时主动刷新）
 - [x] test.js submitAnswer开始前调用ensureTokenValid（避免上传/评估过程中遇到401）
+
+## 报告页布局优化（第七轮）
+- [x] 报告页“确认最终评级”和“重新测评”按钮放在首屏（hero-card下方）
+- [x] 评价建议部分改为可折叠（“查看详细报告”折叠卡片）
+- [x] 修复报告页右侧内容贴边问题（scroll-area增加padding 32rpx）
+
+## 升级逻辑优化（第七轮）
+- [ ] 分析当前升级判定逻辑
+- [ ] 优化：同一小级至少出4道题，平均分低于60才判定不通过（而非连续2道没答好就停止）
+
+## 前端速度极致优化（第七轮）
+- [ ] 录音结束后立即开始上传（不等用户确认）
+- [ ] 上传和Whisper转写并行执行（不串行等待）
+- [ ] evaluate提交时尽可能带上已有的recognizedText，减少后端重复转写
+- [ ] 编写后端配合说明文档
+
+## Token定时器优化（第七轮补充）
+- [x] 登录时读取expires_in字段，启动定时器在过期前3分钟自动刷新Token
+- [x] 覆盖所有接口（全局定时刷新，不仅仅是submitAnswer）
+- [x] 退出登录时停止定时器
+
+## 前端速度优化调整（第七轮补充）
+- [x] 跳过单独的transcribe调用，直接把audioUrl传给evaluate（后端内部转写+评分）
+- [x] 录音结束后立即开始上传（不等UI动画）
+
+## 后端配合文档（第七轮）
+- [x] 编写完整后端配合文档：升级逻辑优化 + evaluate兜底转写 + 速度优化方案 + Token有效期
+
+## UI修复（第七轮 - 真机截图反馈）
+- [x] 报告页：顶部提示语增加上方间距，避免被导航栏遮挡（scroll-area padding增大）
+- [x] 报告页：分项得分右侧数字增加padding，不贴边（score-val min-width+text-align right）
+- [x] 报告页：content-card padding增加制36rpx+overflow:hidden
+- [x] 测评页：AI对话卡片增加顶部间距（main-area padding-top从+20改为+40）
+- [x] 测评页：语音播放波形铺满整个播音条（bar数量30→60，flex:1+justify-content:space-between）
+- [x] 测评页：优化中间空白布局（padding-top增加）

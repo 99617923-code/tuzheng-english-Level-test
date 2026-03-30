@@ -29,7 +29,7 @@
   </view>
 
   <!-- 主内容区 -->
-  <view class="main-area" style="padding-top: {{navBarHeight + 20}}px;">
+  <view class="main-area" style="padding-top: {{navBarHeight + 40}}px;">
     <!-- 题目卡片 -->
     <view class="question-card glass-card-strong animate-fade-in">
       <!-- AI头像 + 状态 -->

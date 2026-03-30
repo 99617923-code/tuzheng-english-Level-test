@@ -78,6 +78,7 @@
 .main-area {
   flex: 1;
   padding: 32rpx 40rpx;
+  padding-top: 48rpx;
   padding-bottom: 360rpx;
 }
 
@@ -181,12 +182,15 @@
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 4rpx;
+  gap: 3rpx;
   height: 48rpx;
+  justify-content: space-between;
 }
 
 .audio-wave-bar {
-  width: 5rpx;
+  flex: 1;
+  min-width: 3rpx;
+  max-width: 6rpx;
   border-radius: 5rpx;
   background: rgba(27,63,145,0.20);
   transition: height 0.2s ease;

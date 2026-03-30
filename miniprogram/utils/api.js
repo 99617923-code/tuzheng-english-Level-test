@@ -3,7 +3,57 @@
  * 对接后端自适应分级测评引擎 v2
  * 后端地址: https://tzapp-admin.figo.cn
  */
-const { request, uploadFile, setTokens, clearTokens } = require('./request')
+const { request, uploadFile, setTokens, clearTokens, ensureTokenValid } = require('./request')
+
+// ============ Token 定时刷新 ============
+let _tokenRefreshTimer = null
+
+/**
+ * 启动Token定时刷新器
+ * 登录成功后调用，读取expires_in字段，在过期前2-3分钟自动刷新
+ * @param {number} expiresIn - Token有效期（秒）
+ */
+function startTokenRefreshTimer(expiresIn) {
+  // 清除旧定时器
+  if (_tokenRefreshTimer) {
+    clearTimeout(_tokenRefreshTimer)
+    _tokenRefreshTimer = null
+  }
+
+  if (!expiresIn || expiresIn <= 0) {
+    console.log('[TokenTimer] No expires_in provided, skipping timer setup')
+    return
+  }
+
+  // 在过期前3分钟刷新（最少提前30秒）
+  const refreshBeforeSec = Math.min(180, Math.floor(expiresIn * 0.3))
+  const refreshDelaySec = Math.max(30, expiresIn - refreshBeforeSec)
+
+  console.log(`[TokenTimer] Token expires in ${expiresIn}s, will refresh in ${refreshDelaySec}s (${refreshBeforeSec}s before expiry)`)
+
+  _tokenRefreshTimer = setTimeout(async () => {
+    console.log('[TokenTimer] Auto-refreshing token...')
+    try {
+      await ensureTokenValid()
+      // 刷新成功后，重新读取新Token的过期时间并启动新定时器
+      // 由于我们不知道新Token的确切expires_in，用原来的值重新设置
+      startTokenRefreshTimer(expiresIn)
+    } catch (e) {
+      console.warn('[TokenTimer] Auto-refresh failed:', e.message)
+      // 失败后30秒重试
+      _tokenRefreshTimer = setTimeout(() => startTokenRefreshTimer(expiresIn), 30000)
+    }
+  }, refreshDelaySec * 1000)
+}
+
+/** 停止Token定时刷新器 */
+function stopTokenRefreshTimer() {
+  if (_tokenRefreshTimer) {
+    clearTimeout(_tokenRefreshTimer)
+    _tokenRefreshTimer = null
+    console.log('[TokenTimer] Timer stopped')
+  }
+}
 
 // ============ 认证接口 ============
 
@@ -29,6 +79,10 @@ function smsLogin(phone, code) {
     if (res.data.user_info) {
       wx.setStorageSync('tz_user_info', res.data.user_info)
     }
+    // 启动Token定时刷新器
+    if (res.data.expires_in) {
+      startTokenRefreshTimer(res.data.expires_in)
+    }
     return res.data
   })
 }
@@ -43,6 +97,10 @@ function wxPhoneLogin(phoneCode, loginCode) {
     setTokens(res.data.biz_token, res.data.refresh_token)
     if (res.data.user_info) {
       wx.setStorageSync('tz_user_info', res.data.user_info)
+    }
+    // 启动Token定时刷新器
+    if (res.data.expires_in) {
+      startTokenRefreshTimer(res.data.expires_in)
     }
     return res.data
   })
@@ -64,6 +122,7 @@ function logout() {
   return request('/api/v1/auth/logout', { method: 'POST' })
     .catch(() => {})
     .finally(() => {
+      stopTokenRefreshTimer()
       clearTokens()
     })
 }

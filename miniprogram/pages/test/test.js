@@ -135,7 +135,7 @@ Page({
 
   onLoad(options) {
     const navLayout = app.getNavLayout()
-    const audioWaves = Array.from({ length: 30 }, () => Math.floor(Math.random() * 32) + 8)
+    const audioWaves = Array.from({ length: 60 }, () => Math.floor(Math.random() * 32) + 8)
 
     this.setData({
       aiAvatarUrl: app.globalData.aiAvatarUrl,
@@ -876,24 +876,11 @@ Page({
         // 上传失败不阻断流程，继续提交evaluate
       }
 
-      // 第二步：如果同声传译没识别到文字 + 有audioUrl → 用后端Whisper转写
+      // 第二步：跳过单独的Whisper转写调用，直接把audioUrl传给evaluate
+      // 速度优化：让后端在evaluate内部并行处理转写+评分，节省3-5秒
       let finalTranscription = userTranscription || ''
       if (!finalTranscription && audioUrl) {
-        try {
-          console.log('[Whisper] Transcribing uploaded audio...', audioUrl)
-          const whisperRes = await transcribeAudio(audioUrl, 'en')
-          // 打印完整返回值便于排查字段名不匹配问题
-          console.log('[Whisper] Full response:', JSON.stringify(whisperRes).substring(0, 500))
-          // 尝试多种可能的字段名
-          finalTranscription = whisperRes.text || whisperRes.transcription || whisperRes.result || whisperRes.content || whisperRes.recognized_text || ''
-          console.log('[Whisper] Extracted text:', finalTranscription)
-        } catch (e) {
-          console.warn('[Whisper] Transcribe failed:', e.message)
-        }
-      }
-      // 如果Whisper也转写失败，记录日志但仍然提交evaluate（后端有audioUrl可以自己转写）
-      if (!finalTranscription) {
-        console.warn('[Whisper] No transcription available, will submit evaluate with audioUrl only. Backend should do its own transcription.')
+        console.log('[Speed] Skipping separate transcribe call, backend will handle transcription in evaluate')
       }
 
       // 第三步：调用v2 evaluate接口（带重试机制）
@@ -906,7 +893,7 @@ Page({
         recognizedText: finalTranscription || '',
         duration: recordSeconds * 1000
       }
-      // 只有audioUrl有值时才传
+      // 始终传递audioUrl（后端需要用它做转写+评分）
       if (audioUrl) {
         evalParams.audioUrl = audioUrl
       }
@@ -1056,7 +1043,7 @@ Page({
         const subLevel = data.currentSubLevel || data.current_sub_level || (question && question.subLevel) || this.data.currentSubLevel
         const majorLevel = data.currentMajorLevel !== undefined ? data.currentMajorLevel : (data.current_major_level !== undefined ? data.current_major_level : (SUB_LEVEL_MAJOR[subLevel] || 0))
 
-        const audioWaves = Array.from({ length: 30 }, () => Math.floor(Math.random() * 32) + 8)
+        const audioWaves = Array.from({ length: 60 }, () => Math.floor(Math.random() * 32) + 8)
 
         this.setData({
           sessionId: data.sessionId,
@@ -1144,7 +1131,7 @@ Page({
     }
 
     const progress = Math.min((totalAnswered / 34) * 100, 95)
-    const audioWaves = Array.from({ length: 30 }, () => Math.floor(Math.random() * 32) + 8)
+    const audioWaves = Array.from({ length: 60 }, () => Math.floor(Math.random() * 32) + 8)
 
     this.setData({
       currentQuestion: nextQuestion,

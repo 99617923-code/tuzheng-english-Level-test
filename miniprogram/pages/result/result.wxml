@@ -1,11 +1,15 @@
 <!--
-  途正英语AI分级测评 - 结果页（全新UI设计）
+  途正英语AI分级测评 - 结果页（全新UI设计 v2）
   
   核心流程：
   1. 测评结束后显示本次测评结果（等级、得分、报告）
   2. 用户可以选择"重新测评"（不满意当前结果）
   3. 用户点击"确认最终评级"后，锁定结果，显示班级群二维码
   4. 确认后不可更改
+  
+  布局优化：
+  - 操作按钮放在首屏（hero-card下方）
+  - 评价建议改为可折叠区域
 -->
 <view class="page">
   <!-- 自定义导航栏 -->
@@ -93,92 +97,10 @@
       </view>
     </view>
 
-    <!-- 能力评估 -->
-    <view class="section animate-fade-in-delay-1">
-      <view class="section-header">
-        <view class="section-icon-wrap blue">
-          <image class="section-icon" src="/assets/icons/zap.svg" mode="aspectFit" />
-        </view>
-        <text class="section-title">能力评估</text>
-      </view>
-      <view class="content-card">
-        <text class="desc-text">{{summary}}</text>
-      </view>
-    </view>
-
-    <!-- 分项得分 -->
-    <view wx:if="{{scoreItems.length > 0}}" class="section animate-fade-in-delay-2">
-      <view class="section-header">
-        <view class="section-icon-wrap green">
-          <image class="section-icon" src="/assets/icons/bar-chart.svg" mode="aspectFit" />
-        </view>
-        <text class="section-title">分项得分</text>
-      </view>
-      <view class="content-card">
-        <view class="score-item" wx:for="{{scoreItems}}" wx:key="label">
-          <view class="score-row">
-            <text class="score-label">{{item.label}}</text>
-            <text class="score-val" style="color: {{item.color}};">{{item.value}}</text>
-          </view>
-          <view class="score-track">
-            <view class="score-fill" style="width: {{item.percent}}%; background: {{item.color}};"></view>
-          </view>
-        </view>
-      </view>
-    </view>
-
-    <!-- 优势 -->
-    <view wx:if="{{strengths.length > 0}}" class="section animate-fade-in-delay-2">
-      <view class="section-header">
-        <view class="section-icon-wrap green">
-          <image class="section-icon" src="/assets/icons/check-circle.svg" mode="aspectFit" />
-        </view>
-        <text class="section-title">你的优势</text>
-      </view>
-      <view class="content-card">
-        <view class="tag-list strength" wx:for="{{strengths}}" wx:key="index">
-          <view class="tag-dot green"></view>
-          <text class="tag-text">{{item}}</text>
-        </view>
-      </view>
-    </view>
-
-    <!-- 待提升 -->
-    <view wx:if="{{weaknesses.length > 0}}" class="section animate-fade-in-delay-3">
-      <view class="section-header">
-        <view class="section-icon-wrap orange">
-          <image class="section-icon" src="/assets/icons/trending-up.svg" mode="aspectFit" />
-        </view>
-        <text class="section-title">待提升</text>
-      </view>
-      <view class="content-card">
-        <view class="tag-list weakness" wx:for="{{weaknesses}}" wx:key="index">
-          <view class="tag-dot orange"></view>
-          <text class="tag-text">{{item}}</text>
-        </view>
-      </view>
-    </view>
-
-    <!-- 学习建议 -->
-    <view class="section animate-fade-in-delay-3">
-      <view class="section-header">
-        <view class="section-icon-wrap blue">
-          <image class="section-icon" src="/assets/icons/award.svg" mode="aspectFit" />
-        </view>
-        <text class="section-title">学习建议</text>
-      </view>
-      <view class="recommend-card">
-        <text class="recommend-text">{{recommendation}}</text>
-      </view>
-    </view>
-
-    <!-- 操作按钮区 -->
-    <view class="actions animate-fade-in-delay-4">
-      <!-- 未确认状态：显示"重新测评"和"确认最终评级" -->
+    <!-- ★ 操作按钮区 - 放在首屏（hero-card下方） -->
+    <view class="actions animate-fade-in-delay-1">
+      <!-- 未确认状态：显示"确认最终评级"和"重新测评" -->
       <view wx:if="{{!confirmed}}">
-        <view class="confirm-notice">
-          <text class="confirm-notice-text">如果你觉得这次测评最接近你的真实水平，请确认评级。确认后将不可更改。</text>
-        </view>
         <button class="action-btn-full confirm-btn" bindtap="handleConfirmLevel">
           <text>✓ 确认最终评级</text>
         </button>
@@ -203,10 +125,107 @@
           <text>{{posterSaving ? '正在生成...' : '保存测评海报'}}</text>
         </button>
       </view>
+    </view>
 
-      <view class="home-link" bindtap="goHome">
-        <text class="home-link-text">返回首页</text>
+    <!-- ★ 详细报告 - 可折叠区域 -->
+    <view class="detail-section animate-fade-in-delay-2">
+      <view class="detail-toggle" bindtap="toggleDetailReport">
+        <view class="detail-toggle-left">
+          <view class="section-icon-wrap blue">
+            <image class="section-icon" src="/assets/icons/bar-chart.svg" mode="aspectFit" />
+          </view>
+          <text class="detail-toggle-title">查看详细报告</text>
+        </view>
+        <view class="detail-toggle-arrow {{showDetailReport ? 'expanded' : ''}}">
+          <image class="toggle-arrow-icon" src="/assets/icons/chevron-down.svg" mode="aspectFit" />
+        </view>
       </view>
+
+      <view wx:if="{{showDetailReport}}" class="detail-content">
+        <!-- 分项得分 -->
+        <view wx:if="{{scoreItems.length > 0}}" class="section">
+          <view class="section-header">
+            <view class="section-icon-wrap green">
+              <image class="section-icon" src="/assets/icons/bar-chart.svg" mode="aspectFit" />
+            </view>
+            <text class="section-title">分项得分</text>
+          </view>
+          <view class="content-card">
+            <view class="score-item" wx:for="{{scoreItems}}" wx:key="label">
+              <view class="score-row">
+                <text class="score-label">{{item.label}}</text>
+                <text class="score-val" style="color: {{item.color}};">{{item.value}}</text>
+              </view>
+              <view class="score-track">
+                <view class="score-fill" style="width: {{item.percent}}%; background: {{item.color}};"></view>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <!-- 能力评估 -->
+        <view class="section">
+          <view class="section-header">
+            <view class="section-icon-wrap blue">
+              <image class="section-icon" src="/assets/icons/zap.svg" mode="aspectFit" />
+            </view>
+            <text class="section-title">能力评估</text>
+          </view>
+          <view class="content-card">
+            <text class="desc-text">{{summary}}</text>
+          </view>
+        </view>
+
+        <!-- 优势 -->
+        <view wx:if="{{strengths.length > 0}}" class="section">
+          <view class="section-header">
+            <view class="section-icon-wrap green">
+              <image class="section-icon" src="/assets/icons/check-circle.svg" mode="aspectFit" />
+            </view>
+            <text class="section-title">你的优势</text>
+          </view>
+          <view class="content-card">
+            <view class="tag-list strength" wx:for="{{strengths}}" wx:key="index">
+              <view class="tag-dot green"></view>
+              <text class="tag-text">{{item}}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 待提升 -->
+        <view wx:if="{{weaknesses.length > 0}}" class="section">
+          <view class="section-header">
+            <view class="section-icon-wrap orange">
+              <image class="section-icon" src="/assets/icons/trending-up.svg" mode="aspectFit" />
+            </view>
+            <text class="section-title">待提升</text>
+          </view>
+          <view class="content-card">
+            <view class="tag-list weakness" wx:for="{{weaknesses}}" wx:key="index">
+              <view class="tag-dot orange"></view>
+              <text class="tag-text">{{item}}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 学习建议 -->
+        <view class="section">
+          <view class="section-header">
+            <view class="section-icon-wrap blue">
+              <image class="section-icon" src="/assets/icons/award.svg" mode="aspectFit" />
+            </view>
+            <text class="section-title">学习建议</text>
+          </view>
+          <view class="recommend-card">
+            <text class="recommend-text">{{recommendation}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 返回首页 -->
+    <view class="home-link" bindtap="goHome">
+      <text class="home-link-text">返回首页</text>
     </view>
 
     <!-- 底部间距 -->

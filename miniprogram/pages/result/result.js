@@ -52,6 +52,9 @@ Page({
     // 海报
     posterSaving: false,
 
+    // 详细报告折叠
+    showDetailReport: false,
+
     // 二维码弹窗
     showQrModal: false,
     qrcodeUrl: '',
@@ -269,6 +272,11 @@ Page({
     } catch (e) {
       console.warn('[QRCode] Fetch failed:', e)
     }
+  },
+
+  /** 切换详细报告展开/折叠 */
+  toggleDetailReport() {
+    this.setData({ showDetailReport: !this.data.showDetailReport })
   },
 
   /** 关闭二维码弹窗 */

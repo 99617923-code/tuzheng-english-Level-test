@@ -198,10 +198,13 @@ Page({
       cancelText: '重新开始',
       success: (res) => {
         if (res.confirm) {
+          // 继续测评：恢复旧会话
           wx.navigateTo({ url: '/pages/test/test?resume=1' })
         } else {
+          // 重新开始：清除缓存 + 强制创建新会话
           try { wx.removeStorageSync('tz_test_session') } catch (e) {}
           this.setData({ hasUnfinishedTest: false })
+          wx.navigateTo({ url: '/pages/test/test?forceNew=1' })
         }
       }
     })

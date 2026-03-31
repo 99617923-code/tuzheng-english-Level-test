@@ -303,7 +303,8 @@ Page({
         if (res.confirm) {
           // 清除中断恢复缓存
           try { wx.removeStorageSync('tz_test_session') } catch (e) {}
-          wx.redirectTo({ url: '/pages/test/test' })
+          // 传递forceNew=1，告知测评页强制创建新会话
+          wx.redirectTo({ url: '/pages/test/test?forceNew=1' })
         }
       }
     })

@@ -167,7 +167,9 @@ Page({
     if (options && options.resume === '1') {
       this._resumeTest()
     } else {
-      this.initTest()
+      // forceNew=1 表示“重新测评”，强制创建新会话
+      const forceNew = options && options.forceNew === '1'
+      this.initTest(forceNew)
     }
   },
 
@@ -321,7 +323,7 @@ Page({
         success: (res) => {
           if (res.confirm) {
             this._clearTestSession()
-            this.initTest()
+            this.initTest(true)  // 强制创建新会话
           } else {
             this._clearTestSession()
             if (!this._isNavigating) {
@@ -338,14 +340,15 @@ Page({
 
   // ============ 初始化测评（v2） ============
 
-  async initTest() {
+  async initTest(forceNew = false) {
     this.setData({ phase: 'loading', aiStatusText: '正在准备测评...' })
 
     // 新测评：前端计数强制归零
     this._frontendQuestionCount = 0
 
     try {
-      const data = await startTest()
+      // forceNew=true 时强制创建新会话（后端会终止旧会话）
+      const data = await startTest(forceNew ? { forceNew: true } : {})
 
       // 打印后端返回的完整数据，方便调试
       console.log('[Test] startTest raw response:', JSON.stringify(data).substring(0, 500))
@@ -1044,12 +1047,12 @@ Page({
     }
 
     if (shouldForceContinue) {
-      // 后端说finished但不够10题 → 创建新session继续
+      // 后端说finished但不够最少题数 → 强制创建new session继续
       console.log('[Test] Force continue: creating new session to reach minimum questions')
       this.setData({ phase: 'loading', aiStatusText: '继续测评中...' })
 
       try {
-        const data = await startTest()
+        const data = await startTest({ forceNew: true })
         const question = data.question
         // 兼容下划线命名
         if (question) {

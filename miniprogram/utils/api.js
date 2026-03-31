@@ -133,15 +133,23 @@ function logout() {
  * 创建测评会话（自适应引擎 v2）
  * 后端自动从PRE1开始，返回第一道题
  * 
+ * @param {object} [options] - 可选参数
+ * @param {boolean} [options.forceNew=false] - 是否强制创建新会话（终止旧会话）
+ * 
  * Response: {
  *   sessionId, currentSubLevel, currentMajorLevel,
- *   questionIndex, totalAnswered,
+ *   questionIndex, totalAnswered, resumed,
  *   question: { questionId, audioUrl, questionText, subLevel }
  * }
  */
-function startTest() {
+function startTest(options = {}) {
+  const data = {}
+  if (options.forceNew) {
+    data.forceNew = true
+  }
   return request('/api/v1/test/start', {
-    method: 'POST'
+    method: 'POST',
+    data
   }).then(res => {
     if (res.code !== 200) throw new Error(res.msg || '创建测评失败')
     const data = res.data

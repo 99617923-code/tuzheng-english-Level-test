@@ -357,3 +357,10 @@
 
 ## UI修复（第十轮）
 - [x] 将计时器从右上角导航栏移到级别信息条（level-info-bar）右侧，与"第*题·G*"同行显示
+
+## Bug修复（第十一轮）
+- [x] api.js: startTest支持forceNew参数
+- [x] result.js: 重新测评时传forceNew:true
+- [x] test.js: 前端保底forceContinue时传forceNew:true
+- [x] test.js: 恢复失败重新开始时传forceNew:true
+- [x] home.js: “重新开始”选项传forceNew:true，“继续测评”保持resume=1

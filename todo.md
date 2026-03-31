@@ -364,3 +364,13 @@
 - [x] test.js: 前端保底forceContinue时传forceNew:true
 - [x] test.js: 恢复失败重新开始时传forceNew:true
 - [x] home.js: “重新开始”选项传forceNew:true，“继续测评”保持resume=1
+
+## 性能优化（第十二轮）
+- [ ] 分析evaluate返回后到下一题展示的延迟环节
+- [ ] 优化前端处理流程，减少不必要的等待时间
+
+## 适配后端preview状态（第十三轮）
+- [x] result.js: 处理后端返回的status:"preview"状态，设置isPreview字段
+- [x] result.wxml: 区分“测评报告（实时预览）”和“测评报告（预览）”标题
+- [x] 预览状态下确认按钮置灰+提示“测评未完成，完成后可确认”
+- [x] 预览状态下显示“测评尚未完成”警告提示条（橙色风格）

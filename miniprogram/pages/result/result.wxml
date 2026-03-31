@@ -16,7 +16,7 @@
   <view class="custom-nav" style="height: {{navBarHeight}}px;">
     <view class="custom-nav-content" style="margin-top: {{navContentTop}}px; height: {{navContentHeight}}px;">
       <view class="nav-right-placeholder"></view>
-      <text class="nav-title-center">{{confirmed ? '最终测评报告' : '测评报告（预览）'}}</text>
+      <text class="nav-title-center">{{confirmed ? '最终测评报告' : (isPreview ? '测评报告（实时预览）' : '测评报告（预览）')}}</text>
       <view class="nav-back-btn" bindtap="goHome">
         <image class="nav-back-icon" src="/assets/icons/x.svg" mode="aspectFit" />
       </view>
@@ -39,8 +39,17 @@
   <!-- 结果内容 -->
   <scroll-view wx:else scroll-y class="scroll-area" style="top: {{navBarHeight}}px;" enhanced show-scrollbar="{{false}}">
 
-    <!-- 未确认提示条 -->
-    <view wx:if="{{!confirmed}}" class="confirm-banner animate-fade-in">
+    <!-- 预览状态提示条（测评未正式结束） -->
+    <view wx:if="{{isPreview && !confirmed}}" class="confirm-banner animate-fade-in" style="background: linear-gradient(135deg, #fff3e0, #fff8e1); border-color: #ffb74d;">
+      <view class="confirm-banner-icon">⚠️</view>
+      <view class="confirm-banner-text">
+        <text class="confirm-banner-title">测评尚未完成</text>
+        <text class="confirm-banner-desc">当前显示的是实时预览数据，完成全部测评后将生成正式报告。</text>
+      </view>
+    </view>
+
+    <!-- 未确认提示条（测评已正式结束） -->
+    <view wx:if="{{!isPreview && !confirmed}}" class="confirm-banner animate-fade-in">
       <view class="confirm-banner-icon">💡</view>
       <view class="confirm-banner-text">
         <text class="confirm-banner-title">这是你的测评预览</text>
@@ -99,15 +108,29 @@
 
     <!-- ★ 操作按钮区 - 放在首屏（hero-card下方） -->
     <view class="actions animate-fade-in-delay-1">
-      <!-- 未确认状态：显示"确认最终评级"和"重新测评" -->
+      <!-- 未确认状态 -->
       <view wx:if="{{!confirmed}}">
-        <button class="action-btn-full confirm-btn" bindtap="handleConfirmLevel">
-          <text>✓ 确认最终评级</text>
-        </button>
-        <button class="action-btn-full retake-btn" bindtap="handleRetake">
-          <image class="action-btn-icon" src="/assets/icons/play.svg" mode="aspectFit" />
-          <text>不满意，重新测评</text>
-        </button>
+        <!-- 预览状态：测评未完成，不能确认评级 -->
+        <view wx:if="{{isPreview}}">
+          <button class="action-btn-full confirm-btn" style="opacity: 0.5;" bindtap="handleConfirmLevel">
+            <text>✓ 确认最终评级</text>
+          </button>
+          <view style="text-align: center; font-size: 24rpx; color: #999; margin-top: -16rpx; margin-bottom: 20rpx;">测评未完成，完成后可确认</view>
+          <button class="action-btn-full retake-btn" bindtap="handleRetake">
+            <image class="action-btn-icon" src="/assets/icons/play.svg" mode="aspectFit" />
+            <text>不满意，重新测评</text>
+          </button>
+        </view>
+        <!-- 正式状态：测评已完成，可以确认评级 -->
+        <view wx:else>
+          <button class="action-btn-full confirm-btn" bindtap="handleConfirmLevel">
+            <text>✓ 确认最终评级</text>
+          </button>
+          <button class="action-btn-full retake-btn" bindtap="handleRetake">
+            <image class="action-btn-icon" src="/assets/icons/play.svg" mode="aspectFit" />
+            <text>不满意，重新测评</text>
+          </button>
+        </view>
       </view>
 
       <!-- 已确认状态：显示群二维码入口 + 分享 -->

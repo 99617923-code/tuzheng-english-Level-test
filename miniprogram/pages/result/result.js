@@ -22,6 +22,8 @@ Page({
 
     // 确认状态
     confirmed: false,
+    // 预览状态（测评未正式结束，后端返回status:preview）
+    isPreview: false,
 
     // 等级信息
     levelName: '',
@@ -113,6 +115,12 @@ Page({
     try {
       const data = await getTestResult(this._sessionId)
 
+      // 检测后端返回的预览状态（测评未正式结束，数据为实时计算的预览）
+      const isPreview = data.status === 'preview'
+      if (isPreview) {
+        console.log('[Result] Preview mode: test session still in progress')
+      }
+
       // v2字段
       this._majorLevel = data.majorLevel !== undefined ? data.majorLevel : 0
       const config = app.getLevelConfig(this._majorLevel)
@@ -186,6 +194,7 @@ Page({
 
       this.setData({
         loading: false,
+        isPreview,
         // 等级
         levelName: data.majorLevelName || config.name,
         levelLabel: config.label || '',
@@ -222,6 +231,11 @@ Page({
 
   /** 确认最终评级 */
   handleConfirmLevel() {
+    // 预览状态下不允许确认
+    if (this.data.isPreview) {
+      wx.showToast({ title: '测评尚未完成，无法确认评级', icon: 'none' })
+      return
+    }
     wx.showModal({
       title: '确认最终评级',
       content: `你的评级为"${this.data.levelName}"（${this.data.overallScore}分）。确认后将不可更改，是否确认？`,

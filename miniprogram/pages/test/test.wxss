@@ -32,14 +32,14 @@
   font-weight: 500;
 }
 
-/* 导航栏计时器 */
-.nav-timer-wrap {
+/* 级别信息条右侧计时器 */
+.level-info-timer {
   display: flex;
   align-items: center;
   gap: 8rpx;
-  background: rgba(255,255,255,0.6);
+  background: rgba(27,63,145,0.06);
   border-radius: var(--radius-full);
-  padding: 8rpx 20rpx;
+  padding: 8rpx 16rpx;
 }
 
 .timer-icon {

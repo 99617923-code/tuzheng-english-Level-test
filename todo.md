@@ -348,3 +348,9 @@
 
 ## UI修复（第八轮）
 - [x] 测评页：级别/题号从导航栏移出到内容区顶部（level-info-bar），导航栏只保留返回+计时器
+
+## 适配后端新算法（第九轮）
+- [x] 处理evaluate返回的levelUp和levelUpMessage字段
+- [x] 升级时触发恭喜动画/提示（展示levelUpMessage）
+- [x] 检查前端保底逻辑（MIN_QUESTIONS_BEFORE_FINISH从10降到6）与后端新算法兼容性
+- [x] 确保前端正确处理2-4题动态出题逻辑（前端无需额外处理，后端控制出题节奏）

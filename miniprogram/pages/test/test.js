@@ -8,8 +8,14 @@
  * 4. status=continue → 自动播放下一题（可能升级到更高小级）
  * 5. status=finished → 跳转结果页
  * 
- * 前端保底规则：至少答完10题才允许定级结束
- * 如果后端在10题内返回finished，前端会继续请求新题目
+ * 前端保底规则：至少答完6题才允许定级结束
+ * 如果后端在6题内返回finished，前端会继续请求新题目
+ * 
+ * 后端新算法（v4）：
+ * - 每个小级2-4题动态出题
+ * - 连续2题≥60分直接升级（快速通道）
+ * - 4题平均分<60判定不通过
+ * - 升级时返回levelUp=true + levelUpMessage字段
  * 
  * 关键修复（v3）：
  * - InnerAudioContext每次播放前销毁重建（解决onEnded不触发的bug）
@@ -47,7 +53,9 @@ const MAJOR_LEVEL_NAMES = {
 }
 
 // 最少答题数（前端保底，至少答完这么多题才允许结束）
-const MIN_QUESTIONS_BEFORE_FINISH = 10
+// 后端新算法：每个小级2-4题动态出题，连续2题≥60分直接升级，4题平均分<60判定不通过
+// 前端保底从10降到6，避免与后端新算法冲突（后端正常流程通常超过6题）
+const MIN_QUESTIONS_BEFORE_FINISH = 6
 
 // 音频播放超时（毫秒）- 超过此时间没有onEnded则强制进入answering
 const AUDIO_PLAY_TIMEOUT = 15000
@@ -109,6 +117,7 @@ Page({
     // 升级提示
     levelUpFrom: '',
     levelUpTo: '',
+    levelUpMessage: '',
     showLevelUp: false,
 
     // 下一步按钮文字
@@ -132,6 +141,8 @@ Page({
   _initRetryCount: 0,
   _audioPlayTimeout: null,   // 音频播放超时定时器
   _frontendQuestionCount: 0, // 前端自己维护的答题计数（不依赖后端）
+  _pendingLevelUp: false,    // 后端返回的升级标志（缓存到handleNext使用）
+  _pendingLevelUpMessage: '', // 后端返回的升级提示文案
 
   onLoad(options) {
     const navLayout = app.getNavLayout()
@@ -979,6 +990,13 @@ Page({
       // 如果后端说finished但不够10题，按钮文字仍然是"下一题"
       const buttonText = (isFinished && !shouldForceContinue) ? '查看测评报告' : '下一题'
 
+      // 缓存后端返回的升级信息（handleNext中使用）
+      this._pendingLevelUp = evalRes.levelUp || false
+      this._pendingLevelUpMessage = evalRes.levelUpMessage || ''
+      if (this._pendingLevelUp) {
+        console.log('[Evaluate] Level up detected! Message:', this._pendingLevelUpMessage)
+      }
+
       this.setData({
         evaluationFeedback: feedback,
         evaluationScore: score,
@@ -1117,16 +1135,26 @@ Page({
     const questionIndex = evalRes.questionIndex || 1
 
     // 检测是否升级到新的小级
-    const isLevelUp = newSubLevel !== this._previousSubLevel
+    // 优先使用后端返回的levelUp字段，其次用前端对比subLevel
+    const isLevelUp = this._pendingLevelUp || (newSubLevel !== this._previousSubLevel)
+    const levelUpMessage = this._pendingLevelUpMessage || ''
+
+    // 清除缓存的升级信息
+    this._pendingLevelUp = false
+    this._pendingLevelUpMessage = ''
 
     if (isLevelUp) {
+      // 升级提示文案：优先用后端返回的levelUpMessage，否则用默认格式
+      const displayMessage = levelUpMessage || `升级！${this._previousSubLevel} → ${newSubLevel}`
+      console.log('[LevelUp] Showing upgrade animation:', displayMessage)
       this.setData({
         showLevelUp: true,
         levelUpFrom: this._previousSubLevel,
         levelUpTo: newSubLevel,
+        levelUpMessage: displayMessage,
         phase: 'levelup'
       })
-      await delay(1500)
+      await delay(2000)  // 升级动画显示2秒（比1.5秒稍长，让用户看清楚）
       this.setData({ showLevelUp: false })
     }
 

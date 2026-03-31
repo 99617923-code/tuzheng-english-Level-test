@@ -314,6 +314,14 @@
   font-size: 32rpx;
   font-weight: 700;
   color: var(--brand-blue);
+  text-align: center;
+  line-height: 1.5;
+}
+
+.levelup-sub {
+  font-size: 24rpx;
+  color: var(--text-muted);
+  margin-top: 4rpx;
 }
 
 /* 实时识别文字 */

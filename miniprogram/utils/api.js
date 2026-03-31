@@ -158,10 +158,11 @@ function startTest() {
 /**
  * 提交回答并获取下一题（自适应引擎 v2 核心接口）
  * 
- * 后端逻辑：
- * - 每个小级2道题，2道全通过→升级到下一小级
- * - 1通过1不通过→定为当前小级所属大级，结束
- * - 0通过→定为前一个大级（最低0），结束
+ * 后端逻辑（新算法 v4）：
+ * - 每个小级2-4题动态出题
+ * - 连续2题≥60分直接升级（快速通道）
+ * - 否则继续出到最多4题，4题平均分<60判定不通过
+ * - 升级时返回levelUp=true + levelUpMessage字段
  * 
  * @param {object} params
  * @param {string} params.sessionId - 测评会话ID（必填）
@@ -174,6 +175,8 @@ function startTest() {
  *   evaluation: { passed, score, scoreDetail, feedback },
  *   status: "continue",
  *   currentSubLevel, currentMajorLevel, questionIndex, totalAnswered,
+ *   levelUp: boolean,           // 是否升级到新小级
+ *   levelUpMessage: string,     // 升级提示文案（如"恭喜你，升级到G1！"）
  *   question: { questionId, audioUrl, questionText, subLevel }
  * }
  * 
@@ -230,6 +233,9 @@ function evaluateAnswer(params) {
     if (result.currentMajorLevel === undefined && result.current_major_level !== undefined) result.currentMajorLevel = result.current_major_level
     if (!result.questionIndex && result.question_index) result.questionIndex = result.question_index
     if (!result.sessionId && result.session_id) result.sessionId = result.session_id
+    // 兼容升级相关字段（后端新算法）
+    if (result.levelUp === undefined && result.level_up !== undefined) result.levelUp = result.level_up
+    if (!result.levelUpMessage && result.level_up_message) result.levelUpMessage = result.level_up_message
     return result
   })
 }

@@ -78,7 +78,8 @@
     <!-- 升级提示 -->
     <view wx:if="{{showLevelUp}}" class="levelup-toast animate-fade-in">
       <text class="levelup-icon">🎉</text>
-      <text class="levelup-text">升级！{{levelUpFrom}} → {{levelUpTo}}</text>
+      <text class="levelup-text">{{levelUpMessage || ('升级！' + levelUpFrom + ' → ' + levelUpTo)}}</text>
+      <text class="levelup-sub">继续加油，挑战更高级别！</text>
     </view>
   </view>
 

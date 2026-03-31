@@ -377,3 +377,6 @@
 
 ## Bug修复 - SVG图标缺失（第十四轮）
 - [x] 修复chevron-down.svg加载500错误（文件缺失，已创建）
+
+## UI修复 - 状态栏文字颜色（第十五轮）
+- [x] 修复所有页面状态栏文字白色看不清的问题（app.json+6个页面JSON全部设置navigationBarTextStyle:black）

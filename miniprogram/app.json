@@ -12,7 +12,8 @@
     "backgroundColor": "#f0f4f8",
     "backgroundColorTop": "#e8eef8",
     "backgroundColorBottom": "#f5f8f0",
-    "backgroundTextStyle": "dark"
+    "backgroundTextStyle": "dark",
+    "navigationBarTextStyle": "black"
   },
   "plugins": {
     "WechatSI": {

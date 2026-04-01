@@ -380,3 +380,15 @@
 
 ## UI修复 - 状态栏文字颜色（第十五轮）
 - [x] 修复所有页面状态栏文字白色看不清的问题（app.json+6个页面JSON全部设置navigationBarTextStyle:black）
+
+## Bug修复 - 第20题后崩溃稳定性修复（第十六轮）
+- [x] 前端：录音按钮加防抖锁（_isStartingRecord），防止连点导致多次启动录音
+- [x] 前端：submitAnswer/handleSkip/handleNext中对currentQuestion做null安全检查
+- [x] 前端：弹窗互斥锁（_showingModal），防止多个wx.showModal叠加导致UI卡死
+- [x] 前端：全局异常恢复方法（_resetToSafeState），状态混乱时提供用户可操作的恢复选项
+- [x] 前端：跳过失败恢复（_handleSkipFailure），evaluate失败后提供"重试跳过"/"继续录音"选项
+- [x] 前端：handleNext中后端返回question:null时安全处理（提示用户选择查看结果或重试）
+- [x] 前端：所有wx.showModal调用统一加弹窗互斥锁
+- [x] 前端：cleanup方法中重置所有锁状态
+- [ ] 反馈后端：evaluate返回status:"continue"但question:null的问题
+- [ ] 反馈后端："sessionId和questionId不匹配"错误的触发条件

@@ -22,6 +22,14 @@
  * - 增加播放超时保护（15秒内无onEnded则强制进入answering）
  * - 新测评题号强制从1开始（不依赖后端totalAnswered）
  * - 录音上传失败时仍然提交evaluate（让后端处理）
+ *
+ * 稳定性修复（v5 - 第20题后崩溃修复）：
+ * - 录音按钮防抖锁（_isStartingRecord）：防止快速连点导致多次启动录音
+ * - currentQuestion null安全检查：submitAnswer/handleSkip/handleNext中防止"null is not an object"
+ * - 弹窗互斥锁（_showingModal）：防止多个wx.showModal叠加导致UI卡死
+ * - 全局异常恢复（_resetToSafeState）：状态混乱时提供用户可操作的恢复选项
+ * - 跳过失败恢复（_handleSkipFailure）：跳过题目valuate失败时提供重试/继续录音选项
+ * - 后端question:null安全处理：status:continue但question为null时不崩溃，提示用户选择
  */
 const app = getApp()
 const { startTest, evaluateAnswer, uploadAudio, terminateTest, transcribeAudio, textToSpeech } = require('../../utils/api')
@@ -138,6 +146,8 @@ Page({
   _previousSubLevel: '',
   _isNavigating: false,
   _isSubmitting: false,
+  _isStartingRecord: false,  // 录音启动防抖锁（防止快速连点）
+  _showingModal: false,      // 弹窗互斥锁（防止多个wx.showModal叠加）
   _initRetryCount: 0,
   _audioPlayTimeout: null,   // 音频播放超时定时器
   _frontendQuestionCount: 0, // 前端自己维护的答题计数（不依赖后端）
@@ -159,6 +169,8 @@ Page({
     this._recorderManager = wx.getRecorderManager()
     this._isNavigating = false
     this._isSubmitting = false
+    this._isStartingRecord = false
+    this._showingModal = false
     this._initRetryCount = 0
     this._frontendQuestionCount = 0
     this._setupRecorderEvents()
@@ -195,6 +207,10 @@ Page({
     if (plugin && plugin.voiceRecognizer) {
       try { plugin.voiceRecognizer.stop() } catch (e) {}
     }
+    // 重置所有锁状态
+    this._isSubmitting = false
+    this._isStartingRecord = false
+    this._showingModal = false
   },
 
   // ============ 计时器 ============
@@ -314,6 +330,8 @@ Page({
 
     } catch (err) {
       console.error('[Test] Resume failed:', err)
+      if (this._showingModal) return
+      this._showingModal = true
       wx.showModal({
         title: '恢复失败',
         content: '无法恢复上次的测评，是否开始新测评？',
@@ -321,6 +339,7 @@ Page({
         confirmColor: '#83BA12',
         cancelText: '返回',
         success: (res) => {
+          this._showingModal = false
           if (res.confirm) {
             this._clearTestSession()
             this.initTest(true)  // 强制创建新会话
@@ -333,6 +352,9 @@ Page({
               }})
             }
           }
+        },
+        fail: () => {
+          this._showingModal = false
         }
       })
     }
@@ -426,6 +448,8 @@ Page({
         return
       }
 
+      if (this._showingModal) return
+      this._showingModal = true
       wx.showModal({
         title: '创建测评失败',
         content: err.message || '服务器响应异常，请稍后再试',
@@ -433,6 +457,7 @@ Page({
         cancelText: '返回',
         confirmColor: '#83BA12',
         success: (res) => {
+          this._showingModal = false
           if (res.confirm) {
             this._initRetryCount = 0
             this.initTest()
@@ -444,6 +469,9 @@ Page({
               }})
             }
           }
+        },
+        fail: () => {
+          this._showingModal = false
         }
       })
     }
@@ -697,6 +725,7 @@ Page({
   _setupRecorderEvents() {
     this._recorderManager.onStart(() => {
       console.log('[Recorder] Started')
+      this._isStartingRecord = false  // 录音已成功启动，解除防抖锁
       this.setData({ isRecording: true, recordSeconds: 0, recordTimeDisplay: '0"' })
 
       this._recordTimer = setInterval(() => {
@@ -715,6 +744,7 @@ Page({
 
     this._recorderManager.onStop((res) => {
       console.log('[Recorder] Stopped, path:', res.tempFilePath)
+      this._isStartingRecord = false  // 确保录音停止后解除防抖锁
       if (this._recordTimer) {
         clearInterval(this._recordTimer)
         this._recordTimer = null
@@ -737,6 +767,7 @@ Page({
 
     this._recorderManager.onError((err) => {
       console.error('[Recorder] Error:', err)
+      this._isStartingRecord = false  // 录音失败，解除防抖锁
       if (this._recordTimer) {
         clearInterval(this._recordTimer)
         this._recordTimer = null
@@ -748,7 +779,16 @@ Page({
 
   /** 点击切换录音（tap模式） */
   toggleRecording() {
-    if (this.data.phase !== 'answering') return
+    // 防护：非回答阶段不响应
+    if (this.data.phase !== 'answering') {
+      console.warn('[Recording] Ignored: phase is', this.data.phase)
+      return
+    }
+    // 防护：正在启动录音中，不响应连点
+    if (this._isStartingRecord) {
+      console.warn('[Recording] Ignored: already starting record')
+      return
+    }
 
     if (this.data.isRecording) {
       this.stopRecording()
@@ -760,11 +800,15 @@ Page({
   /** 开始录音 */
   startRecording() {
     if (this.data.isRecording) return
+    if (this._isStartingRecord) return  // 防抖锁
+
+    this._isStartingRecord = true  // 加锁
 
     // 先检查录音权限
     wx.getSetting({
       success: (res) => {
         if (res.authSetting['scope.record'] === false) {
+          this._isStartingRecord = false  // 解锁
           wx.showModal({
             title: '需要录音权限',
             content: '请在设置中开启麦克风权限，否则无法进行测评',
@@ -799,8 +843,10 @@ Page({
         format: 'mp3',
         frameSize: 50
       })
+      // 注意：_isStartingRecord 在 onStart 回调中解锁
     } catch (e) {
       console.error('[Recorder] Start exception:', e)
+      this._isStartingRecord = false  // 异常时解锁
       showError('录音启动失败，请重试')
     }
   },
@@ -857,6 +903,13 @@ Page({
 
     if (!this._recordFilePath) {
       this.setData({ phase: 'answering' })
+      return
+    }
+
+    // 安全检查：currentQuestion为null时不提交（防止"null is not an object"报错）
+    if (!currentQuestion || !currentQuestion.questionId) {
+      console.error('[Submit] currentQuestion is null or missing questionId, resetting to safe state')
+      this._resetToSafeState('题目数据异常，请点击“跳过此题”或等待下一题')
       return
     }
 
@@ -939,12 +992,19 @@ Page({
       // 3次重试都失败 → 不跳下一题，提示用户重新提交
       if (!evalRes) {
         console.error('[Evaluate] All retries failed:', lastError?.message)
+        // 使用弹窗互斥锁防止叠加
+        if (this._showingModal) {
+          this.setData({ phase: 'answering', aiStatusText: '请重新录音回答' })
+          return
+        }
+        this._showingModal = true
         wx.showModal({
           title: '网络异常',
           content: '评估请求失败，请检查网络后点击“重新提交”',
           confirmText: '重新提交',
           cancelText: '跳过此题',
           success: (res) => {
+            this._showingModal = false
             if (res.confirm) {
               // 用户点“重新提交”→ 重新调用submitAnswer
               this._isSubmitting = false
@@ -953,6 +1013,10 @@ Page({
               // 用户点“跳过此题”→ 回到answering状态，不跳下一题
               this.setData({ phase: 'answering', aiStatusText: '请重新录音回答' })
             }
+          },
+          fail: () => {
+            this._showingModal = false
+            this.setData({ phase: 'answering', aiStatusText: '请重新录音回答' })
           }
         })
         return // 不继续执行后续逻辑
@@ -1122,13 +1186,46 @@ Page({
       if (!nextQuestion.subLevel && nextQuestion.sub_level) nextQuestion.subLevel = nextQuestion.sub_level
       console.log('[Next] Question audioUrl:', nextQuestion.audioUrl, 'questionText:', nextQuestion.questionText)
     }
-    if (!nextQuestion) {
-      if (this._isNavigating) return
-      this._isNavigating = true
-      this.cleanup()
-      wx.redirectTo({
-        url: `/pages/result/result?sessionId=${this.data.sessionId}`,
-        fail: () => { this._isNavigating = false }
+    // ★ 关键修复：后端返回 status:"continue" 但 question:null
+    // 这是后端的bug，但前端需要安全处理而不是崩溃
+    if (!nextQuestion || !nextQuestion.questionId) {
+      console.error('[Next] Backend returned continue but question is null/invalid!', 
+        'status:', evalRes.status, 'question:', JSON.stringify(evalRes.question))
+      // 不直接跳结果页，而是提示用户并提供选择
+      if (this._showingModal) return
+      this._showingModal = true
+      wx.showModal({
+        title: '出题异常',
+        content: '服务器未返回下一题，可能是测评已完成。是否查看当前结果？',
+        confirmText: '查看结果',
+        cancelText: '重试',
+        success: (modalRes) => {
+          this._showingModal = false
+          if (modalRes.confirm) {
+            // 跳结果页
+            if (this._isNavigating) return
+            this._isNavigating = true
+            this.cleanup()
+            wx.redirectTo({
+              url: `/pages/result/result?sessionId=${this.data.sessionId}`,
+              fail: () => { this._isNavigating = false }
+            })
+          } else {
+            // 重试：回到录音状态，保留当前题目
+            this.setData({ phase: 'answering', aiStatusText: '请重新录音回答' })
+          }
+        },
+        fail: () => {
+          this._showingModal = false
+          // 弹窗失败时默认跳结果页
+          if (this._isNavigating) return
+          this._isNavigating = true
+          this.cleanup()
+          wx.redirectTo({
+            url: `/pages/result/result?sessionId=${this.data.sessionId}`,
+            fail: () => { this._isNavigating = false }
+          })
+        }
       })
       return
     }
@@ -1199,10 +1296,25 @@ Page({
 
   /** 跳过此题 */
   handleSkip() {
+    // 防护：弹窗互斥锁，防止多个弹窗叠加
+    if (this._showingModal) {
+      console.warn('[Skip] Modal already showing, ignored')
+      return
+    }
+
+    // 安全检查：currentQuestion为null时不调用evaluate
+    if (!this.data.currentQuestion || !this.data.currentQuestion.questionId) {
+      console.error('[Skip] currentQuestion is null or missing questionId')
+      this._resetToSafeState('题目数据异常，正在尝试恢复...')
+      return
+    }
+
+    this._showingModal = true
     wx.showModal({
       title: '跳过此题',
       content: '跳过将视为未通过此题，可能影响你的最终定级。确定要跳过吗？',
       success: async (res) => {
+        this._showingModal = false
         if (res.confirm) {
           this.setData({
             phase: 'evaluating',
@@ -1242,22 +1354,123 @@ Page({
             })
 
           } catch (err) {
-            showError(err.message || '操作失败')
-            this.setData({ phase: 'answering' })
+            console.error('[Skip] evaluate failed:', err)
+            // 跳过失败时不是简单回到answering，而是提供恢复选项
+            this._handleSkipFailure(err)
           }
         }
+      },
+      fail: () => {
+        this._showingModal = false
+      }
+    })
+  },
+
+  /** 跳过失败的恢复处理 */
+  _handleSkipFailure(err) {
+    if (this._showingModal) return
+    this._showingModal = true
+    wx.showModal({
+      title: '跳过失败',
+      content: '网络异常，请选择操作',
+      confirmText: '重试跳过',
+      cancelText: '继续录音',
+      success: (modalRes) => {
+        this._showingModal = false
+        if (modalRes.confirm) {
+          // 重试跳过
+          this.handleSkip()
+        } else {
+          // 回到录音状态
+          this.setData({ phase: 'answering', aiStatusText: '请用英语回答' })
+        }
+      },
+      fail: () => {
+        this._showingModal = false
+        this.setData({ phase: 'answering', aiStatusText: '请用英语回答' })
+      }
+    })
+  },
+
+  /**
+   * 全局异常状态恢复
+   * 当前端状态混乱（currentQuestion为null、phase卡死等）时，
+   * 提供用户可操作的恢复选项，而不是直接崩溃
+   */
+  _resetToSafeState(message) {
+    console.warn('[Recovery] Resetting to safe state:', message)
+    
+    // 释放录音资源
+    this._isSubmitting = false
+    this._isStartingRecord = false
+    if (this._recordTimer) {
+      clearInterval(this._recordTimer)
+      this._recordTimer = null
+    }
+    if (this.data.isRecording) {
+      try { this._recorderManager.stop() } catch (e) {}
+    }
+    
+    // 如果currentQuestion有效，回到answering状态
+    if (this.data.currentQuestion && this.data.currentQuestion.questionId) {
+      this.setData({
+        phase: 'answering',
+        isRecording: false,
+        aiStatusText: message || '请用英语回答'
+      })
+      return
+    }
+    
+    // currentQuestion无效，提供选择
+    if (this._showingModal) return
+    this._showingModal = true
+    wx.showModal({
+      title: '状态异常',
+      content: '测评状态异常，是否查看当前测评结果？',
+      confirmText: '查看结果',
+      cancelText: '返回首页',
+      success: (modalRes) => {
+        this._showingModal = false
+        if (modalRes.confirm && this.data.sessionId) {
+          if (this._isNavigating) return
+          this._isNavigating = true
+          this.cleanup()
+          wx.redirectTo({
+            url: `/pages/result/result?sessionId=${this.data.sessionId}`,
+            fail: () => { this._isNavigating = false }
+          })
+        } else {
+          if (this._isNavigating) return
+          this._isNavigating = true
+          this.cleanup()
+          wx.navigateBack({ fail: () => {
+            wx.reLaunch({ url: '/pages/home/home' })
+          }})
+        }
+      },
+      fail: () => {
+        this._showingModal = false
+        if (this._isNavigating) return
+        this._isNavigating = true
+        this.cleanup()
+        wx.navigateBack({ fail: () => {
+          wx.reLaunch({ url: '/pages/home/home' })
+        }})
       }
     })
   },
 
   /** 退出测评 */
   handleQuit() {
+    if (this._showingModal) return
+    this._showingModal = true
     wx.showModal({
       title: '退出测评',
       content: '退出后可以在首页继续未完成的测评，确定要退出吗？',
       confirmText: '退出',
       confirmColor: '#e74c3c',
       success: async (res) => {
+        this._showingModal = false
         if (res.confirm) {
           if (this._isNavigating) return
           this._isNavigating = true
@@ -1266,6 +1479,9 @@ Page({
             wx.reLaunch({ url: '/pages/home/home' })
           }})
         }
+      },
+      fail: () => {
+        this._showingModal = false
       }
     })
   },

@@ -244,6 +244,14 @@ function evaluateAnswer(params) {
     // 兼容升级相关字段（后端新算法）
     if (result.levelUp === undefined && result.level_up !== undefined) result.levelUp = result.level_up
     if (!result.levelUpMessage && result.level_up_message) result.levelUpMessage = result.level_up_message
+    // 兼容等级名称和描述字段
+    if (!result.majorLevelName && result.major_level_name) result.majorLevelName = result.major_level_name
+    if (!result.majorLevelLabel && result.major_level_label) result.majorLevelLabel = result.major_level_label
+    // finished状态时，从finished result中提取字段
+    if (result.result) {
+      if (!result.result.majorLevelName && result.result.major_level_name) result.result.majorLevelName = result.result.major_level_name
+      if (!result.result.majorLevelLabel && result.result.major_level_label) result.result.majorLevelLabel = result.result.major_level_label
+    }
     return result
   })
 }
@@ -261,7 +269,12 @@ function evaluateAnswer(params) {
 function getTestResult(sessionId) {
   return request(`/api/v1/test/result/${sessionId}`).then(res => {
     if (res.code !== 200) throw new Error(res.msg || '获取结果失败')
-    return res.data
+    const data = res.data
+    // 兼容下划线命名
+    if (!data.majorLevelName && data.major_level_name) data.majorLevelName = data.major_level_name
+    if (!data.majorLevelLabel && data.major_level_label) data.majorLevelLabel = data.major_level_label
+    if (!data.highestSubLevel && data.highest_sub_level) data.highestSubLevel = data.highest_sub_level
+    return data
   })
 }
 

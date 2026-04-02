@@ -199,7 +199,7 @@ Page({
         isPreview,
         // 等级
         levelName: data.majorLevelName || config.name,
-        levelLabel: config.label || '',
+        levelLabel: data.majorLevelLabel || config.label || '',
         levelColor: config.color,
         levelBgGradient: bgGradients[this._majorLevel] || bgGradients[1],
         heroBgGradient: bgGradients[this._majorLevel] || bgGradients[1],
@@ -213,10 +213,10 @@ Page({
         passedQuestions: data.passedQuestions || 0,
         durationText,
         // 报告
-        summary: report.summary || config.description || '',
+        summary: report.summary || '',
         strengths: report.strengths || [],
         weaknesses: report.weaknesses || [],
-        recommendation: report.recommendation || config.recommendation || '',
+        recommendation: report.recommendation || '',
         // 分项得分
         scoreItems,
         // 群二维码（预存但不显示，确认后才可见）

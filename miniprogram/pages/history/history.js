@@ -124,7 +124,7 @@ Page({
       sessionId,
       majorLevel,
       levelName: isCompleted ? (item.majorLevelName || item.levelName || item.level_name || config.name) : null,
-      levelLabel: isCompleted ? (config.label) : null,
+      levelLabel: isCompleted ? (item.majorLevelLabel || config.label || '') : null,
       levelColor: isCompleted ? config.color : '#8a95a5',
       completedAtFormatted: completedAt ? formatDate(completedAt) : (createdAt ? formatDate(createdAt) : '未完成'),
       durationText: durationSeconds > 0 ? formatDuration(durationSeconds) : '-',

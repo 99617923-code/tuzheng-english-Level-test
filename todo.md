@@ -399,3 +399,10 @@
 ## Bug修复 - 结果页问题（第十八轮）
 - [x] 结果页弹出“录音失败，请重试”弹窗（添加页面卸载标志，离开test页后录音回调不再弹窗）
 - [x] 用时显示0''（后端返回0时显示为'--'而非0''）
+
+## 等级配置动态化（第十九轮）- [x] app.js: levelConfig的label更新为后端一致的描述（学前水平/小学水平/中学水平/雅思水平），删除写死的description和recommendation
+- [x] result.js: levelLabel优先使用后端返回的majorLevelLabel，前端config做兆底
+- [x] history.js: levelLabel优先使用后端返回的majorLevelLabel
+- [x] test.js: MAJOR_LEVEL_NAMES更新为正确描述（学前水平/小学水平/中学水平/雅思水平）
+- [x] api.js: evaluate和getTestResult增加majorLevelName、majorLevelLabel字段兼容
+- [ ] 待后端补充：startTest和evaluate(continue)接口返回majorLevelName和majorLevelLabel字段后，test.js改为优先使用后端字段

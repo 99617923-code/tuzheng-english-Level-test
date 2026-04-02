@@ -392,3 +392,6 @@
 - [x] 前端：cleanup方法中重置所有锁状态
 - [ ] 反馈后端：evaluate返回status:"continue"但question:null的问题
 - [ ] 反馈后端："sessionId和questionId不匹配"错误的触发条件
+
+## 上架准备（第十七轮）
+- [x] 首页去掉视频区域（后续录好视频再加回来）

@@ -171,6 +171,7 @@ Page({
     this._isSubmitting = false
     this._isStartingRecord = false
     this._showingModal = false
+    this._isPageUnloaded = false  // 页面卸载标志，防止离开后录音回调仍弹窗
     this._initRetryCount = 0
     this._frontendQuestionCount = 0
     this._setupRecorderEvents()
@@ -207,6 +208,8 @@ Page({
     if (plugin && plugin.voiceRecognizer) {
       try { plugin.voiceRecognizer.stop() } catch (e) {}
     }
+    // 标记页面已卸载，防止全局录音回调继续弹窗
+    this._isPageUnloaded = true
     // 重置所有锁状态
     this._isSubmitting = false
     this._isStartingRecord = false
@@ -726,6 +729,11 @@ Page({
     this._recorderManager.onStart(() => {
       console.log('[Recorder] Started')
       this._isStartingRecord = false  // 录音已成功启动，解除防抖锁
+      if (this._isPageUnloaded) {
+        console.log('[Recorder] Page unloaded, ignoring onStart callback')
+        try { this._recorderManager.stop() } catch (e) {}
+        return
+      }
       this.setData({ isRecording: true, recordSeconds: 0, recordTimeDisplay: '0"' })
 
       this._recordTimer = setInterval(() => {
@@ -749,6 +757,11 @@ Page({
         clearInterval(this._recordTimer)
         this._recordTimer = null
       }
+      // 页面已卸载时不再操作UI
+      if (this._isPageUnloaded) {
+        console.log('[Recorder] Page unloaded, ignoring onStop callback')
+        return
+      }
       this._recordFilePath = res.tempFilePath
       this.setData({ isRecording: false })
 
@@ -771,6 +784,11 @@ Page({
       if (this._recordTimer) {
         clearInterval(this._recordTimer)
         this._recordTimer = null
+      }
+      // 页面已卸载时不再操作UI和弹窗
+      if (this._isPageUnloaded) {
+        console.log('[Recorder] Page unloaded, ignoring error callback')
+        return
       }
       this.setData({ isRecording: false })
       showError('录音失败，请重试')

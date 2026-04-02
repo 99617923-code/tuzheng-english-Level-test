@@ -187,7 +187,9 @@ Page({
 
       // 时长（后端返回毫秒）
       const totalDuration = data.totalDuration || 0
-      const durationText = formatDuration(Math.round(totalDuration / 1000))
+      const durationSeconds = Math.round(totalDuration / 1000)
+      // 如果后端返回0（全部跳过或数据缺失），显示为短横线而非0''
+      const durationText = durationSeconds > 0 ? formatDuration(durationSeconds) : '--'
 
       // 群二维码（v2直接在result里返回，但不立即显示）
       const groupQrcode = data.groupQrcode || {}

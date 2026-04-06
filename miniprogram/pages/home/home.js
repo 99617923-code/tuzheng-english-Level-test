@@ -32,6 +32,10 @@ Page({
     // 中断恢复
     hasUnfinishedTest: false,
     unfinishedInfo: '',
+    // 恢复弹窗（自定义弹窗替代wx.showModal，支持关闭按钮）
+    showResumeModal: false,
+    resumeModalAnswered: 0,
+    resumeModalSubLevel: '',
     // 录音授权状态
     recordAuthorized: false
   },
@@ -226,29 +230,33 @@ Page({
     }
   },
 
-  /** 显示恢复测评弹窗 */
+  /** 显示恢复测评弹窗（自定义弹窗，带关闭按钮） */
   _showResumeDialog(saved) {
     const answeredCount = saved.totalAnswered || 0
     const subLevel = saved.currentSubLevel || ''
-
-    wx.showModal({
-      title: '发现未完成的测评',
-      content: `你有一次未完成的测评（已答 ${answeredCount} 题，当前级别 ${subLevel}），是否继续？`,
-      confirmText: '继续测评',
-      confirmColor: '#83BA12',
-      cancelText: '重新开始',
-      success: (res) => {
-        if (res.confirm) {
-          // 继续测评：恢复旧会话
-          wx.navigateTo({ url: '/pages/test/test?resume=1' })
-        } else {
-          // 重新开始：清除缓存 + 强制创建新会话
-          try { wx.removeStorageSync('tz_test_session') } catch (e) {}
-          this.setData({ hasUnfinishedTest: false })
-          wx.navigateTo({ url: '/pages/test/test?forceNew=1' })
-        }
-      }
+    this.setData({
+      showResumeModal: true,
+      resumeModalAnswered: answeredCount,
+      resumeModalSubLevel: subLevel
     })
+  },
+
+  /** 恢复弹窗 - 继续测评 */
+  handleResumeModalContinue() {
+    this.setData({ showResumeModal: false })
+    wx.navigateTo({ url: '/pages/test/test?resume=1' })
+  },
+
+  /** 恢复弹窗 - 重新开始 */
+  handleResumeModalRestart() {
+    this.setData({ showResumeModal: false, hasUnfinishedTest: false })
+    try { wx.removeStorageSync('tz_test_session') } catch (e) {}
+    wx.navigateTo({ url: '/pages/test/test?forceNew=1' })
+  },
+
+  /** 恢复弹窗 - 关闭（不做任何操作） */
+  handleResumeModalClose() {
+    this.setData({ showResumeModal: false })
   },
 
   /** 开始测评 — 直接进入测评页（跳过说明页） */

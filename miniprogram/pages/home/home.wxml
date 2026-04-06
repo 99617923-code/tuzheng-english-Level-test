@@ -98,6 +98,28 @@
     </view>
   </view>
 
+  <!-- 未完成测评恢复弹窗（自定义弹窗，带关闭按钮） -->
+  <view wx:if="{{showResumeModal}}" class="resume-modal-mask" bindtap="handleResumeModalClose">
+    <view class="resume-modal-card" catchtap="preventClose">
+      <!-- 关闭按钮 -->
+      <view class="resume-modal-close" bindtap="handleResumeModalClose">
+        <text class="resume-modal-close-icon">✕</text>
+      </view>
+      <!-- 标题 -->
+      <view class="resume-modal-header">
+        <view class="resume-modal-dot"></view>
+        <text class="resume-modal-title">发现未完成的测评</text>
+      </view>
+      <!-- 内容 -->
+      <text class="resume-modal-desc">你有一次未完成的测评（已答 {{resumeModalAnswered}} 题，当前级别 {{resumeModalSubLevel}}），是否继续？</text>
+      <!-- 按钮 -->
+      <view class="resume-modal-actions">
+        <view class="resume-modal-btn resume-modal-btn-restart" bindtap="handleResumeModalRestart">重新开始</view>
+        <view class="resume-modal-btn resume-modal-btn-continue" bindtap="handleResumeModalContinue">继续测评</view>
+      </view>
+    </view>
+  </view>
+
   <!-- 视频播放弹窗 -->
   <view wx:if="{{showVideo}}" class="video-modal" bindtap="closeVideo">
     <view class="video-modal-content {{isVerticalVideo ? 'video-vertical' : 'video-horizontal'}}" catchtap="preventClose">

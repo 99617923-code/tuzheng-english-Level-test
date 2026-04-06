@@ -406,3 +406,17 @@
 - [x] test.js: MAJOR_LEVEL_NAMES更新为正确描述（学前水平/小学水平/中学水平/雅思水平）
 - [x] api.js: evaluate和getTestResult增加majorLevelName、majorLevelLabel字段兼容
 - [ ] 待后端补充：startTest和evaluate(continue)接口返回majorLevelName和majorLevelLabel字段后，test.js改为优先使用后端字段
+
+## 域名替换（待小程序白名单配置完成后执行）
+- [ ] request.js: BASE_URL 从 https://tzapp-admin.figo.cn 替换为 https://super.tuzheng.cn
+- [ ] request.js: 注释中的后端地址同步更新
+- [ ] api.js: 注释中的后端地址同步更新
+- [ ] 小程序后台: 服务器域名白名单添加 super.tuzheng.cn
+
+## 第二十轮优化
+- [x] API域名替换为 https://super.tuzheng.cn
+- [x] 首页视频改为动态读取后台配置（无视频时不展示）
+- [x] 外教头像换成帅气男外教卡通形象
+- [x] 播放题目录音时暂停图标改为白色（pause.svg stroke改为white）
+- [x] 群二维码前面图标改为白色（新建users-white.svg）
+- [x] 全局排查黑图标+蓝底不协调问题（共修复12个图标，新增彩色SVG版本）

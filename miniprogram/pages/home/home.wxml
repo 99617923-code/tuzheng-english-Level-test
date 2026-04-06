@@ -1,6 +1,7 @@
 <!--
   途正英语AI分级测评 - 欢迎页
   极简流程：点击"开始测评" → 自动授权 → 直接进入测评
+  讲解视频从后台动态获取，无视频时不展示
 -->
 <view class="page">
   <!-- 装饰性背景元素 -->
@@ -59,8 +60,22 @@
       </view>
     </view>
 
-    <!-- 测评示例视频（待视频录制完成后加回） -->
-    <!-- <view class="video-card glass-card animate-fade-in-delay-2" bindtap="handlePlayDemo">...</view> -->
+    <!-- 讲解视频（动态从后台获取，有视频才展示） -->
+    <view wx:if="{{hasIntroVideo}}" class="video-card glass-card animate-fade-in-delay-2" bindtap="handlePlayDemo">
+      <view class="video-thumb-wrap">
+        <image wx:if="{{introCoverUrl}}" class="video-thumb" src="{{introCoverUrl}}" mode="aspectFill" />
+        <view wx:else class="video-thumb-placeholder">
+          <view class="video-wave-bar" wx:for="{{waveHeights}}" wx:key="index" style="height: {{item}}rpx;"></view>
+        </view>
+        <view class="video-play-btn">
+          <view class="play-triangle"></view>
+        </view>
+      </view>
+      <view class="video-info">
+        <text class="video-title">观看测评示例</text>
+        <text class="video-desc">了解测评流程，轻松上手</text>
+      </view>
+    </view>
 
     <!-- 查看测评记录 -->
     <view class="history-entry glass-card animate-fade-in-delay-3" bindtap="goHistory">
@@ -82,5 +97,22 @@
     </view>
   </view>
 
-  <!-- 视频弹窗（待视频录制完成后加回） -->
+  <!-- 视频播放弹窗 -->
+  <view wx:if="{{showVideo}}" class="video-modal" bindtap="closeVideo">
+    <view class="video-modal-content" catchtap="preventClose">
+      <video
+        class="video-player"
+        src="{{introVideoUrl}}"
+        poster="{{introCoverUrl}}"
+        autoplay="{{true}}"
+        show-center-play-btn="{{true}}"
+        show-play-btn="{{true}}"
+        controls="{{true}}"
+        enable-progress-gesture="{{true}}"
+      />
+      <view class="video-close-btn" bindtap="closeVideo">
+        <text class="close-icon">✕</text>
+      </view>
+    </view>
+  </view>
 </view>

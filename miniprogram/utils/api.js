@@ -1,7 +1,7 @@
 /**
  * 途正英语 - API接口封装
  * 对接后端自适应分级测评引擎 v2
- * 后端地址: https://tzapp-admin.figo.cn
+ * 后端地址: https://super.tuzheng.cn
  */
 const { request, uploadFile, setTokens, clearTokens, ensureTokenValid } = require('./request')
 
@@ -350,6 +350,22 @@ function getQrcodeByLevel(level) {
   })
 }
 
+/**
+ * 获取首页讲解视频（公开接口，无需认证）
+ * @returns {Promise<{videoUrl: string, coverUrl: string} | null>} 有视频返回视频信息，无视频返回null
+ */
+function getIntroVideo() {
+  return request('/api/v1/test/intro-video', { noAuth: true }).then(res => {
+    if (res.code === 200 && res.data && res.data.videoUrl) {
+      return res.data
+    }
+    return null
+  }).catch(err => {
+    console.warn('[API] getIntroVideo failed:', err)
+    return null
+  })
+}
+
 module.exports = {
   sendSmsCode,
   smsLogin,
@@ -364,5 +380,6 @@ module.exports = {
   terminateTest,
   getTestHistory,
   textToSpeech,
-  getQrcodeByLevel
+  getQrcodeByLevel,
+  getIntroVideo
 }

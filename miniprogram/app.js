@@ -20,7 +20,7 @@ App({
     safeAreaBottom: 0,
     // 品牌资源
     logoUrl: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/tuzheng-logo-transparent_4a301562.png',
-    aiAvatarUrl: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/ai-teacher-avatar-dLw5RzBDM3AJWaRxiMxYoU.webp',
+    aiAvatarUrl: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/male-teacher-avatar-T5xrDtUUzwee9GXzJpVr28.webp',
     shareCoverUrl: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/share-cover_103ee497.png',
     // 等级配置（仅保留UI相关配置如颜色、星级等，名称和描述优先使用后端返回的majorLevelName、majorLevelLabel字段）
     levelConfig: {

@@ -1,10 +1,10 @@
 /**
  * 途正英语 - 网络请求封装
- * 对接后端: https://tzapp-admin.figo.cn
+ * 对接后端: https://super.tuzheng.cn
  * 认证方式: Bearer Token + X-App-Key
  */
 
-const BASE_URL = 'https://tzapp-admin.figo.cn'
+const BASE_URL = 'https://super.tuzheng.cn'
 const APP_KEY = 'tzk_ce457c0a5a5daf5a5ba0af8c6952f345'
 
 // 默认超时时间（毫秒）

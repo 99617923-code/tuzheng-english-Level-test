@@ -136,15 +136,15 @@
       <!-- 已确认状态：显示群二维码入口 + 分享 -->
       <view wx:if="{{confirmed}}">
         <button class="action-btn-full join-group-btn" bindtap="handleJoinGroup">
-          <image class="action-btn-icon" src="/assets/icons/users.svg" mode="aspectFit" />
+          <image class="action-btn-icon" src="/assets/icons/users-white.svg" mode="aspectFit" />
           <text>加入{{levelName}}学习群</text>
         </button>
         <button class="share-btn" open-type="share">
-          <image class="share-btn-icon" src="/assets/icons/share.svg" mode="aspectFit" />
+          <image class="share-btn-icon" src="/assets/icons/share-blue.svg" mode="aspectFit" />
           <text>分享测评结果给好友</text>
         </button>
         <button class="save-poster-btn" bindtap="savePoster" disabled="{{posterSaving}}">
-          <image class="save-poster-icon" src="/assets/icons/download.svg" mode="aspectFit" />
+          <image class="save-poster-icon" src="/assets/icons/download-green.svg" mode="aspectFit" />
           <text>{{posterSaving ? '正在生成...' : '保存测评海报'}}</text>
         </button>
       </view>
@@ -155,12 +155,12 @@
       <view class="detail-toggle" bindtap="toggleDetailReport">
         <view class="detail-toggle-left">
           <view class="section-icon-wrap blue">
-            <image class="section-icon" src="/assets/icons/bar-chart.svg" mode="aspectFit" />
+            <image class="section-icon" src="/assets/icons/bar-chart-blue.svg" mode="aspectFit" />
           </view>
           <text class="detail-toggle-title">查看详细报告</text>
         </view>
         <view class="detail-toggle-arrow {{showDetailReport ? 'expanded' : ''}}">
-          <image class="toggle-arrow-icon" src="/assets/icons/chevron-down.svg" mode="aspectFit" />
+          <image class="toggle-arrow-icon" src="/assets/icons/chevron-down-dark.svg" mode="aspectFit" />
         </view>
       </view>
 
@@ -169,7 +169,7 @@
         <view wx:if="{{scoreItems.length > 0}}" class="section">
           <view class="section-header">
             <view class="section-icon-wrap green">
-              <image class="section-icon" src="/assets/icons/bar-chart.svg" mode="aspectFit" />
+              <image class="section-icon" src="/assets/icons/bar-chart-green.svg" mode="aspectFit" />
             </view>
             <text class="section-title">分项得分</text>
           </view>
@@ -190,7 +190,7 @@
         <view class="section">
           <view class="section-header">
             <view class="section-icon-wrap blue">
-              <image class="section-icon" src="/assets/icons/zap.svg" mode="aspectFit" />
+              <image class="section-icon" src="/assets/icons/zap-blue.svg" mode="aspectFit" />
             </view>
             <text class="section-title">能力评估</text>
           </view>
@@ -203,7 +203,7 @@
         <view wx:if="{{strengths.length > 0}}" class="section">
           <view class="section-header">
             <view class="section-icon-wrap green">
-              <image class="section-icon" src="/assets/icons/check-circle.svg" mode="aspectFit" />
+              <image class="section-icon" src="/assets/icons/check-circle-green.svg" mode="aspectFit" />
             </view>
             <text class="section-title">你的优势</text>
           </view>
@@ -219,7 +219,7 @@
         <view wx:if="{{weaknesses.length > 0}}" class="section">
           <view class="section-header">
             <view class="section-icon-wrap orange">
-              <image class="section-icon" src="/assets/icons/trending-up.svg" mode="aspectFit" />
+              <image class="section-icon" src="/assets/icons/trending-up-orange.svg" mode="aspectFit" />
             </view>
             <text class="section-title">待提升</text>
           </view>
@@ -235,7 +235,7 @@
         <view class="section">
           <view class="section-header">
             <view class="section-icon-wrap blue">
-              <image class="section-icon" src="/assets/icons/award.svg" mode="aspectFit" />
+              <image class="section-icon" src="/assets/icons/award-blue.svg" mode="aspectFit" />
             </view>
             <text class="section-title">学习建议</text>
           </view>

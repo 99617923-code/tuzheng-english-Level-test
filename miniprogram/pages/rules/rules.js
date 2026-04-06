@@ -20,11 +20,11 @@ Page({
       tips: false
     },
     steps: [
-      { title: '听题', desc: '听AI外教的英语提问，理解题目内容', color: '#1B3F91', bgColor: 'rgba(27,63,145,0.10)', icon: 'headphones' },
-      { title: '录音作答', desc: '按住麦克风按钮，用英语回答问题', color: '#83BA12', bgColor: 'rgba(131,186,18,0.10)', icon: 'mic' },
-      { title: 'AI实时评估', desc: 'AI分析你的回答，判断是否过关', color: '#2B5BA0', bgColor: 'rgba(43,91,160,0.10)', icon: 'zap' },
-      { title: '过关自动升级', desc: '通过后自动出更难的题，继续挑战', color: '#e67e22', bgColor: 'rgba(230,126,34,0.10)', icon: 'trending-up', isLoop: true },
-      { title: '生成等级报告', desc: '无法继续升级时，确定你的英语等级', color: '#4a8a30', bgColor: 'rgba(74,138,48,0.10)', icon: 'award' }
+      { title: '听题', desc: '听AI外教的英语提问，理解题目内容', color: '#1B3F91', bgColor: 'rgba(27,63,145,0.10)', icon: 'headphones-blue' },
+      { title: '录音作答', desc: '按住麦克风按钮，用英语回答问题', color: '#83BA12', bgColor: 'rgba(131,186,18,0.10)', icon: 'mic-green' },
+      { title: 'AI实时评估', desc: 'AI分析你的回答，判断是否过关', color: '#2B5BA0', bgColor: 'rgba(43,91,160,0.10)', icon: 'zap-blue' },
+      { title: '过关自动升级', desc: '通过后自动出更难的题，继续挑战', color: '#e67e22', bgColor: 'rgba(230,126,34,0.10)', icon: 'trending-up-orange', isLoop: true },
+      { title: '生成等级报告', desc: '无法继续升级时，确定你的英语等级', color: '#4a8a30', bgColor: 'rgba(74,138,48,0.10)', icon: 'award-green' }
     ],
     tips: [
       { text: '请在安静的环境中进行测评', icon: '🤫' },

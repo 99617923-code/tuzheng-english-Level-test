@@ -4,19 +4,23 @@
  * 优化后的极简流程：
  * - 首页点击"开始测评" → 自动授权录音 → 直接进入测评页
  * - 不再经过独立的测评说明页
- * - 保留测评示例视频入口
+ * - 讲解视频从后台动态获取（无视频时不展示）
  * - 保留中断恢复检测
  */
 const app = getApp()
 const { checkLogin, getUserInfo } = require('../../utils/util')
+const { getIntroVideo } = require('../../utils/api')
 
 Page({
   data: {
     logoUrl: '',
     isAuthenticated: false,
     userInfo: null,
+    // 讲解视频（动态从后台获取）
+    hasIntroVideo: false,
+    introVideoUrl: '',
+    introCoverUrl: '',
     showVideo: false,
-    demoVideoUrl: '',
     // 导航布局
     navBarHeight: 0,
     navContentTop: 0,
@@ -45,6 +49,8 @@ Page({
 
     // 预检查录音权限状态（不弹窗）
     this._checkRecordAuth()
+    // 加载讲解视频配置
+    this._loadIntroVideo()
   },
 
   onShow() {
@@ -59,6 +65,31 @@ Page({
     this._checkUnfinishedTest()
     // 刷新录音权限状态
     this._checkRecordAuth()
+    // 每次显示页面时刷新视频配置（后台可能随时添加/更换视频）
+    this._loadIntroVideo()
+  },
+
+  /** 从后台动态加载讲解视频 */
+  async _loadIntroVideo() {
+    try {
+      const videoData = await getIntroVideo()
+      if (videoData && videoData.videoUrl) {
+        this.setData({
+          hasIntroVideo: true,
+          introVideoUrl: videoData.videoUrl,
+          introCoverUrl: videoData.coverUrl || ''
+        })
+      } else {
+        this.setData({
+          hasIntroVideo: false,
+          introVideoUrl: '',
+          introCoverUrl: ''
+        })
+      }
+    } catch (e) {
+      console.warn('[Home] Load intro video failed:', e)
+      this.setData({ hasIntroVideo: false })
+    }
   },
 
   /** 静默检查录音权限状态（不弹窗） */
@@ -265,8 +296,9 @@ Page({
     })
   },
 
-  /** 播放示例视频 */
+  /** 播放讲解视频 */
   handlePlayDemo() {
+    if (!this.data.introVideoUrl) return
     this.setData({ showVideo: true })
   },
 

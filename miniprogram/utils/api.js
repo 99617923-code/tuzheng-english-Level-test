@@ -21,7 +21,7 @@ function startTokenRefreshTimer(expiresIn) {
   }
 
   if (!expiresIn || expiresIn <= 0) {
-    console.log('[TokenTimer] No expires_in provided, skipping timer setup')
+    // Token timer: no expires_in provided
     return
   }
 
@@ -29,10 +29,10 @@ function startTokenRefreshTimer(expiresIn) {
   const refreshBeforeSec = Math.min(180, Math.floor(expiresIn * 0.3))
   const refreshDelaySec = Math.max(30, expiresIn - refreshBeforeSec)
 
-  console.log(`[TokenTimer] Token expires in ${expiresIn}s, will refresh in ${refreshDelaySec}s (${refreshBeforeSec}s before expiry)`)
+  // Token timer scheduled
 
   _tokenRefreshTimer = setTimeout(async () => {
-    console.log('[TokenTimer] Auto-refreshing token...')
+
     try {
       await ensureTokenValid()
       // 刷新成功后，重新读取新Token的过期时间并启动新定时器
@@ -51,7 +51,7 @@ function stopTokenRefreshTimer() {
   if (_tokenRefreshTimer) {
     clearTimeout(_tokenRefreshTimer)
     _tokenRefreshTimer = null
-    console.log('[TokenTimer] Timer stopped')
+
   }
 }
 
@@ -410,12 +410,10 @@ function confirmLevel(sessionId, majorLevel, majorLevelName) {
  */
 function getUserLevelStatus() {
   return request('/api/v1/test/user-level-status').then(res => {
-    console.log('[API] getUserLevelStatus raw response:', JSON.stringify(res))
     // 兼容 code=0 和 code=200 两种成功格式
     if (res.code !== 200 && res.code !== 0) throw new Error(res.msg || '查询分级状态失败')
     // 兼容数据在res.data或直接在res根级别
     const data = res.data || res
-    console.log('[API] getUserLevelStatus parsed data:', JSON.stringify(data))
     // 兼容下划线命名
     if (data.confirmed === undefined && data.is_confirmed !== undefined) data.confirmed = data.is_confirmed
     if (data.majorLevel === undefined && data.major_level !== undefined) data.majorLevel = data.major_level
@@ -427,7 +425,6 @@ function getUserLevelStatus() {
     if (!data.sessionId && data.session_id) data.sessionId = data.session_id
     if (!data.qrcodeUrl && data.qrcode_url) data.qrcodeUrl = data.qrcode_url
     if (!data.groupName && data.group_name) data.groupName = data.group_name
-    console.log('[API] getUserLevelStatus final confirmed:', data.confirmed, 'majorLevel:', data.majorLevel)
     return data
   })
 }

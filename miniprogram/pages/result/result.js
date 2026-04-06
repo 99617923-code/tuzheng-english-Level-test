@@ -129,9 +129,6 @@ Page({
 
       // 检测后端返回的预览状态（测评未正式结束，数据为实时计算的预览）
       const isPreview = data.status === 'preview'
-      if (isPreview) {
-        console.log('[Result] Preview mode: test session still in progress')
-      }
 
       // v2字段
       this._majorLevel = data.majorLevel !== undefined ? data.majorLevel : 0
@@ -377,7 +374,7 @@ Page({
       // 设置画布尺寸（高分辨率）
       const dpr = wx.getWindowInfo().pixelRatio || 2
       const W = 750
-      const H = 1200
+      const H = 1400
       canvasNode.width = W * dpr
       canvasNode.height = H * dpr
       ctx.scale(dpr, dpr)
@@ -407,7 +404,7 @@ Page({
       ctx.fillText('最终测评报告', W / 2, 120)
 
       // ===== 等级卡片 =====
-      const cardX = 50, cardY = 160, cardW = W - 100, cardH = 440
+      const cardX = 50, cardY = 160, cardW = W - 100, cardH = 520
       ctx.fillStyle = '#ffffff'
       this._roundRect(ctx, cardX, cardY, cardW, cardH, 24)
       ctx.fill()
@@ -437,7 +434,7 @@ Page({
       ctx.fillText(this.data.levelLabel || '', W / 2, badgeY + 100)
 
       // 分数圆环
-      const ringCX = W / 2, ringCY = badgeY + 220, ringR = 80
+      const ringCX = W / 2, ringCY = badgeY + 240, ringR = 80
       ctx.beginPath()
       ctx.arc(ringCX, ringCY, ringR, 0, Math.PI * 2)
       ctx.strokeStyle = 'rgba(59,130,246,0.08)'
@@ -459,8 +456,8 @@ Page({
       ctx.font = '22px sans-serif'
       ctx.fillText('分', ringCX, ringCY + 46)
 
-      // 统计数据
-      const statsY = cardY + cardH - 70
+      // 统计数据（增大与圆环的间距）
+      const statsY = cardY + cardH - 80
       const stats = [
         { label: '答题数', value: String(this.data.totalQuestions || 0) },
         { label: '通过数', value: String(this.data.passedQuestions || 0) },
@@ -529,7 +526,9 @@ Page({
       })
 
       // ===== 底部品牌 =====
-      const footerY = H - 60
+      // 动态计算底部位置：确保在能力评估文字下方有足够间距
+      const summaryEndY = summaryY + 40 + summaryLines.length * 36
+      const footerY = Math.max(summaryEndY + 60, H - 60)
       ctx.fillStyle = '#b0b8c4'
       ctx.font = '22px sans-serif'
       ctx.textAlign = 'center'

@@ -84,12 +84,10 @@ async function ensureTokenValid() {
   }
 
   // Token即将过期或已过期，主动刷新
-  console.log(`[Token] Token expires in ${remainingSec}s, proactively refreshing...`)
+
   try {
     const refreshed = await tryRefreshToken()
-    if (refreshed) {
-      console.log('[Token] Proactive refresh successful')
-    } else {
+    if (!refreshed) {
       console.warn('[Token] Proactive refresh failed, will rely on 401 retry')
     }
   } catch (e) {
@@ -163,7 +161,7 @@ function request(url, options = {}) {
   const requestTimeout = timeout || (isLongTimeoutUrl(url) ? LONG_TIMEOUT : DEFAULT_TIMEOUT)
 
   return new Promise((resolve, reject) => {
-    console.log(`[Request] ${method} ${url}`, data ? JSON.stringify(data).substring(0, 200) : '')
+
 
     wx.request({
       url: `${BASE_URL}${url}`,
@@ -175,8 +173,6 @@ function request(url, options = {}) {
         const responseData = res.data
         const statusCode = res.statusCode
 
-        console.log(`[Request] ${method} ${url} → HTTP ${statusCode}`,
-          typeof responseData === 'object' ? `code=${responseData.code}` : '')
 
         // HTTP状态码异常处理
         if (statusCode >= 500) {
@@ -282,7 +278,7 @@ function tryRefreshToken() {
   }
 
   return new Promise((resolve) => {
-    console.log('[Request] Attempting token refresh...')
+
     wx.request({
       url: `${BASE_URL}/api/v1/auth/refresh-token`,
       method: 'POST',
@@ -294,7 +290,7 @@ function tryRefreshToken() {
       timeout: DEFAULT_TIMEOUT,
       success(res) {
         if (res.data && res.data.code === 200) {
-          console.log('[Request] Token refresh successful')
+
           setTokens(res.data.data.biz_token, res.data.data.refresh_token)
           resolve(true)
         } else {
@@ -319,7 +315,6 @@ function tryRefreshToken() {
  * @returns {Promise<object>} 响应数据
  */
 function uploadFile(url, filePath, name = 'file', formData = {}) {
-  console.log(`[Upload] ${url}, file: ${filePath}`)
 
   function doUpload() {
     const token = getToken()
@@ -337,7 +332,6 @@ function uploadFile(url, filePath, name = 'file', formData = {}) {
         header: headers,
         timeout: LONG_TIMEOUT,
         success(res) {
-          console.log(`[Upload] ${url} → HTTP ${res.statusCode}`)
           try {
             const data = JSON.parse(res.data)
             if (res.statusCode === 401) {
@@ -385,7 +379,6 @@ function uploadFile(url, filePath, name = 'file', formData = {}) {
       return new Promise((resolve, reject) => {
         subscribeTokenRefresh((refreshed) => {
           if (refreshed) {
-            console.log('[Upload] Token refreshed, retrying upload...')
             doUpload().then(resolve).catch(retryErr => {
               // 重试失败，不再刷新
               if (retryErr && retryErr.isAuthError) {

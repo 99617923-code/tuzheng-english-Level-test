@@ -127,7 +127,6 @@ Page({
     this.setData({ checkingLevelStatus: true })
     try {
       const status = await getUserLevelStatus()
-      console.log('[Home] Level status result:', JSON.stringify(status))
       if (status && status.confirmed) {
         const config = app.getLevelConfig(status.majorLevel || 0)
         this.setData({

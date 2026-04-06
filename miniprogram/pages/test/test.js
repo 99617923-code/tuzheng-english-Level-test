@@ -244,7 +244,6 @@ Page({
         savedAt: Date.now()
       }
       wx.setStorageSync('tz_test_session', sessionData)
-      console.log('[Test] Session saved:', sessionId, 'answered:', totalAnswered, 'frontendCount:', this._frontendQuestionCount)
     } catch (e) {
       console.warn('[Test] Save session failed:', e)
     }
@@ -253,7 +252,6 @@ Page({
   _clearTestSession() {
     try {
       wx.removeStorageSync('tz_test_session')
-      console.log('[Test] Session cache cleared')
     } catch (e) {}
   },
 
@@ -286,12 +284,10 @@ Page({
       const question = data.question
       // 兼容下划线命名
       if (question) {
-        console.log('[Resume] Question keys:', Object.keys(question).join(', '))
         if (!question.audioUrl && question.audio_url) question.audioUrl = question.audio_url
         if (!question.questionText && question.question_text) question.questionText = question.question_text
         if (!question.questionId && question.question_id) question.questionId = question.question_id
         if (!question.subLevel && question.sub_level) question.subLevel = question.sub_level
-        console.log('[Resume] audioUrl:', question.audioUrl)
       }
       const subLevel = data.currentSubLevel || data.current_sub_level || (question && question.subLevel) || 'PRE1'
       const majorLevel = data.currentMajorLevel !== undefined ? data.currentMajorLevel : (data.current_major_level !== undefined ? data.current_major_level : (SUB_LEVEL_MAJOR[subLevel] || 0))
@@ -376,15 +372,9 @@ Page({
       const data = await startTest(forceNew ? { forceNew: true } : {})
 
       // 打印后端返回的完整数据，方便调试
-      console.log('[Test] startTest raw response:', JSON.stringify(data).substring(0, 500))
 
       const question = data.question
       if (question) {
-        console.log('[Test] Question object keys:', Object.keys(question).join(', '))
-        console.log('[Test] Question audioUrl:', question.audioUrl)
-        console.log('[Test] Question audio_url:', question.audio_url)
-        console.log('[Test] Question questionText:', question.questionText)
-        console.log('[Test] Question question_text:', question.question_text)
         // 兼容下划线命名：后端可能返回 audio_url 而不是 audioUrl
         if (!question.audioUrl && question.audio_url) {
           question.audioUrl = question.audio_url
@@ -398,7 +388,6 @@ Page({
         if (!question.subLevel && question.sub_level) {
           question.subLevel = question.sub_level
         }
-        console.log('[Test] Question after normalization - audioUrl:', question.audioUrl, 'questionText:', question.questionText)
       } else {
         console.error('[Test] No question in response!')
       }
@@ -531,7 +520,6 @@ Page({
     ctx.obeyMuteSwitch = false  // 不受静音开关影响
 
     ctx.onPlay(() => {
-      console.log('[Audio] onPlay fired')
       this._clearAudioTimeout()
       this.setData({ audioPlaying: true, aiSpeaking: true, aiStatusText: '外教正在提问...' })
       // 开始播放后设置超时保护
@@ -539,7 +527,6 @@ Page({
     })
 
     ctx.onEnded(() => {
-      console.log('[Audio] onEnded fired')
       this._clearAudioTimeout()
       this._onAudioFinished()
     })
@@ -552,7 +539,6 @@ Page({
     })
 
     ctx.onStop(() => {
-      console.log('[Audio] onStop fired')
       // onStop是手动stop触发的，不自动进入answering
       this.setData({ audioPlaying: false, aiSpeaking: false })
     })
@@ -614,7 +600,6 @@ Page({
 
     const audioUrl = currentQuestion.audioUrl
     if (audioUrl) {
-      console.log('[Audio] Playing question audio:', audioUrl)
       this.setData({ phase: 'listening', aiStatusText: '外教正在提问...' })
 
       const ctx = this._createAudioContext()
@@ -625,7 +610,6 @@ Page({
       this._setAudioTimeout()
     } else {
       // 没有audioUrl → 尝试TTS降级
-      console.log('[Audio] No audioUrl, trying TTS fallback')
       this._tryTTSFallback()
     }
   },
@@ -665,19 +649,16 @@ Page({
       return
     }
 
-    console.log('[TTS] Generating speech for:', currentQuestion.questionText)
     this.setData({ phase: 'listening', aiStatusText: '正在生成语音...' })
 
     // 第一级：用微信同声传译插件的TTS（前端直接合成）
     if (plugin && plugin.textToSpeech) {
-      console.log('[TTS] Using WechatSI plugin textToSpeech')
       const self = this
       plugin.textToSpeech({
         lang: 'en_US',
         tts: true,
         content: currentQuestion.questionText.substring(0, 50), // 插件限制50字符
         success: function(res) {
-          console.log('[TTS] WechatSI success, retcode:', res.retcode, 'filename:', res.filename)
           if (res.filename) {
             // 用InnerAudioContext播放合成的语音
             const updatedQuestion = { ...currentQuestion, audioUrl: res.filename }
@@ -711,7 +692,6 @@ Page({
       const ttsUrl = ttsRes.audioUrl || ttsRes.audio_url || ttsRes.url || ''
 
       if (ttsUrl) {
-        console.log('[TTS] Backend TTS success:', ttsUrl)
         const updatedQuestion = { ...currentQuestion, audioUrl: ttsUrl }
         this.setData({ currentQuestion: updatedQuestion })
 
@@ -732,7 +712,6 @@ Page({
   /** 第三级降级：显示题目文字让用户看着回答 */
   _showQuestionTextFallback() {
     const { currentQuestion } = this.data
-    console.log('[TTS] All TTS failed, showing question text as fallback')
     // 设置一个标记让UI显示题目文字
     this.setData({
       showQuestionText: true,
@@ -748,10 +727,8 @@ Page({
 
   _setupRecorderEvents() {
     this._recorderManager.onStart(() => {
-      console.log('[Recorder] Started')
       this._isStartingRecord = false  // 录音已成功启动，解除防抖锁
       if (this._isPageUnloaded) {
-        console.log('[Recorder] Page unloaded, ignoring onStart callback')
         try { this._recorderManager.stop() } catch (e) {}
         return
       }
@@ -772,7 +749,6 @@ Page({
     })
 
     this._recorderManager.onStop((res) => {
-      console.log('[Recorder] Stopped, path:', res.tempFilePath)
       this._isStartingRecord = false  // 确保录音停止后解除防抖锁
       if (this._recordTimer) {
         clearInterval(this._recordTimer)
@@ -780,7 +756,6 @@ Page({
       }
       // 页面已卸载时不再操作UI
       if (this._isPageUnloaded) {
-        console.log('[Recorder] Page unloaded, ignoring onStop callback')
         return
       }
       this._recordFilePath = res.tempFilePath
@@ -808,7 +783,6 @@ Page({
       }
       // 页面已卸载时不再操作UI和弹窗
       if (this._isPageUnloaded) {
-        console.log('[Recorder] Page unloaded, ignoring error callback')
         return
       }
       this.setData({ isRecording: false })
@@ -976,7 +950,6 @@ Page({
           currentQuestion.questionId
         )
         audioUrl = uploadRes.audioUrl || uploadRes.audio_url || uploadRes.url || ''
-        console.log('[Upload] Audio uploaded:', audioUrl)
       } catch (e) {
         console.warn('[Upload] Failed:', e.message)
         // 上传失败不阻断流程，继续提交evaluate
@@ -986,7 +959,6 @@ Page({
       // 速度优化：让后端在evaluate内部并行处理转写+评分，节省3-5秒
       let finalTranscription = userTranscription || ''
       if (!finalTranscription && audioUrl) {
-        console.log('[Speed] Skipping separate transcribe call, backend will handle transcription in evaluate')
       }
 
       // 第三步：调用v2 evaluate接口（带重试机制）
@@ -1004,7 +976,6 @@ Page({
         evalParams.audioUrl = audioUrl
       }
 
-      console.log('[Evaluate] Submitting:', JSON.stringify(evalParams).substring(0, 500))
 
       // evaluate网络失败自动重试（最多3次）
       // 避免网络中断导致跳过评分，造成前后端题目状态不同步
@@ -1013,9 +984,7 @@ Page({
       let lastError = null
       for (let attempt = 1; attempt <= MAX_EVALUATE_RETRIES; attempt++) {
         try {
-          console.log(`[Evaluate] Attempt ${attempt}/${MAX_EVALUATE_RETRIES}`)
           evalRes = await evaluateAnswer(evalParams)
-          console.log('[Evaluate] Response:', JSON.stringify(evalRes).substring(0, 500))
           break // 成功则跳出重试循环
         } catch (retryErr) {
           lastError = retryErr
@@ -1071,7 +1040,6 @@ Page({
         if (!q.questionText && q.question_text) q.questionText = q.question_text
         if (!q.questionId && q.question_id) q.questionId = q.question_id
         if (!q.subLevel && q.sub_level) q.subLevel = q.sub_level
-        console.log('[Evaluate] Next question audioUrl:', q.audioUrl)
       }
 
       // 第四步：处理评估结果
@@ -1090,7 +1058,6 @@ Page({
       const shouldForceContinue = isFinished && newTotalAnswered < MIN_QUESTIONS_BEFORE_FINISH
 
       if (shouldForceContinue) {
-        console.log(`[Test] Backend says finished at ${newTotalAnswered} questions, but min is ${MIN_QUESTIONS_BEFORE_FINISH}. Forcing continue.`)
       }
 
       // 如果后端说finished但不够10题，按钮文字仍然是"下一题"
@@ -1100,7 +1067,6 @@ Page({
       this._pendingLevelUp = evalRes.levelUp || false
       this._pendingLevelUpMessage = evalRes.levelUpMessage || ''
       if (this._pendingLevelUp) {
-        console.log('[Evaluate] Level up detected! Message:', this._pendingLevelUpMessage)
       }
 
       this.setData({
@@ -1151,7 +1117,6 @@ Page({
 
     if (shouldForceContinue) {
       // 后端说finished但不够最少题数 → 强制创建new session继续
-      console.log('[Test] Force continue: creating new session to reach minimum questions')
       this.setData({ phase: 'loading', aiStatusText: '继续测评中...' })
 
       try {
@@ -1223,7 +1188,6 @@ Page({
       if (!nextQuestion.questionText && nextQuestion.question_text) nextQuestion.questionText = nextQuestion.question_text
       if (!nextQuestion.questionId && nextQuestion.question_id) nextQuestion.questionId = nextQuestion.question_id
       if (!nextQuestion.subLevel && nextQuestion.sub_level) nextQuestion.subLevel = nextQuestion.sub_level
-      console.log('[Next] Question audioUrl:', nextQuestion.audioUrl, 'questionText:', nextQuestion.questionText)
     }
     // ★ 关键修复：后端返回 status:"continue" 但 question:null
     // 这是后端的bug，但前端需要安全处理而不是崩溃
@@ -1285,7 +1249,6 @@ Page({
     if (isLevelUp) {
       // 升级提示文案：优先用后端返回的levelUpMessage，否则用默认格式
       const displayMessage = levelUpMessage || `升级！${this._previousSubLevel} → ${newSubLevel}`
-      console.log('[LevelUp] Showing upgrade animation:', displayMessage)
       this.setData({
         showLevelUp: true,
         levelUpFrom: this._previousSubLevel,

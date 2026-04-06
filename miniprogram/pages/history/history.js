@@ -13,7 +13,7 @@
  * }
  */
 const app = getApp()
-const { getTestHistory } = require('../../utils/api')
+const { getTestHistory, getUserLevelStatus } = require('../../utils/api')
 const { formatDate, formatDuration, showError, checkLogin } = require('../../utils/util')
 
 Page({
@@ -29,7 +29,11 @@ Page({
     pageSize: 20,
     total: 0,
     completedCount: 0,
-    bestLevel: ''
+    bestLevel: '',
+    // 分级确认状态
+    levelConfirmed: false,
+    confirmedSessionId: '',
+    confirmedLevelName: ''
   },
 
   onLoad() {
@@ -57,7 +61,24 @@ Page({
       return
     }
 
+    this._checkLevelStatus()
     this.loadHistory()
+  },
+
+  /** 检查分级确认状态 */
+  async _checkLevelStatus() {
+    try {
+      const status = await getUserLevelStatus()
+      if (status && status.confirmed) {
+        this.setData({
+          levelConfirmed: true,
+          confirmedSessionId: status.sessionId || '',
+          confirmedLevelName: status.majorLevelName || ''
+        })
+      }
+    } catch (e) {
+      console.warn('[History] Check level status failed:', e)
+    }
   },
 
   /** 加载历史记录 - 对接v2 API */
@@ -119,10 +140,14 @@ Page({
     const overallScore = item.overallScore || item.overall_score || 0
     const highestSubLevel = item.highestSubLevel || item.highest_sub_level || ''
 
+    // 检查是否是已确认分级的session
+    const isConfirmedSession = this.data.levelConfirmed && this.data.confirmedSessionId === sessionId
+
     return {
       ...item,
       sessionId,
       majorLevel,
+      isConfirmedSession,
       levelName: isCompleted ? (item.majorLevelName || item.levelName || item.level_name || config.name) : null,
       levelLabel: isCompleted ? (item.majorLevelLabel || config.label || '') : null,
       levelColor: isCompleted ? config.color : '#8a95a5',
@@ -174,6 +199,10 @@ Page({
 
   /** 去测评 */
   goTest() {
+    if (this.data.levelConfirmed) {
+      wx.showToast({ title: '你已确认分级，无法再次测评', icon: 'none' })
+      return
+    }
     wx.navigateTo({ url: '/pages/test/test' })
   },
 

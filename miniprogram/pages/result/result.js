@@ -10,7 +10,7 @@
  * 数据来源：GET /api/v1/test/result/:sessionId
  */
 const app = getApp()
-const { getTestResult, getQrcodeByLevel } = require('../../utils/api')
+const { getTestResult, getQrcodeByLevel, confirmLevel, getUserLevelStatus } = require('../../utils/api')
 const { showError, formatDuration } = require('../../utils/util')
 
 Page({
@@ -85,8 +85,20 @@ Page({
     }
   },
 
-  /** 检查该sessionId是否已经确认过 */
-  _checkConfirmed() {
+  /** 检查用户是否已确认分级（优先查后端，本地存储做兆底） */
+  async _checkConfirmed() {
+    try {
+      const status = await getUserLevelStatus()
+      if (status && status.confirmed) {
+        this.setData({ confirmed: true })
+        // 同步保存到本地缓存
+        this._saveConfirmedLocal()
+        return
+      }
+    } catch (e) {
+      console.warn('[Result] Check server confirmed status failed:', e)
+    }
+    // 后端查询失败时，回退到本地存储检查
     try {
       const confirmedSessions = wx.getStorageSync('tz_confirmed_sessions') || {}
       if (confirmedSessions[this._sessionId]) {
@@ -95,8 +107,8 @@ Page({
     } catch (e) {}
   },
 
-  /** 保存确认状态到本地 */
-  _saveConfirmed() {
+  /** 保存确认状态到本地（做兆底缓存） */
+  _saveConfirmedLocal() {
     try {
       const confirmedSessions = wx.getStorageSync('tz_confirmed_sessions') || {}
       confirmedSessions[this._sessionId] = {
@@ -106,7 +118,7 @@ Page({
       }
       wx.setStorageSync('tz_confirmed_sessions', confirmedSessions)
     } catch (e) {
-      console.warn('[Result] Save confirmed state failed:', e)
+      console.warn('[Result] Save confirmed state locally failed:', e)
     }
   },
 
@@ -240,23 +252,33 @@ Page({
     }
     wx.showModal({
       title: '确认最终评级',
-      content: `你的评级为"${this.data.levelName}"（${this.data.overallScore}分）。确认后将不可更改，是否确认？`,
+      content: `你的评级为“${this.data.levelName}”（${this.data.overallScore}分）。确认后将不可再次测评，是否确认？`,
       confirmText: '确认评级',
       confirmColor: '#1B3F91',
       cancelText: '再想想',
-      success: (res) => {
+      success: async (res) => {
         if (res.confirm) {
-          this.setData({ confirmed: true })
-          this._saveConfirmed()
+          // 调用后端接口确认分级
+          wx.showLoading({ title: '确认中...', mask: true })
+          try {
+            await confirmLevel(this._sessionId, this._majorLevel, this.data.levelName)
+            this.setData({ confirmed: true })
+            this._saveConfirmedLocal()
 
-          wx.showToast({
-            title: '评级已确认！',
-            icon: 'success',
-            duration: 2000
-          })
+            wx.hideLoading()
+            wx.showToast({
+              title: '评级已确认！',
+              icon: 'success',
+              duration: 2000
+            })
 
-          // 清除测评缓存（确认后不再允许恢复）
-          try { wx.removeStorageSync('tz_test_session') } catch (e) {}
+            // 清除测评缓存（确认后不再允许恢复）
+            try { wx.removeStorageSync('tz_test_session') } catch (e) {}
+          } catch (err) {
+            wx.hideLoading()
+            console.error('[Result] Confirm level failed:', err)
+            wx.showToast({ title: err.message || '确认失败，请重试', icon: 'none' })
+          }
         }
       }
     })
@@ -305,7 +327,7 @@ Page({
   /** 重新测评（仅未确认时可用） */
   handleRetake() {
     if (this.data.confirmed) {
-      wx.showToast({ title: '评级已确认，不可更改', icon: 'none' })
+      wx.showToast({ title: '你已确认分级，无法再次测评', icon: 'none' })
       return
     }
 

@@ -9,7 +9,7 @@
  */
 const app = getApp()
 const { checkLogin, getUserInfo } = require('../../utils/util')
-const { getIntroVideo } = require('../../utils/api')
+const { getIntroVideo, getUserLevelStatus, getQrcodeByLevel } = require('../../utils/api')
 
 Page({
   data: {
@@ -37,7 +37,16 @@ Page({
     resumeModalAnswered: 0,
     resumeModalSubLevel: '',
     // 录音授权状态
-    recordAuthorized: false
+    recordAuthorized: false,
+    // 分级确认状态
+    levelConfirmed: false,
+    confirmedLevelName: '',
+    confirmedMajorLevel: 0,
+    confirmedLevelColor: '#1B3F91',
+    confirmedQrcodeUrl: '',
+    confirmedGroupName: '',
+    showConfirmedQrModal: false,
+    checkingLevelStatus: false
   },
 
   _resumeChecked: false,
@@ -66,6 +75,12 @@ Page({
       userInfo: userInfo
     })
 
+    // 检查用户分级确认状态（已登录时）
+    if (isAuth) {
+      this._checkLevelStatus()
+    } else {
+      this.setData({ levelConfirmed: false })
+    }
     // 检测未完成的测评
     this._checkUnfinishedTest()
     // 刷新录音权限状态
@@ -104,6 +119,79 @@ Page({
     } finally {
       this._loadingVideo = false
     }
+  },
+
+  /** 检查用户分级确认状态 */
+  async _checkLevelStatus() {
+    if (this.data.checkingLevelStatus) return
+    this.setData({ checkingLevelStatus: true })
+    try {
+      const status = await getUserLevelStatus()
+      if (status && status.confirmed) {
+        const config = app.getLevelConfig(status.majorLevel || 0)
+        this.setData({
+          levelConfirmed: true,
+          confirmedLevelName: status.majorLevelName || config.name || '',
+          confirmedMajorLevel: status.majorLevel || 0,
+          confirmedLevelColor: config.color || '#1B3F91',
+          confirmedQrcodeUrl: status.qrcodeUrl || '',
+          confirmedGroupName: status.groupName || ''
+        })
+      } else {
+        this.setData({ levelConfirmed: false })
+      }
+    } catch (e) {
+      console.warn('[Home] Check level status failed:', e)
+      // 查询失败不影响正常使用
+    } finally {
+      this.setData({ checkingLevelStatus: false })
+    }
+  },
+
+  /** 查看已确认分级的二维码 */
+  async handleViewConfirmedQr() {
+    // 如果已有二维码URL，直接展示
+    if (this.data.confirmedQrcodeUrl) {
+      this.setData({ showConfirmedQrModal: true })
+      return
+    }
+    // 否则请求二维码
+    this.setData({ showConfirmedQrModal: true })
+    try {
+      const data = await getQrcodeByLevel(this.data.confirmedMajorLevel)
+      if (data) {
+        this.setData({
+          confirmedQrcodeUrl: data.qrcodeUrl || data.qrcode_url || data.imageUrl || '',
+          confirmedGroupName: data.groupName || data.group_name || ''
+        })
+      }
+    } catch (e) {
+      console.warn('[Home] Fetch QRCode failed:', e)
+    }
+  },
+
+  /** 关闭已确认分级二维码弹窗 */
+  closeConfirmedQrModal() {
+    this.setData({ showConfirmedQrModal: false })
+  },
+
+  /** 查看已确认分级的测评结果 */
+  handleViewConfirmedResult() {
+    // 尝试获取确认时的sessionId
+    try {
+      const confirmedSessions = wx.getStorageSync('tz_confirmed_sessions') || {}
+      const keys = Object.keys(confirmedSessions)
+      if (keys.length > 0) {
+        // 取最新确认的session
+        const latestKey = keys.sort((a, b) => {
+          return (confirmedSessions[b].confirmedAt || 0) - (confirmedSessions[a].confirmedAt || 0)
+        })[0]
+        wx.navigateTo({ url: `/pages/result/result?sessionId=${latestKey}` })
+        return
+      }
+    } catch (e) {}
+    // 如果找不到，跳到历史记录
+    wx.navigateTo({ url: '/pages/history/history' })
   },
 
   /** 静默检查录音权限状态（不弹窗） */
@@ -263,6 +351,12 @@ Page({
   async handleStart() {
     if (!checkLogin()) {
       wx.navigateTo({ url: '/pages/login/login' })
+      return
+    }
+
+    // 已确认分级，不允许再测评
+    if (this.data.levelConfirmed) {
+      wx.showToast({ title: '你已确认分级，无法再次测评', icon: 'none' })
       return
     }
 

@@ -366,6 +366,62 @@ function getIntroVideo() {
   })
 }
 
+/**
+ * 确认分级（用户最终确认自己的等级，确认后不可再测评）
+ * @param {string} sessionId - 测评会话ID
+ * @param {number} majorLevel - 确认的大级别（0/1/2/3）
+ * @param {string} [majorLevelName] - 级别名称
+ * 
+ * Response: {
+ *   confirmed: true,
+ *   majorLevel, majorLevelName, confirmedAt
+ * }
+ */
+function confirmLevel(sessionId, majorLevel, majorLevelName) {
+  return request('/api/v1/test/confirm-level', {
+    method: 'POST',
+    data: {
+      sessionId,
+      session_id: sessionId,
+      majorLevel,
+      major_level: majorLevel,
+      majorLevelName: majorLevelName || '',
+      major_level_name: majorLevelName || ''
+    }
+  }).then(res => {
+    if (res.code !== 200) throw new Error(res.msg || '确认分级失败')
+    return res.data
+  })
+}
+
+/**
+ * 查询用户分级确认状态
+ * 
+ * Response (已确认): {
+ *   confirmed: true,
+ *   majorLevel, majorLevelName, confirmedAt, sessionId,
+ *   qrcodeUrl, groupName
+ * }
+ * 
+ * Response (未确认): {
+ *   confirmed: false
+ * }
+ */
+function getUserLevelStatus() {
+  return request('/api/v1/test/user-level-status').then(res => {
+    if (res.code !== 200) throw new Error(res.msg || '查询分级状态失败')
+    const data = res.data
+    // 兼容下划线命名
+    if (data.majorLevel === undefined && data.major_level !== undefined) data.majorLevel = data.major_level
+    if (!data.majorLevelName && data.major_level_name) data.majorLevelName = data.major_level_name
+    if (!data.confirmedAt && data.confirmed_at) data.confirmedAt = data.confirmed_at
+    if (!data.sessionId && data.session_id) data.sessionId = data.session_id
+    if (!data.qrcodeUrl && data.qrcode_url) data.qrcodeUrl = data.qrcode_url
+    if (!data.groupName && data.group_name) data.groupName = data.group_name
+    return data
+  })
+}
+
 module.exports = {
   sendSmsCode,
   smsLogin,
@@ -381,5 +437,7 @@ module.exports = {
   getTestHistory,
   textToSpeech,
   getQrcodeByLevel,
-  getIntroVideo
+  getIntroVideo,
+  confirmLevel,
+  getUserLevelStatus
 }

@@ -443,6 +443,27 @@ Page({
         return
       }
 
+      // 处理403：已确认分级，不允许再测评
+      if (err.message && (err.message.includes('403') || err.message.includes('已确认') || err.message.includes('禁止') || err.message.includes('forbidden'))) {
+        if (this._showingModal) return
+        this._showingModal = true
+        wx.showModal({
+          title: '无法开始测评',
+          content: '你已确认分级，无法再次测评。如有疑问请联系老师。',
+          showCancel: false,
+          confirmText: '返回首页',
+          confirmColor: '#1B3F91',
+          success: () => {
+            this._showingModal = false
+            wx.reLaunch({ url: '/pages/home/home' })
+          },
+          fail: () => {
+            this._showingModal = false
+          }
+        })
+        return
+      }
+
       this._initRetryCount = (this._initRetryCount || 0) + 1
       if (this._initRetryCount <= 2) {
         showToast(`正在重试...(${this._initRetryCount}/2)`)

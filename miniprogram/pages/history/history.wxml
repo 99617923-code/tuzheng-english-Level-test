@@ -89,6 +89,7 @@
               <view class="item-main-row">
                 <text class="item-score">{{item.overallScore}}分</text>
                 <text wx:if="{{item.highestSubLevel}}" class="item-sublevel">{{item.highestSubLevel}}</text>
+                <text wx:if="{{item.isConfirmedSession}}" class="confirmed-tag">已确认</text>
               </view>
               <view class="item-meta-row">
                 <text class="item-meta">{{item.totalQuestions}}题</text>

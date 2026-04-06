@@ -440,3 +440,12 @@
 
 ## 第二十五轮修复
 - [x] 首页“发现未完成的测评”弹窗改为自定义弹窗（带X关闭按钮），替换wx.showModal原生弹窗
+
+## 第二十六轮 - 对接"确认分级"后端接口
+- [x] api.js: 新增confirmLevel接口（POST /api/v1/test/confirm-level）
+- [x] api.js: 新增getUserLevelStatus接口（GET /api/v1/test/user-level-status）
+- [x] result.js: 确认评级时调用confirmLevel后端接口（替代纯本地存储）
+- [x] home.js: onShow时调用getUserLevelStatus，已确认分级则隐藏“开始测评”，展示已确认状态
+- [x] home.wxml: 新增已确认分级状态的UI展示（级别+二维码入口）
+- [x] test.js: 处理startTest返回403（已确认分级不允许再测评）的情况
+- [x] history.js: 展示已确认分级标识

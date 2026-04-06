@@ -295,3 +295,14 @@
   font-size: 22rpx;
   color: var(--text-placeholder);
 }
+
+/* ========== 已确认分级标签 ========== */
+.confirmed-tag {
+  font-size: 20rpx;
+  color: #ffffff;
+  background: linear-gradient(135deg, #83BA12, #6a9a10);
+  padding: 2rpx 14rpx;
+  border-radius: 100rpx;
+  font-weight: 600;
+  line-height: 1.6;
+}

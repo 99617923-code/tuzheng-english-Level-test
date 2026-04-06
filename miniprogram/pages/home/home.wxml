@@ -100,7 +100,7 @@
 
   <!-- 视频播放弹窗 -->
   <view wx:if="{{showVideo}}" class="video-modal" bindtap="closeVideo">
-    <view class="video-modal-content" catchtap="preventClose">
+    <view class="video-modal-content {{isVerticalVideo ? 'video-vertical' : 'video-horizontal'}}" catchtap="preventClose">
       <video
         class="video-player"
         src="{{introVideoUrl}}"
@@ -110,6 +110,7 @@
         show-play-btn="{{true}}"
         controls="{{true}}"
         enable-progress-gesture="{{true}}"
+        bindloadedmetadata="onVideoMetaLoaded"
       />
       <view class="video-close-btn" bindtap="closeVideo">
         <text class="close-icon">✕</text>

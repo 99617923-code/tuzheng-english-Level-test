@@ -21,6 +21,7 @@ Page({
     introVideoUrl: '',
     introCoverUrl: '',
     showVideo: false,
+    isVerticalVideo: false,  // 视频是否为竖屏
     // 导航布局
     navBarHeight: 0,
     navContentTop: 0,
@@ -76,10 +77,15 @@ Page({
     try {
       const videoData = await getIntroVideo()
       if (videoData && videoData.videoUrl) {
+        // 判断视频横竖屏：优先用后端返回的宽高信息，否则默认横屏
+        const vWidth = videoData.width || 0
+        const vHeight = videoData.height || 0
+        const isVertical = vHeight > vWidth && vWidth > 0
         this.setData({
           hasIntroVideo: true,
           introVideoUrl: videoData.videoUrl,
-          introCoverUrl: videoData.coverUrl || ''
+          introCoverUrl: videoData.coverUrl || '',
+          isVerticalVideo: isVertical
         })
       } else {
         this.setData({
@@ -309,6 +315,18 @@ Page({
   handlePlayDemo() {
     if (!this.data.introVideoUrl) return
     this.setData({ showVideo: true })
+    // 如果后端没返回宽高，通过video组件的bindloadedmetadata事件获取
+  },
+
+  /** 视频元数据加载完成，获取实际宽高判断横竖屏 */
+  onVideoMetaLoaded(e) {
+    const { width, height } = e.detail
+    if (width && height) {
+      const isVertical = height > width
+      if (this.data.isVerticalVideo !== isVertical) {
+        this.setData({ isVerticalVideo: isVertical })
+      }
+    }
   },
 
   /** 关闭视频弹窗 */

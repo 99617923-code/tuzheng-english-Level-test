@@ -439,16 +439,30 @@
 
 .video-modal-content {
   position: relative;
-  width: 88%;
   border-radius: var(--radius-lg);
   overflow: hidden;
   background: #000000;
   box-shadow: 0 40rpx 120rpx rgba(0,0,0,0.30);
 }
 
-.video-player {
+/* 横屏视频：宽屏展示，16:9比例 */
+.video-horizontal {
+  width: 88%;
+}
+
+.video-horizontal .video-player {
   width: 100%;
   height: 420rpx;
+}
+
+/* 竖屏视频：窄屏展示，9:16比例 */
+.video-vertical {
+  width: 62%;
+}
+
+.video-vertical .video-player {
+  width: 100%;
+  height: 780rpx;
 }
 
 .video-close-btn {

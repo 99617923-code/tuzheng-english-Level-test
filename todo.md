@@ -452,3 +452,6 @@
 
 ## 第二十七轮修复 - 接口返回码兼容
 - [x] 修复getUserLevelStatus和confirmLevel接口返回码判断：兼容code=0和code=200
+
+## 第二十八轮修复 - 首页已确认分级状态不生效
+- [ ] 修复home.js中getUserLevelStatus返回数据处理逻辑，确保confirmed状态正确识别

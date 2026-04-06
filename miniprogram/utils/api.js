@@ -410,16 +410,24 @@ function confirmLevel(sessionId, majorLevel, majorLevelName) {
  */
 function getUserLevelStatus() {
   return request('/api/v1/test/user-level-status').then(res => {
+    console.log('[API] getUserLevelStatus raw response:', JSON.stringify(res))
     // 兼容 code=0 和 code=200 两种成功格式
     if (res.code !== 200 && res.code !== 0) throw new Error(res.msg || '查询分级状态失败')
-    const data = res.data
+    // 兼容数据在res.data或直接在res根级别
+    const data = res.data || res
+    console.log('[API] getUserLevelStatus parsed data:', JSON.stringify(data))
     // 兼容下划线命名
+    if (data.confirmed === undefined && data.is_confirmed !== undefined) data.confirmed = data.is_confirmed
     if (data.majorLevel === undefined && data.major_level !== undefined) data.majorLevel = data.major_level
+    if (data.majorLevel === undefined && data.level !== undefined) data.majorLevel = data.level
     if (!data.majorLevelName && data.major_level_name) data.majorLevelName = data.major_level_name
+    if (!data.majorLevelName && data.level_name) data.majorLevelName = data.level_name
+    if (!data.majorLevelName && data.levelName) data.majorLevelName = data.levelName
     if (!data.confirmedAt && data.confirmed_at) data.confirmedAt = data.confirmed_at
     if (!data.sessionId && data.session_id) data.sessionId = data.session_id
     if (!data.qrcodeUrl && data.qrcode_url) data.qrcodeUrl = data.qrcode_url
     if (!data.groupName && data.group_name) data.groupName = data.group_name
+    console.log('[API] getUserLevelStatus final confirmed:', data.confirmed, 'majorLevel:', data.majorLevel)
     return data
   })
 }

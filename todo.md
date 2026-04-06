@@ -420,3 +420,6 @@
 - [x] 播放题目录音时暂停图标改为白色（pause.svg stroke改为white）
 - [x] 群二维码前面图标改为白色（新建users-white.svg）
 - [x] 全局排查黑图标+蓝底不协调问题（共修复12个图标，新增彩色SVG版本）
+
+## Bug修复 - intro-video重复调用timeout（第二十一轮）
+- [x] 修复onLoad和onShow重复调用_loadIntroVideo导致timeout（onLoad不再调用+防重复锁）

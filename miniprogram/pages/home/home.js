@@ -36,6 +36,7 @@ Page({
   },
 
   _resumeChecked: false,
+  _loadingVideo: false,
 
   onLoad() {
     const navLayout = app.getNavLayout()
@@ -49,8 +50,7 @@ Page({
 
     // 预检查录音权限状态（不弹窗）
     this._checkRecordAuth()
-    // 加载讲解视频配置
-    this._loadIntroVideo()
+    // 视频在onShow中统一加载，避免onLoad+onShow重复调用
   },
 
   onShow() {
@@ -69,8 +69,10 @@ Page({
     this._loadIntroVideo()
   },
 
-  /** 从后台动态加载讲解视频 */
+  /** 从后台动态加载讲解视频（带防重复锁） */
   async _loadIntroVideo() {
+    if (this._loadingVideo) return
+    this._loadingVideo = true
     try {
       const videoData = await getIntroVideo()
       if (videoData && videoData.videoUrl) {
@@ -89,6 +91,8 @@ Page({
     } catch (e) {
       console.warn('[Home] Load intro video failed:', e)
       this.setData({ hasIntroVideo: false })
+    } finally {
+      this._loadingVideo = false
     }
   },
 

@@ -454,7 +454,11 @@
 - [x] 修复getUserLevelStatus和confirmLevel接口返回码判断：兼容code=0和code=200
 
 ## 第二十八轮修复 - 首页已确认分级状态不生效
-- [ ] 修复home.js中getUserLevelStatus返回数据处理逻辑，确保confirmed状态正确识别
+- [x] 修复home.js中getUserLevelStatus返回数据处理逻辑，确保confirmed状态正确识别（后端确认返回confirmed:false是因为未调用confirm-level接口）
 
 ## 第二十九轮 - UI微调
 - [x] 首页“分级已确认”勾勾图标改为经典绿色
+
+## 第三十轮 - 级别色彩优化
+- [x] 修改levelConfig色彩：0级绿色、1级蓝色、2级紫色#8B5CF6、3级金色#F59E0B
+- [x] 检查并更新所有文件中的硬编码旧颜色（rules/history/home/result/test/app.wxss等全量替换完成）

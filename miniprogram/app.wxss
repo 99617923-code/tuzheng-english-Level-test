@@ -1,28 +1,32 @@
 /**
  * 途正英语AI分级测评 - 全局样式
- * 品牌色: 蓝 #1B3F91 / 绿 #83BA12
+ * 品牌色: 蓝 #3B82F6 / 绿 #22c55e / 紫 #8B5CF6 / 金 #F59E0B
  * 设计风格: 毛玻璃 + 渐变背景
  * 小程序原生适配: 胶囊按钮 + 状态栏 + 安全区域
  */
 
 /* ===== CSS Variables ===== */
 page {
-  --brand-blue: #1B3F91;
-  --brand-blue-light: #2B5BA0;
-  --brand-blue-dark: #142e6b;
-  --brand-green: #83BA12;
-  --brand-green-dark: #6a9a10;
+  --brand-blue: #3B82F6;
+  --brand-blue-light: #60A5FA;
+  --brand-blue-dark: #2563EB;
+  --brand-green: #22c55e;
+  --brand-green-dark: #16a34a;
+  --brand-purple: #8B5CF6;
+  --brand-purple-dark: #7C3AED;
+  --brand-gold: #F59E0B;
+  --brand-gold-dark: #D97706;
   --text-primary: #1a2340;
   --text-secondary: #3a4a5a;
   --text-tertiary: #5a6a7a;
   --text-muted: #7a8a9a;
-  --text-light: #8a95a5;
+  --text-light: #94a3b8;
   --text-placeholder: #adb5bd;
   --bg-gradient: linear-gradient(160deg, #e8eef8 0%, #f0f4f8 30%, #eef6e8 70%, #f5f8f0 100%);
   --glass-bg: rgba(255, 255, 255, 0.60);
   --glass-bg-strong: rgba(255, 255, 255, 0.80);
   --glass-border: rgba(255, 255, 255, 0.4);
-  --glass-shadow: 0 4px 20px rgba(27, 63, 145, 0.06);
+  --glass-shadow: 0 4px 20px rgba(59, 130, 246, 0.06);
   --radius-sm: 16rpx;
   --radius-md: 24rpx;
   --radius-lg: 32rpx;

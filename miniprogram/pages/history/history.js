@@ -150,7 +150,7 @@ Page({
       isConfirmedSession,
       levelName: isCompleted ? (item.majorLevelName || item.levelName || item.level_name || config.name) : null,
       levelLabel: isCompleted ? (item.majorLevelLabel || config.label || '') : null,
-      levelColor: isCompleted ? config.color : '#8a95a5',
+      levelColor: isCompleted ? config.color : '#9CA3AF',
       completedAtFormatted: completedAt ? formatDate(completedAt) : (createdAt ? formatDate(createdAt) : '未完成'),
       durationText: durationSeconds > 0 ? formatDuration(durationSeconds) : '-',
       totalQuestions,

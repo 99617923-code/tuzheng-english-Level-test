@@ -28,10 +28,10 @@ Page({
     // 等级信息
     levelName: '',
     levelLabel: '',
-    levelColor: '#1B3F91',
-    levelBgGradient: 'linear-gradient(135deg, rgba(27,63,145,0.06), rgba(131,186,18,0.06))',
-    heroBgGradient: 'linear-gradient(135deg, rgba(27,63,145,0.06), rgba(131,186,18,0.06))',
-    levelShadow: 'rgba(27,63,145,0.25)',
+    levelColor: '#3B82F6',
+    levelBgGradient: 'linear-gradient(135deg, rgba(59,130,246,0.06), rgba(34,197,94,0.06))',
+    heroBgGradient: 'linear-gradient(135deg, rgba(59,130,246,0.06), rgba(34,197,94,0.06))',
+    levelShadow: 'rgba(59,130,246,0.25)',
     scorePercent: 0,
     starsArray: [true, false, false, false],
     highestSubLevel: '',
@@ -147,7 +147,7 @@ Page({
           label: '发音准确度',
           value: report.pronunciation,
           percent: report.pronunciation,
-          color: '#1B3F91'
+          color: '#3B82F6'
         })
       }
       if (report.grammar !== undefined) {
@@ -155,7 +155,7 @@ Page({
           label: '语法运用',
           value: report.grammar,
           percent: report.grammar,
-          color: '#2B5BA0'
+          color: '#8B5CF6'
         })
       }
       if (report.vocabulary !== undefined) {
@@ -163,7 +163,7 @@ Page({
           label: '词汇量',
           value: report.vocabulary,
           percent: report.vocabulary,
-          color: '#83BA12'
+          color: '#22c55e'
         })
       }
       if (report.fluency !== undefined) {
@@ -171,7 +171,7 @@ Page({
           label: '口语流利度',
           value: report.fluency,
           percent: report.fluency,
-          color: '#4a8a30'
+          color: '#F59E0B'
         })
       }
 
@@ -254,7 +254,7 @@ Page({
       title: '确认最终评级',
       content: `你的评级为“${this.data.levelName}”（${this.data.overallScore}分）。确认后将不可再次测评，是否确认？`,
       confirmText: '确认评级',
-      confirmColor: '#1B3F91',
+      confirmColor: '#3B82F6',
       cancelText: '再想想',
       success: async (res) => {
         if (res.confirm) {
@@ -335,7 +335,7 @@ Page({
       title: '重新测评',
       content: '将开始一次全新的测评，当前结果不会保留。确定要重新测评吗？',
       confirmText: '重新测评',
-      confirmColor: '#83BA12',
+      confirmColor: '#22c55e',
       cancelText: '取消',
       success: (res) => {
         if (res.confirm) {
@@ -391,18 +391,18 @@ Page({
 
       // 顶部装饰条
       const topGrad = ctx.createLinearGradient(0, 0, W, 0)
-      topGrad.addColorStop(0, '#1B3F91')
-      topGrad.addColorStop(1, '#2B5BA0')
+      topGrad.addColorStop(0, '#3B82F6')
+      topGrad.addColorStop(1, '#2563EB')
       ctx.fillStyle = topGrad
       ctx.fillRect(0, 0, W, 8)
 
       // ===== 标题区 =====
-      ctx.fillStyle = '#1B3F91'
+      ctx.fillStyle = '#1a2340'
       ctx.font = 'bold 42px sans-serif'
       ctx.textAlign = 'center'
       ctx.fillText('途正英语AI分级测评', W / 2, 80)
 
-      ctx.fillStyle = '#8a95a5'
+      ctx.fillStyle = '#7a8a9a'
       ctx.font = '26px sans-serif'
       ctx.fillText('最终测评报告', W / 2, 120)
 
@@ -411,7 +411,7 @@ Page({
       ctx.fillStyle = '#ffffff'
       this._roundRect(ctx, cardX, cardY, cardW, cardH, 24)
       ctx.fill()
-      ctx.shadowColor = 'rgba(27,63,145,0.08)'
+      ctx.shadowColor = 'rgba(59,130,246,0.08)'
       ctx.shadowBlur = 20
       ctx.shadowOffsetY = 8
       ctx.fill()
@@ -422,7 +422,7 @@ Page({
       // 等级徽章
       const badgeW = 200, badgeH = 64
       const badgeX = (W - badgeW) / 2, badgeY = cardY + 40
-      const levelColor = this.data.levelColor || '#1B3F91'
+      const levelColor = this.data.levelColor || '#3B82F6'
       ctx.fillStyle = levelColor
       this._roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 32)
       ctx.fill()
@@ -440,7 +440,7 @@ Page({
       const ringCX = W / 2, ringCY = badgeY + 220, ringR = 80
       ctx.beginPath()
       ctx.arc(ringCX, ringCY, ringR, 0, Math.PI * 2)
-      ctx.strokeStyle = 'rgba(27,63,145,0.08)'
+      ctx.strokeStyle = 'rgba(59,130,246,0.08)'
       ctx.lineWidth = 14
       ctx.stroke()
       const percent = this.data.scorePercent || 0
@@ -455,7 +455,7 @@ Page({
       ctx.font = 'bold 56px sans-serif'
       ctx.textAlign = 'center'
       ctx.fillText(String(this.data.overallScore), ringCX, ringCY + 18)
-      ctx.fillStyle = '#8a95a5'
+      ctx.fillStyle = '#7a8a9a'
       ctx.font = '22px sans-serif'
       ctx.fillText('分', ringCX, ringCY + 46)
 
@@ -473,7 +473,7 @@ Page({
         ctx.font = 'bold 32px sans-serif'
         ctx.textAlign = 'center'
         ctx.fillText(s.value, sx, statsY)
-        ctx.fillStyle = '#8a95a5'
+        ctx.fillStyle = '#7a8a9a'
         ctx.font = '22px sans-serif'
         ctx.fillText(s.label, sx, statsY + 32)
       })
@@ -501,15 +501,15 @@ Page({
         ctx.font = '24px sans-serif'
         ctx.textAlign = 'left'
         ctx.fillText(item.label, cardX, iy)
-        ctx.fillStyle = item.color || '#1B3F91'
+        ctx.fillStyle = item.color || '#3B82F6'
         ctx.font = 'bold 24px sans-serif'
         ctx.textAlign = 'right'
         ctx.fillText(String(item.value), cardX + cardW, iy)
         const barY = iy + 12, barH = 10, barW = cardW
-        ctx.fillStyle = 'rgba(27,63,145,0.06)'
+        ctx.fillStyle = 'rgba(59,130,246,0.06)'
         this._roundRect(ctx, cardX, barY, barW, barH, 5)
         ctx.fill()
-        ctx.fillStyle = item.color || '#1B3F91'
+        ctx.fillStyle = item.color || '#3B82F6'
         this._roundRect(ctx, cardX, barY, barW * (item.percent / 100), barH, 5)
         ctx.fill()
       })

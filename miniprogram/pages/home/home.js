@@ -42,7 +42,7 @@ Page({
     levelConfirmed: false,
     confirmedLevelName: '',
     confirmedMajorLevel: 0,
-    confirmedLevelColor: '#1B3F91',
+    confirmedLevelColor: '#3B82F6',
     confirmedQrcodeUrl: '',
     confirmedGroupName: '',
     showConfirmedQrModal: false,
@@ -134,7 +134,7 @@ Page({
           levelConfirmed: true,
           confirmedLevelName: status.majorLevelName || config.name || '',
           confirmedMajorLevel: status.majorLevel || 0,
-          confirmedLevelColor: config.color || '#1B3F91',
+          confirmedLevelColor: config.color || '#3B82F6',
           confirmedQrcodeUrl: status.qrcodeUrl || '',
           confirmedGroupName: status.groupName || ''
         })
@@ -221,7 +221,7 @@ Page({
               title: '需要录音权限',
               content: '测评需要使用麦克风录制你的英语回答。请在设置中开启录音权限。',
               confirmText: '去设置',
-              confirmColor: '#1B3F91',
+              confirmColor: '#3B82F6',
               success: (modalRes) => {
                 if (modalRes.confirm) {
                   wx.openSetting({
@@ -252,7 +252,7 @@ Page({
                   title: '需要录音权限',
                   content: '测评需要使用麦克风录制你的英语回答，没有此权限将无法进行测评。',
                   confirmText: '重新授权',
-                  confirmColor: '#1B3F91',
+                  confirmColor: '#3B82F6',
                   success: (modalRes) => {
                     if (modalRes.confirm) {
                       wx.openSetting({

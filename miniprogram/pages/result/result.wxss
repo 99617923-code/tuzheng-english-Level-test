@@ -129,7 +129,7 @@
   color: var(--text-muted);
   margin-bottom: 32rpx;
   padding: 4rpx 20rpx;
-  background: rgba(27,63,145,0.05);
+  background: rgba(59,130,246,0.05);
   border-radius: var(--radius-full);
 }
 
@@ -151,7 +151,7 @@
   width: 200rpx;
   height: 200rpx;
   border-radius: 50%;
-  background: rgba(27,63,145,0.06);
+  background: rgba(59,130,246,0.06);
 }
 
 .score-ring-fill {
@@ -258,16 +258,16 @@
 
 /* 确认评级按钮 */
 .confirm-btn {
-  background: linear-gradient(135deg, #1B3F91, #2B5BA0) !important;
+  background: linear-gradient(135deg, #3B82F6, #2563EB) !important;
   color: #ffffff;
-  box-shadow: 0 12rpx 40rpx rgba(27,63,145,0.30);
+  box-shadow: 0 12rpx 40rpx rgba(59,130,246,0.30);
 }
 
 /* 重新测评按钮 */
 .retake-btn {
   background: rgba(255,255,255,0.75) !important;
   color: var(--brand-green) !important;
-  border: 1rpx solid rgba(131,186,18,0.20) !important;
+  border: 1rpx solid rgba(34,197,94,0.20) !important;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
@@ -280,9 +280,9 @@
 
 /* 加入学习群按钮 */
 .join-group-btn {
-  background: linear-gradient(135deg, #1B3F91, #2B5BA0) !important;
+  background: linear-gradient(135deg, #3B82F6, #2563EB) !important;
   color: #ffffff;
-  box-shadow: 0 12rpx 40rpx rgba(27,63,145,0.30);
+  box-shadow: 0 12rpx 40rpx rgba(59,130,246,0.30);
 }
 
 .join-group-btn .action-btn-icon {
@@ -311,7 +311,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1rpx solid rgba(27,63,145,0.10) !important;
+  border: 1rpx solid rgba(59,130,246,0.10) !important;
   line-height: 1;
   margin-bottom: 20rpx;
   backdrop-filter: blur(8px);
@@ -320,7 +320,7 @@
 }
 
 .share-btn:active {
-  background: rgba(27,63,145,0.06) !important;
+  background: rgba(59,130,246,0.06) !important;
 }
 
 .share-btn-icon {
@@ -341,7 +341,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1rpx solid rgba(131,186,18,0.15) !important;
+  border: 1rpx solid rgba(34,197,94,0.15) !important;
   line-height: 1;
   margin-bottom: 20rpx;
   backdrop-filter: blur(8px);
@@ -350,7 +350,7 @@
 }
 
 .save-poster-btn:active {
-  background: rgba(131,186,18,0.06) !important;
+  background: rgba(34,197,94,0.06) !important;
 }
 
 .save-poster-btn[disabled] {
@@ -376,7 +376,7 @@
   background: rgba(255,255,255,0.80);
   border-radius: var(--radius-card);
   border: 1rpx solid rgba(255,255,255,0.6);
-  box-shadow: 0 4rpx 16rpx rgba(27,63,145,0.05);
+  box-shadow: 0 4rpx 16rpx rgba(59,130,246,0.05);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
@@ -451,11 +451,11 @@
 }
 
 .section-icon-wrap.blue {
-  background: rgba(27,63,145,0.08);
+  background: rgba(59,130,246,0.08);
 }
 
 .section-icon-wrap.green {
-  background: rgba(131,186,18,0.08);
+  background: rgba(34,197,94,0.08);
 }
 
 .section-icon-wrap.orange {
@@ -479,7 +479,7 @@
   background: rgba(255,255,255,0.80);
   border-radius: var(--radius-card);
   border: 1rpx solid rgba(255,255,255,0.6);
-  box-shadow: 0 4rpx 16rpx rgba(27,63,145,0.05);
+  box-shadow: 0 4rpx 16rpx rgba(59,130,246,0.05);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   box-sizing: border-box;
@@ -526,7 +526,7 @@
 .score-track {
   height: 12rpx;
   border-radius: 12rpx;
-  background: rgba(27,63,145,0.05);
+  background: rgba(59,130,246,0.05);
   overflow: hidden;
   margin-right: 0;
 }

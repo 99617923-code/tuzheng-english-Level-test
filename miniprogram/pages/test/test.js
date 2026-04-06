@@ -120,7 +120,7 @@ Page({
     evaluationFeedback: '',
     evaluationScore: 0,
     evaluationPassed: false,
-    scoreColor: '#1B3F91',
+    scoreColor: '#3B82F6',
 
     // 升级提示
     levelUpFrom: '',
@@ -339,7 +339,7 @@ Page({
         title: '恢复失败',
         content: '无法恢复上次的测评，是否开始新测评？',
         confirmText: '重新开始',
-        confirmColor: '#83BA12',
+        confirmColor: '#22c55e',
         cancelText: '返回',
         success: (res) => {
           this._showingModal = false
@@ -452,7 +452,7 @@ Page({
           content: '你已确认分级，无法再次测评。如有疑问请联系老师。',
           showCancel: false,
           confirmText: '返回首页',
-          confirmColor: '#1B3F91',
+          confirmColor: '#3B82F6',
           success: () => {
             this._showingModal = false
             wx.reLaunch({ url: '/pages/home/home' })
@@ -479,7 +479,7 @@ Page({
         content: err.message || '服务器响应异常，请稍后再试',
         confirmText: '重试',
         cancelText: '返回',
-        confirmColor: '#83BA12',
+        confirmColor: '#22c55e',
         success: (res) => {
           this._showingModal = false
           if (res.confirm) {
@@ -1079,7 +1079,7 @@ Page({
       const score = evaluation.score || 0
       const passed = evaluation.passed || false
       const feedback = evaluation.feedback || ''
-      const scoreColor = score >= 80 ? '#83BA12' : score >= 60 ? '#2B5BA0' : '#e74c3c'
+      const scoreColor = score >= 80 ? '#22c55e' : score >= 60 ? '#3B82F6' : '#e74c3c'
 
       // 更新答题计数（前端自己维护 + 后端返回的取较大值）
       this._frontendQuestionCount += 1
@@ -1384,7 +1384,7 @@ Page({
               evaluationFeedback: '已跳过此题',
               evaluationScore: evaluation.score || 0,
               evaluationPassed: false,
-              scoreColor: '#8a95a5',
+              scoreColor: '#7a8a9a',
               totalAnswered: newTotalAnswered,
               questionCountDisplay: `第 ${newTotalAnswered} 题`,
               phase: 'feedback',

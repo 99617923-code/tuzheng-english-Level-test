@@ -9,9 +9,9 @@
 
 /* 装饰圆形 */
 .deco-circle { position: absolute; border-radius: 50%; }
-.deco-1 { top: -160rpx; right: -100rpx; width: 416rpx; height: 416rpx; background: radial-gradient(circle, rgba(27,63,145,0.08) 0%, transparent 70%); }
-.deco-2 { top: 40%; left: -80rpx; width: 256rpx; height: 256rpx; background: radial-gradient(circle, rgba(131,186,18,0.10) 0%, transparent 70%); }
-.deco-3 { bottom: 10%; right: -60rpx; width: 320rpx; height: 320rpx; background: radial-gradient(circle, rgba(27,63,145,0.06) 0%, transparent 70%); }
+.deco-1 { top: -160rpx; right: -100rpx; width: 416rpx; height: 416rpx; background: radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 70%); }
+.deco-2 { top: 40%; left: -80rpx; width: 256rpx; height: 256rpx; background: radial-gradient(circle, rgba(34,197,94,0.10) 0%, transparent 70%); }
+.deco-3 { bottom: 10%; right: -60rpx; width: 320rpx; height: 320rpx; background: radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%); }
 
 /* 主内容 */
 .content {
@@ -104,7 +104,7 @@
   width: 100%;
   height: 100%;
   border-radius: 100rpx;
-  border: 3rpx solid rgba(27,63,145,0.25);
+  border: 3rpx solid rgba(59,130,246,0.25);
   animation: startPulse 2.5s ease-out infinite;
   pointer-events: none;
 }
@@ -130,7 +130,7 @@
   width: 480rpx;
   height: 104rpx;
   border-radius: 52rpx;
-  background: linear-gradient(135deg, #1B3F91 0%, #2B5BA0 50%, #1B3F91 100%);
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 50%, #3B82F6 100%);
   background-size: 200% 200%;
   animation: gradientShift 3s ease infinite;
   color: #ffffff;
@@ -138,7 +138,7 @@
   font-weight: 700;
   letter-spacing: 4rpx;
   border: none;
-  box-shadow: 0 12rpx 40rpx rgba(27,63,145,0.35), 0 4rpx 12rpx rgba(27,63,145,0.20);
+  box-shadow: 0 12rpx 40rpx rgba(59,130,246,0.35), 0 4rpx 12rpx rgba(59,130,246,0.20);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -151,7 +151,7 @@
 
 .btn-start:active {
   transform: scale(0.96);
-  box-shadow: 0 6rpx 20rpx rgba(27,63,145,0.30);
+  box-shadow: 0 6rpx 20rpx rgba(59,130,246,0.30);
 }
 
 @keyframes gradientShift {
@@ -178,8 +178,8 @@
   justify-content: space-between;
   padding: 24rpx 28rpx;
   padding-top: 36rpx;
-  border: 2rpx solid rgba(131,186,18,0.25);
-  background: rgba(131,186,18,0.06) !important;
+  border: 2rpx solid rgba(34,197,94,0.25);
+  background: rgba(34,197,94,0.06) !important;
   position: relative;
 }
 
@@ -213,7 +213,7 @@
   width: 16rpx;
   height: 16rpx;
   border-radius: 50%;
-  background: #83BA12;
+  background: #22c55e;
   flex-shrink: 0;
   animation: dotPulse 1.5s ease-in-out infinite;
 }
@@ -250,7 +250,7 @@
 .resume-btn-continue {
   padding: 10rpx 28rpx;
   border-radius: var(--radius-full);
-  background: linear-gradient(135deg, #83BA12, #6a9a10);
+  background: linear-gradient(135deg, #22c55e, #16a34a);
   color: #ffffff;
   font-size: 24rpx;
   font-weight: 600;
@@ -292,7 +292,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(27,63,145,0.06), rgba(131,186,18,0.06));
+  background: linear-gradient(135deg, rgba(59,130,246,0.06), rgba(34,197,94,0.06));
   overflow: hidden;
 }
 
@@ -314,7 +314,7 @@
 .video-wave-bar {
   width: 4rpx;
   border-radius: 4rpx;
-  background: rgba(27,63,145,0.20);
+  background: rgba(59,130,246,0.20);
 }
 
 .video-play-btn {
@@ -328,8 +328,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #1B3F91, #2B5BA0);
-  box-shadow: 0 8rpx 24rpx rgba(27,63,145,0.30);
+  background: linear-gradient(135deg, #3B82F6, #2563EB);
+  box-shadow: 0 8rpx 24rpx rgba(59,130,246,0.30);
 }
 
 .play-triangle {
@@ -386,7 +386,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(131,186,18,0.12);
+  background: rgba(34,197,94,0.12);
 }
 
 .history-icon {
@@ -541,7 +541,7 @@
 
 .resume-modal-close-icon {
   font-size: 28rpx;
-  color: #8a95a5;
+  color: #7a8a9a;
   font-weight: 600;
   line-height: 1;
 }
@@ -557,7 +557,7 @@
   width: 16rpx;
   height: 16rpx;
   border-radius: 50%;
-  background: #83BA12;
+  background: #22c55e;
   flex-shrink: 0;
   animation: dotPulse 1.5s ease-in-out infinite;
 }
@@ -605,9 +605,9 @@
 }
 
 .resume-modal-btn-continue {
-  background: linear-gradient(135deg, #83BA12, #6a9a10);
+  background: linear-gradient(135deg, #22c55e, #16a34a);
   color: #ffffff;
-  box-shadow: 0 8rpx 24rpx rgba(131,186,18,0.30);
+  box-shadow: 0 8rpx 24rpx rgba(34,197,94,0.30);
 }
 
 /* ============ 已确认分级状态 ============ */
@@ -692,9 +692,9 @@
 }
 
 .confirmed-btn-qr {
-  background: linear-gradient(135deg, #1B3F91, #2B5BA0);
+  background: linear-gradient(135deg, #3B82F6, #2563EB);
   color: #ffffff;
-  box-shadow: 0 8rpx 24rpx rgba(27,63,145,0.30);
+  box-shadow: 0 8rpx 24rpx rgba(59,130,246,0.30);
 }
 
 .confirmed-btn-result {
@@ -730,7 +730,7 @@
 .confirmed-qr-subtitle {
   display: block;
   font-size: 24rpx;
-  color: #8a95a5;
+  color: #7a8a9a;
   margin-bottom: 32rpx;
   text-align: center;
 }
@@ -747,6 +747,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #8a95a5;
+  color: #7a8a9a;
   font-size: 26rpx;
 }

@@ -24,10 +24,10 @@ App({
     shareCoverUrl: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/share-cover_103ee497.png',
     // 等级配置（仅保留UI相关配置如颜色、星级等，名称和描述优先使用后端返回的majorLevelName、majorLevelLabel字段）
     levelConfig: {
-      0: { name: '零级', label: '学前水平', color: '#8a95a5', bgColor: 'rgba(138,149,165,0.08)', stars: 1, abilityLabel: '入门' },
-      1: { name: '一级', label: '小学水平', color: '#1B3F91', bgColor: 'rgba(27,63,145,0.06)', stars: 2, abilityLabel: '基础' },
-      2: { name: '二级', label: '中学水平', color: '#83BA12', bgColor: 'rgba(131,186,18,0.06)', stars: 3, abilityLabel: '中级' },
-      3: { name: '三级', label: '雅思水平', color: '#2B5BA0', bgColor: 'rgba(43,91,160,0.06)', stars: 4, abilityLabel: '高级' }
+      0: { name: '零级', label: '学前水平', color: '#22c55e', bgColor: 'rgba(34,197,94,0.08)', stars: 1, abilityLabel: '入门' },
+      1: { name: '一级', label: '小学水平', color: '#3B82F6', bgColor: 'rgba(59,130,246,0.06)', stars: 2, abilityLabel: '基础' },
+      2: { name: '二级', label: '中学水平', color: '#8B5CF6', bgColor: 'rgba(139,92,246,0.06)', stars: 3, abilityLabel: '中级' },
+      3: { name: '三级', label: '雅思水平', color: '#F59E0B', bgColor: 'rgba(245,158,11,0.06)', stars: 4, abilityLabel: '高级' }
     }
   },
 

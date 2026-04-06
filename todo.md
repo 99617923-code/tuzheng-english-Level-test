@@ -449,3 +449,6 @@
 - [x] home.wxml: 新增已确认分级状态的UI展示（级别+二维码入口）
 - [x] test.js: 处理startTest返回403（已确认分级不允许再测评）的情况
 - [x] history.js: 展示已确认分级标识
+
+## 第二十七轮修复 - 接口返回码兼容
+- [x] 修复getUserLevelStatus和confirmLevel接口返回码判断：兼容code=0和code=200

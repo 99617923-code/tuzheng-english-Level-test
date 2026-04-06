@@ -389,7 +389,8 @@ function confirmLevel(sessionId, majorLevel, majorLevelName) {
       major_level_name: majorLevelName || ''
     }
   }).then(res => {
-    if (res.code !== 200) throw new Error(res.msg || '确认分级失败')
+    // 兼容 code=0 和 code=200 两种成功格式
+    if (res.code !== 200 && res.code !== 0) throw new Error(res.msg || '确认分级失败')
     return res.data
   })
 }
@@ -409,7 +410,8 @@ function confirmLevel(sessionId, majorLevel, majorLevelName) {
  */
 function getUserLevelStatus() {
   return request('/api/v1/test/user-level-status').then(res => {
-    if (res.code !== 200) throw new Error(res.msg || '查询分级状态失败')
+    // 兼容 code=0 和 code=200 两种成功格式
+    if (res.code !== 200 && res.code !== 0) throw new Error(res.msg || '查询分级状态失败')
     const data = res.data
     // 兼容下划线命名
     if (data.majorLevel === undefined && data.major_level !== undefined) data.majorLevel = data.major_level

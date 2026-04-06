@@ -46,6 +46,7 @@
     <!-- 未完成测评恢复提示 -->
     <view wx:if="{{hasUnfinishedTest}}" class="resume-banner animate-fade-in-delay-2">
       <view class="resume-banner-inner glass-card-strong">
+        <view class="resume-close-btn" bindtap="handleDismissResume">×</view>
         <view class="resume-info">
           <view class="resume-dot-pulse"></view>
           <view class="resume-text-wrap">

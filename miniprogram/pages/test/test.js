@@ -1272,7 +1272,7 @@ Page({
         levelUpMessage: displayMessage,
         phase: 'levelup'
       })
-      await delay(2000)  // 升级动画显示2秒（比1.5秒稍长，让用户看清楚）
+      await delay(3000)  // 升级动画显示3秒（配合Duolingo风格烟花效果）
       this.setData({ showLevelUp: false })
     }
 

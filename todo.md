@@ -423,3 +423,8 @@
 
 ## Bug修复 - intro-video重复调用timeout（第二十一轮）
 - [x] 修复onLoad和onShow重复调用_loadIntroVideo导致timeout（onLoad不再调用+防重复锁）
+
+## 第二十二轮优化
+- [x] 未完成测评弹窗增加关闭按钮（仅隐藏提示，不删除session）
+- [x] feedback区域加“AI 分析”文字标题（不要图标）
+- [x] 升级恭喜改为Duolingo风格全屏弹窗+烟花动画效果（全屏蒙层+烟花粒子+星星动画+弹跳卡片）

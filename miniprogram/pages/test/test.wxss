@@ -239,11 +239,22 @@
   line-height: 1.6;
 }
 
-/* 评价反馈 */
+/* AI分析反馈 */
 .feedback-area {
   background: rgba(27,63,145,0.04);
   border-radius: var(--radius-md);
   padding: 24rpx 28rpx;
+}
+
+.feedback-header {
+  margin-bottom: 16rpx;
+}
+
+.feedback-ai-tag {
+  font-size: 24rpx;
+  font-weight: 700;
+  color: var(--brand-blue);
+  letter-spacing: 2rpx;
 }
 
 .feedback-score-row {
@@ -287,41 +298,216 @@
   line-height: 1.6;
 }
 
-/* 升级提示 */
-.levelup-toast {
+/* ============ 升级恭喜弹窗（Duolingo风格） ============ */
+.levelup-overlay {
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(255,255,255,0.95);
-  border-radius: var(--radius-xl);
-  padding: 48rpx 64rpx;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  animation: overlayFadeIn 0.3s ease;
+}
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* 烟花容器 */
+.firework-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 501;
+}
+
+/* 烟花粒子 */
+.firework {
+  position: absolute;
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  animation: fireworkBurst 1.8s ease-out forwards;
+}
+
+.firework-1 { top: 20%; left: 15%; background: #FFD700; animation-delay: 0s; }
+.firework-2 { top: 15%; left: 75%; background: #FF6B6B; animation-delay: 0.1s; }
+.firework-3 { top: 30%; left: 85%; background: #4ECDC4; animation-delay: 0.2s; }
+.firework-4 { top: 25%; left: 25%; background: #FF9F43; animation-delay: 0.15s; }
+.firework-5 { top: 35%; left: 60%; background: #A29BFE; animation-delay: 0.25s; }
+.firework-6 { top: 18%; left: 45%; background: #FD79A8; animation-delay: 0.05s; }
+.firework-7 { top: 40%; left: 10%; background: #6C5CE7; animation-delay: 0.3s; }
+.firework-8 { top: 22%; left: 90%; background: #00B894; animation-delay: 0.12s; }
+.firework-9 { top: 45%; left: 80%; background: #FDCB6E; animation-delay: 0.18s; }
+.firework-10 { top: 28%; left: 50%; background: #E17055; animation-delay: 0.08s; }
+.firework-11 { top: 38%; left: 35%; background: #74B9FF; animation-delay: 0.22s; }
+.firework-12 { top: 15%; left: 65%; background: #55EFC4; animation-delay: 0.28s; }
+
+@keyframes fireworkBurst {
+  0% {
+    transform: scale(0) translateY(0);
+    opacity: 1;
+  }
+  30% {
+    transform: scale(3) translateY(-60rpx);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.5) translateY(-200rpx);
+    opacity: 0;
+  }
+}
+
+/* 闪烁粒子 */
+.sparkle {
+  position: absolute;
+  width: 12rpx;
+  height: 12rpx;
+  background: #FFD700;
+  animation: sparkleFall 2s ease-out forwards;
+}
+
+.sparkle-1 { top: 10%; left: 20%; animation-delay: 0.3s; background: #FFD700; }
+.sparkle-2 { top: 10%; left: 40%; animation-delay: 0.5s; background: #FF6B6B; }
+.sparkle-3 { top: 10%; left: 60%; animation-delay: 0.4s; background: #4ECDC4; }
+.sparkle-4 { top: 10%; left: 80%; animation-delay: 0.6s; background: #A29BFE; }
+.sparkle-5 { top: 10%; left: 30%; animation-delay: 0.7s; background: #FD79A8; }
+.sparkle-6 { top: 10%; left: 50%; animation-delay: 0.35s; background: #FF9F43; }
+.sparkle-7 { top: 10%; left: 70%; animation-delay: 0.55s; background: #6C5CE7; }
+.sparkle-8 { top: 10%; left: 90%; animation-delay: 0.45s; background: #00B894; }
+
+@keyframes sparkleFall {
+  0% {
+    transform: translateY(0) rotate(0deg) scale(1);
+    opacity: 1;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(600rpx) rotate(720deg) scale(0.3);
+    opacity: 0;
+  }
+}
+
+/* 内容卡片 */
+.levelup-card {
+  position: relative;
+  z-index: 502;
+  width: 560rpx;
+  background: #ffffff;
+  border-radius: 32rpx;
+  padding: 56rpx 48rpx 48rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
+  box-shadow: 0 32rpx 100rpx rgba(0, 0, 0, 0.25);
+}
+
+.animate-bounce-in {
+  animation: bounceIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes bounceIn {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+  70% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* 星星行 */
+.levelup-star-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   gap: 16rpx;
-  box-shadow: 0 24rpx 80rpx rgba(27,63,145,0.20);
-  z-index: 200;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  margin-bottom: 24rpx;
 }
 
-.levelup-icon {
+.levelup-star {
+  font-size: 56rpx;
+  animation: starPop 0.5s ease-out forwards;
+  opacity: 0;
+}
+
+.star-left {
+  font-size: 44rpx;
+  animation-delay: 0.3s;
+}
+
+.star-center {
   font-size: 64rpx;
+  animation-delay: 0.15s;
 }
 
-.levelup-text {
-  font-size: 32rpx;
-  font-weight: 700;
+.star-right {
+  font-size: 44rpx;
+  animation-delay: 0.45s;
+}
+
+@keyframes starPop {
+  0% {
+    transform: scale(0) rotate(-30deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.3) rotate(10deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+.levelup-congrats {
+  font-size: 40rpx;
+  font-weight: 800;
+  color: #FF9F43;
+  margin-bottom: 16rpx;
+  letter-spacing: 4rpx;
+}
+
+.levelup-message {
+  font-size: 30rpx;
+  font-weight: 600;
   color: var(--brand-blue);
   text-align: center;
-  line-height: 1.5;
+  line-height: 1.6;
+  margin-bottom: 24rpx;
 }
 
-.levelup-sub {
+.levelup-divider {
+  width: 80rpx;
+  height: 6rpx;
+  border-radius: 6rpx;
+  background: linear-gradient(90deg, #FFD700, #FF9F43);
+  margin-bottom: 20rpx;
+}
+
+.levelup-encourage {
   font-size: 24rpx;
   color: var(--text-muted);
-  margin-top: 4rpx;
+  letter-spacing: 2rpx;
 }
 
 /* 实时识别文字 */

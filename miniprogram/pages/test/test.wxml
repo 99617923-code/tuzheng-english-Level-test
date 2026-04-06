@@ -64,8 +64,11 @@
         <text class="question-text-content">{{questionTextDisplay}}</text>
       </view>
 
-      <!-- AI评价反馈 -->
+      <!-- AI分析反馈 -->
       <view wx:if="{{evaluationFeedback}}" class="feedback-area">
+        <view class="feedback-header">
+          <text class="feedback-ai-tag">AI 分析</text>
+        </view>
         <view class="feedback-score-row">
           <text class="feedback-label">得分</text>
           <text class="feedback-score" style="color: {{scoreColor}};">{{evaluationScore}}</text>
@@ -75,11 +78,43 @@
       </view>
     </view>
 
-    <!-- 升级提示 -->
-    <view wx:if="{{showLevelUp}}" class="levelup-toast animate-fade-in">
-      <text class="levelup-icon">🎉</text>
-      <text class="levelup-text">{{levelUpMessage || ('升级！' + levelUpFrom + ' → ' + levelUpTo)}}</text>
-      <text class="levelup-sub">继续加油，挑战更高级别！</text>
+    <!-- 升级恭喜弹窗（Duolingo风格） -->
+    <view wx:if="{{showLevelUp}}" class="levelup-overlay">
+      <!-- 烟花粒子 -->
+      <view class="firework-container">
+        <view class="firework firework-1"></view>
+        <view class="firework firework-2"></view>
+        <view class="firework firework-3"></view>
+        <view class="firework firework-4"></view>
+        <view class="firework firework-5"></view>
+        <view class="firework firework-6"></view>
+        <view class="firework firework-7"></view>
+        <view class="firework firework-8"></view>
+        <view class="firework firework-9"></view>
+        <view class="firework firework-10"></view>
+        <view class="firework firework-11"></view>
+        <view class="firework firework-12"></view>
+        <view class="sparkle sparkle-1"></view>
+        <view class="sparkle sparkle-2"></view>
+        <view class="sparkle sparkle-3"></view>
+        <view class="sparkle sparkle-4"></view>
+        <view class="sparkle sparkle-5"></view>
+        <view class="sparkle sparkle-6"></view>
+        <view class="sparkle sparkle-7"></view>
+        <view class="sparkle sparkle-8"></view>
+      </view>
+      <!-- 内容卡片 -->
+      <view class="levelup-card animate-bounce-in">
+        <view class="levelup-star-row">
+          <text class="levelup-star star-left">⭐</text>
+          <text class="levelup-star star-center">🌟</text>
+          <text class="levelup-star star-right">⭐</text>
+        </view>
+        <text class="levelup-congrats">恭喜通关！</text>
+        <text class="levelup-message">{{levelUpMessage || ('升级！' + levelUpFrom + ' → ' + levelUpTo)}}</text>
+        <view class="levelup-divider"></view>
+        <text class="levelup-encourage">继续加油，挑战更高级别！</text>
+      </view>
     </view>
   </view>
 

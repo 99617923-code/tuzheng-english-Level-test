@@ -283,6 +283,11 @@ Page({
     }
   },
 
+  /** 关闭未完成测评提示（仅隐藏，不删除session） */
+  handleDismissResume() {
+    this.setData({ hasUnfinishedTest: false })
+  },
+
   /** 放弃未完成的测评 */
   handleDiscardTest() {
     wx.showModal({

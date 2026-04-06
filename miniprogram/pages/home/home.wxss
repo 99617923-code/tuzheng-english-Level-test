@@ -177,8 +177,29 @@
   align-items: center;
   justify-content: space-between;
   padding: 24rpx 28rpx;
+  padding-top: 36rpx;
   border: 2rpx solid rgba(131,186,18,0.25);
   background: rgba(131,186,18,0.06) !important;
+  position: relative;
+}
+
+.resume-close-btn {
+  position: absolute;
+  top: 8rpx;
+  right: 12rpx;
+  width: 40rpx;
+  height: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  color: var(--text-muted);
+  opacity: 0.6;
+  line-height: 1;
+}
+
+.resume-close-btn:active {
+  opacity: 1;
 }
 
 .resume-info {

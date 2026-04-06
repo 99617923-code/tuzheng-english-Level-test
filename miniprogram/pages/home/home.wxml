@@ -46,7 +46,7 @@
     <!-- 已确认分级状态展示 -->
     <view wx:if="{{levelConfirmed}}" class="confirmed-hero animate-fade-in-delay-1">
       <view class="confirmed-badge-wrap">
-        <view class="confirmed-badge" style="background: {{confirmedLevelColor}};">
+        <view class="confirmed-badge">
           <text class="confirmed-badge-icon">✓</text>
         </view>
       </view>

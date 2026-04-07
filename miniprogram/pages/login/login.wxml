@@ -20,7 +20,7 @@
     <view class="brand-area">
       <image class="brand-avatar" src="{{aiAvatarUrl}}" mode="aspectFill" />
       <text class="brand-title">途正英语</text>
-      <text class="brand-subtitle">AI智能英语水平测评</text>
+      <text class="brand-subtitle">智能英语口语水平测评</text>
     </view>
 
     <!-- 登录方式 -->

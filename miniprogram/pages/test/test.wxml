@@ -42,7 +42,7 @@
           <view wx:if="{{aiSpeaking}}" class="ai-speaking-dot"></view>
         </view>
         <view class="ai-info">
-          <text class="ai-name">AI 外教</text>
+          <text class="ai-name">外教</text>
           <text class="ai-status">{{aiStatusText}}</text>
         </view>
       </view>
@@ -78,44 +78,7 @@
       </view>
     </view>
 
-    <!-- 升级恭喜弹窗（Duolingo风格） -->
-    <view wx:if="{{showLevelUp}}" class="levelup-overlay">
-      <!-- 烟花粒子 -->
-      <view class="firework-container">
-        <view class="firework firework-1"></view>
-        <view class="firework firework-2"></view>
-        <view class="firework firework-3"></view>
-        <view class="firework firework-4"></view>
-        <view class="firework firework-5"></view>
-        <view class="firework firework-6"></view>
-        <view class="firework firework-7"></view>
-        <view class="firework firework-8"></view>
-        <view class="firework firework-9"></view>
-        <view class="firework firework-10"></view>
-        <view class="firework firework-11"></view>
-        <view class="firework firework-12"></view>
-        <view class="sparkle sparkle-1"></view>
-        <view class="sparkle sparkle-2"></view>
-        <view class="sparkle sparkle-3"></view>
-        <view class="sparkle sparkle-4"></view>
-        <view class="sparkle sparkle-5"></view>
-        <view class="sparkle sparkle-6"></view>
-        <view class="sparkle sparkle-7"></view>
-        <view class="sparkle sparkle-8"></view>
-      </view>
-      <!-- 内容卡片 -->
-      <view class="levelup-card animate-bounce-in">
-        <view class="levelup-star-row">
-          <text class="levelup-star star-left">⭐</text>
-          <text class="levelup-star star-center">🌟</text>
-          <text class="levelup-star star-right">⭐</text>
-        </view>
-        <text class="levelup-congrats">恭喜通关！</text>
-        <text class="levelup-message">{{levelUpMessage || ('升级！' + levelUpFrom + ' → ' + levelUpTo)}}</text>
-        <view class="levelup-divider"></view>
-        <text class="levelup-encourage">继续加油，挑战更高级别！</text>
-      </view>
-    </view>
+    <!-- 升级通关动画已按客户要求去掉 -->
   </view>
 
   <!-- 音量提醒浮层 -->
@@ -125,7 +88,7 @@
         <text class="volume-reminder-icon">🔊</text>
       </view>
       <text class="volume-reminder-title">请确保手机未静音</text>
-      <text class="volume-reminder-desc">测评过程中需要听清AI外教的英语提问，请关闭静音开关并调高音量。</text>
+      <text class="volume-reminder-desc">测评过程中需要听清外教的英语提问，请关闭静音开关并调高音量。</text>
       <view class="volume-reminder-btn" bindtap="dismissVolumeReminder">
         <text>我知道了</text>
       </view>
@@ -140,11 +103,13 @@
         <view wx:if="{{isRecording}}" class="record-pulse-ring"></view>
         <view
           class="record-btn {{isRecording ? 'recording' : ''}}"
-          bindtap="toggleRecording"
+          bindtouchstart="onRecordTouchStart"
+          bindtouchend="onRecordTouchEnd"
+          bindtouchcancel="onRecordTouchEnd"
         >
           <image class="record-mic-icon" src="/assets/icons/mic-white.svg" mode="aspectFit" />
         </view>
-        <text class="record-hint">{{isRecording ? '点击结束录音' : '点击开始录音'}}</text>
+        <text class="record-hint">{{isRecording ? '松开结束录音' : '按住说话'}}</text>
         <text wx:if="{{isRecording}}" class="record-timer">{{recordTimeDisplay}}</text>
       </view>
       <view class="skip-row">
@@ -179,12 +144,7 @@
       </button>
     </view>
 
-    <!-- 状态：升级动画 -->
-    <view wx:elif="{{phase === 'levelup'}}" class="action-area">
-      <view class="evaluating-wrap">
-        <text class="evaluating-text">正在加载下一级题目...</text>
-      </view>
-    </view>
+    <!-- 升级动画已去掉，不再需要levelup phase -->
 
     <!-- 状态：加载中 -->
     <view wx:elif="{{phase === 'loading'}}" class="action-area">
@@ -194,14 +154,14 @@
       </view>
     </view>
 
-    <!-- 状态：AI外教引导 -->
+    <!-- 状态：外教引导 -->
     <view wx:elif="{{phase === 'guide'}}" class="action-area guide-area">
       <!-- 引导气泡内容 -->
       <view class="guide-bubble-wrap">
         <!-- Step 1: 欢迎 -->
         <view wx:if="{{guideStep === 1}}" class="guide-bubble animate-fade-in">
           <text class="guide-emoji">👋</text>
-          <text class="guide-title">你好！我是你的AI外教</text>
+          <text class="guide-title">你好！我是你的外教</text>
           <text class="guide-desc">接下来我会用英语和你对话，测出你的真实英语水平。很简单，跟着我的引导就好！</text>
           <view class="guide-btns">
             <button class="guide-btn-skip" bindtap="handleGuideSkip">跳过，直接开始</button>
@@ -215,7 +175,7 @@
           <view class="guide-steps">
             <view class="guide-step-item">
               <text class="guide-step-num">1</text>
-              <text class="guide-step-text">听AI外教的英语提问</text>
+              <text class="guide-step-text">听外教的英语提问</text>
             </view>
             <view class="guide-step-item">
               <text class="guide-step-num">2</text>

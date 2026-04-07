@@ -96,9 +96,9 @@ Page({
     majorLevelDisplay: '零级 · 预备',
     questionCountDisplay: '第 1 题',
 
-    // 计时
-    timerDisplay: '00:00',
-    totalSeconds: 0,
+    // 计时（每道题3分钟倒计时）
+    timerDisplay: '03:00',
+    questionSecondsLeft: 180,  // 每题180秒倒计时
 
     // 进度
     progressPercent: 0,
@@ -240,15 +240,51 @@ Page({
 
   // ============ 计时器 ============
 
+  /** 启动每道题3分钟倒计时 */
   startTimer() {
-    if (this._timer) return
+    this.stopTimer()
+    this.setData({
+      questionSecondsLeft: 180,
+      timerDisplay: '03:00'
+    })
     this._timer = setInterval(() => {
-      const secs = this.data.totalSeconds + 1
+      const left = this.data.questionSecondsLeft - 1
+      if (left <= 0) {
+        // 时间到，自动跳题
+        this.stopTimer()
+        this.setData({ questionSecondsLeft: 0, timerDisplay: '00:00' })
+        this._handleTimeUp()
+        return
+      }
+      const mins = Math.floor(left / 60)
+      const secs = left % 60
       this.setData({
-        totalSeconds: secs,
-        timerDisplay: formatTime(secs)
+        questionSecondsLeft: left,
+        timerDisplay: `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
       })
     }, 1000)
+  },
+
+  /** 停止计时器 */
+  stopTimer() {
+    if (this._timer) {
+      clearInterval(this._timer)
+      this._timer = null
+    }
+  },
+
+  /** 时间到自动跳题 */
+  _handleTimeUp() {
+    // 如果正在录音，先停止录音并提交
+    if (this.data.isRecording) {
+      try { this._recorderManager.stop() } catch (e) {}
+      return  // 录音停止后会自动触发onStop回调提交
+    }
+    // 如果在听题或答题状态，直接跳过
+    if (this.data.phase === 'listening' || this.data.phase === 'answering') {
+      wx.showToast({ title: '本题答题时间到', icon: 'none', duration: 2000 })
+      this.handleSkip()
+    }
   },
 
   // ============ 测评中断恢复 ============
@@ -256,12 +292,12 @@ Page({
   _saveTestSession() {
     try {
       const { sessionId, currentSubLevel, currentMajorLevel, questionIndex,
-              totalAnswered, totalSeconds, currentQuestion } = this.data
+              totalAnswered, currentQuestion } = this.data
       if (!sessionId) return
 
       const sessionData = {
         sessionId, currentSubLevel, currentMajorLevel, questionIndex,
-        totalAnswered, totalSeconds, currentQuestion,
+        totalAnswered, currentQuestion,
         frontendQuestionCount: this._frontendQuestionCount,
         savedAt: Date.now()
       }
@@ -326,7 +362,8 @@ Page({
         currentMajorLevel: majorLevel,
         questionIndex: data.questionIndex || 1,
         totalAnswered: totalAnswered,
-        totalSeconds: isResumed ? (saved.totalSeconds || 0) : 0,
+        questionSecondsLeft: 180,
+        timerDisplay: '03:00',
         subLevelDisplay: subLevel,
         majorLevelDisplay: MAJOR_LEVEL_NAMES[majorLevel] || '零级 · 预备',
         questionCountDisplay: `第 ${this._frontendQuestionCount + 1} 题`,
@@ -431,7 +468,7 @@ Page({
         phase: 'guide',
         showGuide: true,
         guideStep: 1,
-        aiStatusText: '你好！我是你的AI外教',
+        aiStatusText: '你好！我是你的外教',
         showQuestionText: false,
         questionTextDisplay: ''
       })
@@ -812,8 +849,8 @@ Page({
     })
   },
 
-  /** 点击切换录音（tap模式） */
-  toggleRecording() {
+  /** 按住开始录音（微信风格） */
+  onRecordTouchStart(e) {
     // 防护：非回答阶段不响应
     if (this.data.phase !== 'answering') {
       console.warn('[Recording] Ignored: phase is', this.data.phase)
@@ -824,12 +861,16 @@ Page({
       console.warn('[Recording] Ignored: already starting record')
       return
     }
+    // 已在录音中，不重复启动
+    if (this.data.isRecording) return
 
-    if (this.data.isRecording) {
-      this.stopRecording()
-    } else {
-      this.startRecording()
-    }
+    this.startRecording()
+  },
+
+  /** 松开结束录音（微信风格） */
+  onRecordTouchEnd(e) {
+    if (!this.data.isRecording) return
+    this.stopRecording()
   },
 
   /** 开始录音 */
@@ -953,6 +994,9 @@ Page({
       return
     }
     this._isSubmitting = true
+
+    // 提交时停止倒计时
+    this.stopTimer()
 
     // 提前检查Token有效性，快过期时主动刷新（避免上传/评估过程中遇到401）
     await ensureTokenValid()
@@ -1268,19 +1312,8 @@ Page({
     this._pendingLevelUp = false
     this._pendingLevelUpMessage = ''
 
-    if (isLevelUp) {
-      // 升级提示文案：优先用后端返回的levelUpMessage，否则用默认格式
-      const displayMessage = levelUpMessage || `升级！${this._previousSubLevel} → ${newSubLevel}`
-      this.setData({
-        showLevelUp: true,
-        levelUpFrom: this._previousSubLevel,
-        levelUpTo: newSubLevel,
-        levelUpMessage: displayMessage,
-        phase: 'levelup'
-      })
-      await delay(3000)  // 升级动画显示3秒（配合Duolingo风格烟花效果）
-      this.setData({ showLevelUp: false })
-    }
+    // 升级时不再显示通关动画，直接进入下一题
+    // if (isLevelUp) { ... }  // 已按客户要求去掉
 
     const progress = Math.min((totalAnswered / 34) * 100, 95)
     const audioWaves = Array.from({ length: 60 }, () => Math.floor(Math.random() * 32) + 8)
@@ -1313,6 +1346,9 @@ Page({
 
     this._saveTestSession()
 
+    // 重启每题倒计时
+    this.startTimer()
+
     // 自动播放下一题语音
     await delay(500)
     this._playQuestionAudio()
@@ -1340,6 +1376,8 @@ Page({
       success: async (res) => {
         this._showingModal = false
         if (res.confirm) {
+          // 跳过时停止倒计时
+          this.stopTimer()
           this.setData({
             phase: 'evaluating',
             aiStatusText: '正在处理...'
@@ -1510,7 +1548,7 @@ Page({
     })
   },
 
-  // ============ AI外教引导气泡 ============
+  // ============ 外教引导气泡 ============
 
   handleGuideNext() {
     const step = this.data.guideStep

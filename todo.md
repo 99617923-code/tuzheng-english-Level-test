@@ -487,3 +487,9 @@
 - [x] test.js: 页面onLoad时调用wx.setInnerAudioOption({ obeyMuteSwitch: false })强制忽略静音开关
 - [x] test.js: 音频播放器创建时已设置obeyMuteSwitch: false（已有）
 - [x] test.js/test.wxml/test.wxss: 进入测评页时显示音量提醒浮层（“请确保手机未静音”，4秒自动消失，可手动关闭）
+
+## 第三十七轮 - 第1次测试会议修改（前端独立任务）
+- [x] 前端任务4：首页文案修改（全项目统一清理“AI外教”→“外教”、“AI智能”→“智能”、去掉“3分钟”，加“口语”）
+- [x] 前端任务1：去掉升级通关动画（test.js中升级逻辑注释掉，wxml中烟花弹窗UI移除）
+- [x] 前端任务2：计时器改为每道题3分钟倒计时（startTimer重写为倒计时，时间到自动跳题，每题重置）
+- [x] 前端任务3：录音改为“按住说话”模式（touchstart/touchend事件，按住录音松开停止）

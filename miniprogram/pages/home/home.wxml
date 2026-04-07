@@ -26,8 +26,8 @@
     <!-- Hero 标题 -->
     <view class="hero animate-fade-in-delay-1">
       <text class="title-line1">英语水平</text>
-      <text class="title-line2">AI 智能测评</text>
-      <text class="subtitle">和AI外教对话，3分钟精准评定你的英语水平</text>
+      <text class="title-line2">智能测评</text>
+      <text class="subtitle">和外教对话，精准测评你的英语口语水平</text>
     </view>
 
     <!-- 核心CTA区域 -->

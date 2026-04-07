@@ -551,7 +551,7 @@ Page({
       ctx.fillStyle = '#b0b8c4'
       ctx.font = '22px sans-serif'
       ctx.textAlign = 'center'
-      ctx.fillText('途正英语 · AI智能分级测评', W / 2, footerY)
+      ctx.fillText('途正英语 · 智能分级测评', W / 2, footerY)
 
       // ===== 保存到相册 =====
       const tempFilePath = await new Promise((resolve, reject) => {

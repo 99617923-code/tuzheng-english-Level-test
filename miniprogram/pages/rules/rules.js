@@ -20,7 +20,7 @@ Page({
       tips: false
     },
     steps: [
-      { title: '听题', desc: '听AI外教的英语提问，理解题目内容', color: '#3B82F6', bgColor: 'rgba(59,130,246,0.10)', icon: 'headphones-blue' },
+      { title: '听题', desc: '听外教的英语提问，理解题目内容', color: '#3B82F6', bgColor: 'rgba(59,130,246,0.10)', icon: 'headphones-blue' },
       { title: '录音作答', desc: '按住麦克风按钮，用英语回答问题', color: '#22c55e', bgColor: 'rgba(34,197,94,0.10)', icon: 'mic-green' },
       { title: 'AI实时评估', desc: 'AI分析你的回答，判断是否过关', color: '#8B5CF6', bgColor: 'rgba(139,92,246,0.10)', icon: 'zap-blue' },
       { title: '过关自动升级', desc: '通过后自动出更难的题，继续挑战', color: '#e67e22', bgColor: 'rgba(230,126,34,0.10)', icon: 'trending-up-orange', isLoop: true },
@@ -181,7 +181,7 @@ Page({
   /** 分享给好友 */
   onShareAppMessage() {
     return {
-      title: '途正英语AI智能分级测评，3分钟测出你的英语水平',
+      title: '途正英语智能分级测评，精准测评你的英语口语水平',
       path: '/pages/home/home',
       imageUrl: app.globalData.shareCoverUrl
     }
@@ -190,7 +190,7 @@ Page({
   /** 分享到朋友圈 */
   onShareTimeline() {
     return {
-      title: '途正英语AI智能分级测评，3分钟测出你的英语水平',
+      title: '途正英语智能分级测评，精准测评你的英语口语水平',
       imageUrl: app.globalData.shareCoverUrl,
       query: ''
     }

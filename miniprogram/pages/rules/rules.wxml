@@ -19,11 +19,11 @@
 
     <!-- 顶部核心区域：授权状态 + 开始按钮 -->
     <view class="hero-section">
-      <!-- AI外教简介 -->
+      <!-- 外教简介 -->
       <view class="hero-teacher">
         <image class="hero-avatar" src="{{aiAvatarUrl}}" mode="aspectFill" />
         <view class="hero-teacher-info">
-          <text class="hero-teacher-name">AI 外教</text>
+          <text class="hero-teacher-name">外教</text>
           <text class="hero-teacher-desc">和你进行英语对话，精准评估你的水平</text>
         </view>
       </view>

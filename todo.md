@@ -493,3 +493,15 @@
 - [x] 前端任务1：去掉升级通关动画（test.js中升级逻辑注释掉，wxml中烟花弹窗UI移除）
 - [x] 前端任务2：计时器改为每道题3分钟倒计时（startTimer重写为倒计时，时间到自动跳题，每题重置）
 - [x] 前端任务3：录音改为“按住说话”模式（touchstart/touchend事件，按住录音松开停止）
+
+## 第三十八轮 - 对接后端v0.1.7 API（前后端联调）
+- [x] api.js: 新增getTeacherConfig接口调用方法
+- [x] api.js: 新增getTestReport接口调用方法
+- [x] api.js: 更新evaluate接口处理精简版响应（去掉逐题反馈字段）
+- [x] api.js: 更新getUserLevelStatus接口处理新字段（levelName/gradeTier/gradeTierLabel等）
+- [x] test.js: 去掉逐题AI反馈展示，答完直接进下一题
+- [x] test.js: 对接teacher-config，动态获取外教头像和名字
+- [x] test.wxml: 移除feedback反馈区域UI
+- [x] result.js: 对接report接口获取测评报告详情（含逐题分析展示）
+- [x] home.js: 更新user-level-status接口对接新字段
+- [x] 全局清理"AI外教"/"AI分析"/"AI正在"等文案（替换为"外教"/"评分分析"/"正在"）

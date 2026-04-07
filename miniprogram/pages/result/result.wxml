@@ -1,5 +1,5 @@
 <!--
-  途正英语AI分级测评 - 结果页（全新UI设计 v2）
+  途正英语分级测评 - 结果页（全新UI设计 v2）
   
   核心流程：
   1. 测评结束后显示本次测评结果（等级、得分、报告）
@@ -10,6 +10,7 @@
   布局优化：
   - 操作按钮放在首屏（hero-card下方）
   - 评价建议改为可折叠区域
+  - 新增逐题分析区域（对接report接口）
 -->
 <view class="page">
   <!-- 自定义导航栏 -->
@@ -32,7 +33,7 @@
         <view class="loading-ring ring-3"></view>
       </view>
       <text class="loading-title">正在生成测评报告</text>
-      <text class="loading-desc">AI正在分析你的表现...</text>
+      <text class="loading-desc">正在分析你的表现...</text>
     </view>
   </view>
 
@@ -147,6 +148,64 @@
           <image class="save-poster-icon" src="/assets/icons/download-green.svg" mode="aspectFit" />
           <text>{{posterSaving ? '正在生成...' : '保存测评海报'}}</text>
         </button>
+      </view>
+    </view>
+
+    <!-- ★ 逐题分析 - 可折叠区域（仅report接口返回了逐题数据时显示） -->
+    <view wx:if="{{questionDetails.length > 0}}" class="detail-section animate-fade-in-delay-2">
+      <view class="detail-toggle" bindtap="toggleQuestionDetails">
+        <view class="detail-toggle-left">
+          <view class="section-icon-wrap purple">
+            <image class="section-icon" src="/assets/icons/bar-chart-blue.svg" mode="aspectFit" />
+          </view>
+          <text class="detail-toggle-title">逐题分析（{{questionDetails.length}}题）</text>
+        </view>
+        <view class="detail-toggle-arrow {{showQuestionDetails ? 'expanded' : ''}}">
+          <image class="toggle-arrow-icon" src="/assets/icons/chevron-down-dark.svg" mode="aspectFit" />
+        </view>
+      </view>
+
+      <view wx:if="{{showQuestionDetails}}" class="detail-content">
+        <view class="question-detail-list">
+          <view class="question-detail-item" wx:for="{{questionDetails}}" wx:key="index">
+            <!-- 题号 + 得分 -->
+            <view class="qd-header">
+              <view class="qd-index-wrap">
+                <text class="qd-index">第{{item.index}}题</text>
+                <text class="qd-passed {{item.passed ? 'passed' : 'failed'}}">{{item.passedText}}</text>
+              </view>
+              <text class="qd-score" style="color: {{item.scoreColor}};">{{item.score}}分</text>
+            </view>
+            <!-- 题目内容 -->
+            <view wx:if="{{item.questionText}}" class="qd-question">
+              <text class="qd-label">题目：</text>
+              <text class="qd-text">{{item.questionText}}</text>
+              <!-- 播放题目录音 -->
+              <view wx:if="{{item.audioUrl}}" class="qd-play-btn" data-url="{{item.audioUrl}}" bindtap="playQuestionAudio">
+                <image class="qd-play-icon" src="/assets/icons/play.svg" mode="aspectFit" />
+              </view>
+            </view>
+            <!-- 用户回答 -->
+            <view class="qd-answer">
+              <text class="qd-label">你的回答：</text>
+              <text class="qd-text {{item.userAnswer === '（未作答）' ? 'qd-no-answer' : ''}}">{{item.userAnswer}}</text>
+              <!-- 播放用户录音 -->
+              <view wx:if="{{item.userAudioUrl}}" class="qd-play-btn" data-url="{{item.userAudioUrl}}" bindtap="playQuestionAudio">
+                <image class="qd-play-icon" src="/assets/icons/play.svg" mode="aspectFit" />
+              </view>
+            </view>
+            <!-- 评分分析 -->
+            <view wx:if="{{item.feedback}}" class="qd-feedback">
+              <text class="qd-label">评分分析：</text>
+              <text class="qd-text">{{item.feedback}}</text>
+            </view>
+            <!-- 建议 -->
+            <view wx:if="{{item.suggestion}}" class="qd-suggestion">
+              <text class="qd-label">改进建议：</text>
+              <text class="qd-text">{{item.suggestion}}</text>
+            </view>
+          </view>
+        </view>
       </view>
     </view>
 

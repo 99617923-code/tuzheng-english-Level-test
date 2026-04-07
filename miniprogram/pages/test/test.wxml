@@ -42,7 +42,7 @@
           <view wx:if="{{aiSpeaking}}" class="ai-speaking-dot"></view>
         </view>
         <view class="ai-info">
-          <text class="ai-name">外教</text>
+          <text class="ai-name">{{teacherName}}</text>
           <text class="ai-status">{{aiStatusText}}</text>
         </view>
       </view>
@@ -64,18 +64,7 @@
         <text class="question-text-content">{{questionTextDisplay}}</text>
       </view>
 
-      <!-- AI分析反馈 -->
-      <view wx:if="{{evaluationFeedback}}" class="feedback-area">
-        <view class="feedback-header">
-          <text class="feedback-ai-tag">AI 分析</text>
-        </view>
-        <view class="feedback-score-row">
-          <text class="feedback-label">得分</text>
-          <text class="feedback-score" style="color: {{scoreColor}};">{{evaluationScore}}</text>
-          <text class="feedback-passed {{evaluationPassed ? 'passed' : 'failed'}}">{{evaluationPassed ? '通过' : '未通过'}}</text>
-        </view>
-        <text class="feedback-text">{{evaluationFeedback}}</text>
-      </view>
+      <!-- 逐题反馈已移至结果页报告中统一展示 -->
     </view>
 
     <!-- 升级通关动画已按客户要求去掉 -->
@@ -88,7 +77,7 @@
         <text class="volume-reminder-icon">🔊</text>
       </view>
       <text class="volume-reminder-title">请确保手机未静音</text>
-      <text class="volume-reminder-desc">测评过程中需要听清外教的英语提问，请关闭静音开关并调高音量。</text>
+      <text class="volume-reminder-desc">测评过程中需要听清{{teacherName}}的英语提问，请关闭静音开关并调高音量。</text>
       <view class="volume-reminder-btn" bindtap="dismissVolumeReminder">
         <text>我知道了</text>
       </view>
@@ -133,16 +122,11 @@
     <view wx:elif="{{phase === 'evaluating'}}" class="action-area">
       <view class="evaluating-wrap">
         <view class="spinner"></view>
-        <text class="evaluating-text">AI正在评估你的回答...</text>
+        <text class="evaluating-text">正在评估你的回答...</text>
       </view>
     </view>
 
-    <!-- 状态：显示评价，等待下一题 / 查看结果 -->
-    <view wx:elif="{{phase === 'feedback'}}" class="action-area">
-      <button class="btn-primary" bindtap="handleNext">
-        <text>{{nextButtonText}}</text>
-      </button>
-    </view>
+    <!-- feedback phase已移除，evaluate后自动进入下一题 -->
 
     <!-- 升级动画已去掉，不再需要levelup phase -->
 
@@ -161,7 +145,7 @@
         <!-- Step 1: 欢迎 -->
         <view wx:if="{{guideStep === 1}}" class="guide-bubble animate-fade-in">
           <text class="guide-emoji">👋</text>
-          <text class="guide-title">你好！我是你的外教</text>
+          <text class="guide-title">你好！我是{{teacherTitle}}</text>
           <text class="guide-desc">接下来我会用英语和你对话，测出你的真实英语水平。很简单，跟着我的引导就好！</text>
           <view class="guide-btns">
             <button class="guide-btn-skip" bindtap="handleGuideSkip">跳过，直接开始</button>
@@ -175,7 +159,7 @@
           <view class="guide-steps">
             <view class="guide-step-item">
               <text class="guide-step-num">1</text>
-              <text class="guide-step-text">听外教的英语提问</text>
+              <text class="guide-step-text">听{{teacherName}}的英语提问</text>
             </view>
             <view class="guide-step-item">
               <text class="guide-step-num">2</text>

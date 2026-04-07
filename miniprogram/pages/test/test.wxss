@@ -239,7 +239,7 @@
   line-height: 1.6;
 }
 
-/* AI分析反馈 */
+/* 评分反馈（已移至结果页） */
 .feedback-area {
   background: rgba(27,63,145,0.04);
   border-radius: var(--radius-md);
@@ -678,7 +678,7 @@
   color: var(--text-muted);
 }
 
-/* ============ AI外教引导气泡 ============ */
+/* ============ 外教引导气泡 ============ */
 .guide-area {
   padding: 0 32rpx;
 }

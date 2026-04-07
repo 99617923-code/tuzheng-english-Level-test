@@ -9,7 +9,7 @@
  */
 const app = getApp()
 const { checkLogin, getUserInfo } = require('../../utils/util')
-const { getIntroVideo, getUserLevelStatus, getQrcodeByLevel } = require('../../utils/api')
+const { getIntroVideo, getUserLevelStatus, getQrcodeByLevel, getQrcodeDisplaySetting } = require('../../utils/api')
 
 Page({
   data: {
@@ -46,6 +46,8 @@ Page({
     confirmedQrcodeUrl: '',
     confirmedGroupName: '',
     showConfirmedQrModal: false,
+    // 二维码显示开关（后台控制）
+    qrcodeEnabled: true,
     checkingLevelStatus: false
   },
 
@@ -76,6 +78,8 @@ Page({
     })
 
     // 检查用户分级确认状态（已登录时）
+    // 检查二维码显示开关
+    this._checkQrcodeSwitch()
     if (isAuth) {
       this._checkLevelStatus()
     } else {
@@ -148,8 +152,22 @@ Page({
     }
   },
 
+  /** 检查二维码显示开关 */
+  async _checkQrcodeSwitch() {
+    try {
+      const setting = await getQrcodeDisplaySetting()
+      this.setData({ qrcodeEnabled: setting.enabled })
+    } catch (e) {
+      // 默认显示
+    }
+  },
+
   /** 查看已确认分级的二维码 */
   async handleViewConfirmedQr() {
+    if (!this.data.qrcodeEnabled) {
+      wx.showToast({ title: '二维码功能暂未开放', icon: 'none' })
+      return
+    }
     // 如果已有二维码URL，直接展示
     if (this.data.confirmedQrcodeUrl) {
       this.setData({ showConfirmedQrModal: true })

@@ -463,10 +463,12 @@
 - [x] 修改levelConfig色彩：0级绿色、1级蓝色、2级紫色#8B5CF6、3级金色#F59E0B
 - [x] 检查并更新所有文件中的硬编码旧颜色（rules/history/home/result/test/app.wxss等全量替换完成）
 
-## 第三十一轮 - 对接二维码显示开关API（待后端确认接口后处理）
-- [ ] 查找后端二维码显示开关API接口
-- [ ] api.js: 新增二维码显示开关接口调用方法
-- [ ] 前端页面根据开关状态控制二维码显示/隐藏
+## 第三十一轮 - 对接二维码显示开关API
+- [x] 查找后端二维码显示开关API接口（GET /api/v1/test/qrcode-display-setting）
+- [x] api.js: 新增getQrcodeDisplaySetting接口调用方法
+- [x] result.js: onLoad时调用_checkQrcodeSwitch，handleJoinGroup中检查开关，wxml中wx:if控制按钮显示
+- [x] home.js: onShow时调用_checkQrcodeSwitch，handleViewConfirmedQr中检查开关，wxml中wx:if控制按钮显示
+- [x] 开关关闭时：首页隐藏"查看班级群二维码"按钮，结果页隐藏"加入学习群"按钮，点击时toast提示"二维码功能暂未开放"
 
 ## 第三十二轮 - 海报布局修复 + 清理调试日志
 - [x] 修复海报布局：分类圆圈与下方通过数数字间距太近

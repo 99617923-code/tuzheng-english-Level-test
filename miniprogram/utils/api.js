@@ -340,6 +340,27 @@ function textToSpeech(text, voice = 'en-US-female', speed = 0.85) {
 }
 
 /**
+ * 查询二维码展示开关（公开接口，无需认证）
+ * 后台可随时开关群二维码的显示功能
+ * 
+ * Response: {
+ *   enabled: true/false  // true=展示二维码，false=不展示
+ * }
+ */
+function getQrcodeDisplaySetting() {
+  return request('/api/v1/test/qrcode-display-setting', { noAuth: true }).then(res => {
+    // 兼容 code=0 和 code=200
+    if (res.code !== 200 && res.code !== 0) throw new Error(res.msg || '查询二维码开关失败')
+    const data = res.data || res
+    return { enabled: !!data.enabled }
+  }).catch(err => {
+    console.warn('[API] getQrcodeDisplaySetting failed:', err)
+    // 接口失败时默认显示二维码（安全降级）
+    return { enabled: true }
+  })
+}
+
+/**
  * 获取群二维码
  * @param {number} level - 等级数字（0=零级, 1=一级, 2=二级, 3=三级）
  */
@@ -446,5 +467,6 @@ module.exports = {
   getQrcodeByLevel,
   getIntroVideo,
   confirmLevel,
-  getUserLevelStatus
+  getUserLevelStatus,
+  getQrcodeDisplaySetting
 }

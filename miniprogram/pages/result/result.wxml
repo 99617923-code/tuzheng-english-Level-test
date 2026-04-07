@@ -135,7 +135,7 @@
 
       <!-- 已确认状态：显示群二维码入口 + 分享 -->
       <view wx:if="{{confirmed}}">
-        <button class="action-btn-full join-group-btn" bindtap="handleJoinGroup">
+        <button wx:if="{{qrcodeEnabled}}" class="action-btn-full join-group-btn" bindtap="handleJoinGroup">
           <image class="action-btn-icon" src="/assets/icons/users-white.svg" mode="aspectFit" />
           <text>加入{{levelName}}学习群</text>
         </button>

@@ -10,7 +10,7 @@
  * 数据来源：GET /api/v1/test/result/:sessionId
  */
 const app = getApp()
-const { getTestResult, getQrcodeByLevel, confirmLevel, getUserLevelStatus } = require('../../utils/api')
+const { getTestResult, getQrcodeByLevel, confirmLevel, getUserLevelStatus, getQrcodeDisplaySetting } = require('../../utils/api')
 const { showError, formatDuration } = require('../../utils/util')
 
 Page({
@@ -60,7 +60,10 @@ Page({
     // 二维码弹窗
     showQrModal: false,
     qrcodeUrl: '',
-    groupName: ''
+    groupName: '',
+
+    // 二维码显示开关（后台控制）
+    qrcodeEnabled: true
   },
 
   _sessionId: '',
@@ -76,6 +79,8 @@ Page({
 
     this._sessionId = options.sessionId || ''
     if (this._sessionId) {
+      // 检查二维码显示开关
+      this._checkQrcodeSwitch()
       // 检查是否已经确认过
       this._checkConfirmed()
       this.loadResult()
@@ -281,8 +286,22 @@ Page({
     })
   },
 
+  /** 检查二维码显示开关 */
+  async _checkQrcodeSwitch() {
+    try {
+      const setting = await getQrcodeDisplaySetting()
+      this.setData({ qrcodeEnabled: setting.enabled })
+    } catch (e) {
+      // 默认显示
+    }
+  },
+
   /** 加入学习群（仅确认后可用） */
   async handleJoinGroup() {
+    if (!this.data.qrcodeEnabled) {
+      wx.showToast({ title: '二维码功能暂未开放', icon: 'none' })
+      return
+    }
     if (!this.data.confirmed) {
       wx.showToast({ title: '请先确认评级', icon: 'none' })
       return

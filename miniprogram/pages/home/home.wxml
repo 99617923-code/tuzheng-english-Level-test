@@ -56,7 +56,7 @@
       </view>
       <text class="confirmed-hint">你已完成分级测评，无法再次测评</text>
       <view class="confirmed-actions">
-        <view class="confirmed-btn confirmed-btn-qr" bindtap="handleViewConfirmedQr">查看班级群二维码</view>
+        <view wx:if="{{qrcodeEnabled}}" class="confirmed-btn confirmed-btn-qr" bindtap="handleViewConfirmedQr">查看班级群二维码</view>
         <view class="confirmed-btn confirmed-btn-result" bindtap="handleViewConfirmedResult">查看测评报告</view>
       </view>
     </view>

@@ -1,7 +1,7 @@
 # 途正教育 API 文档完整笔记
 
 ## 基本信息
-- 基础URL: https://tzapp-admin.figo.cn
+- 基础URL: https://super.tuzheng.cn
 - 认证方式: Bearer Token (biz_token)
 - Token有效期: 30分钟，过期后用refresh_token刷新
 - 所有接口需携带 X-App-Key 请求头

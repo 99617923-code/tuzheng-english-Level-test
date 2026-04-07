@@ -477,3 +477,8 @@
 
 ## 第三十四轮 - 首页已确认用户隐藏测评示例视频
 - [x] 首页home.wxml：用户确认级别后隐藏测评示例视频区域（增加!levelConfirmed条件）
+
+## 第三十五轮 - API域名统一替换为super.tuzheng.cn
+- [x] 查找所有引用tzapp-admin.figo.cn的文件并替换为super.tuzheng.cn
+- [x] 检查request.js/api.js中的域名配置（已是super.tuzheng.cn）
+- [x] 更新README.md、api-docs-notes.md、后端接口需求清单.md、client/src/lib/api.ts中的域名引用

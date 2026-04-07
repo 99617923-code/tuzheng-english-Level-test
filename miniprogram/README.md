@@ -8,7 +8,7 @@
 
 - 微信小程序原生开发（WXML + WXSS + JavaScript）
 - 微信同声传译插件（前端实时语音识别，辅助后端Whisper精确评分）
-- 后端API：`https://tzapp-admin.figo.cn`
+- 后端API：`https://super.tuzheng.cn`
 - 语音评分：Whisper ASR + LLM 评分（后端集成）
 - 录音存储：阿里云OSS
 
@@ -41,8 +41,8 @@ miniprogram/
 1. 在 `project.config.json` 中确认小程序 AppID（当前：`wx560c0278194b128c`）
 2. 在微信公众平台添加同声传译插件（AppID: `wx069ba97219f66d99`）
 3. 配置服务器域名白名单：
-   - request合法域名：`https://tzapp-admin.figo.cn`
-   - uploadFile合法域名：`https://tzapp-admin.figo.cn`
+   - request合法域名：`https://super.tuzheng.cn`
+   - uploadFile合法域名：`https://super.tuzheng.cn`
 4. 使用微信开发者工具打开 `miniprogram` 目录
 
 ## 页面说明
@@ -104,7 +104,7 @@ miniprogram/
 
 ## 后端API
 
-所有接口对接 `https://tzapp-admin.figo.cn`，认证方式为 `Bearer Token + X-App-Key`。
+所有接口对接 `https://super.tuzheng.cn`，认证方式为 `Bearer Token + X-App-Key`。
 
 前端代码已做字段兼容处理，同时支持 camelCase 和 snake_case 两种命名风格。
 

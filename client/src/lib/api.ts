@@ -1,6 +1,6 @@
 /**
  * 途正英语 - API Service Layer
- * 对接客户后端: https://tzapp-admin.figo.cn
+ * 对接客户后端: https://super.tuzheng.cn
  * 认证方式: Bearer Token + X-App-Key
  */
 

@@ -133,7 +133,10 @@ Page({
 
     // 音频失败时显示题目文字（兆底）
     showQuestionText: false,
-    questionTextDisplay: ''
+    questionTextDisplay: '',
+
+    // 音量提醒
+    showVolumeReminder: false
   },
 
   // 内部状态
@@ -176,6 +179,21 @@ Page({
     this._frontendQuestionCount = 0
     this._setupRecorderEvents()
 
+    // 方案一：强制忽略iOS静音开关，确保外教语音正常播放
+    wx.setInnerAudioOption({
+      obeyMuteSwitch: false,
+      mixWithOther: false,
+      success: () => {
+        console.log('[Audio] setInnerAudioOption success: obeyMuteSwitch=false')
+      },
+      fail: (err) => {
+        console.warn('[Audio] setInnerAudioOption failed:', err)
+      }
+    })
+
+    // 方案二：进入测评页时显示音量提醒
+    this._showVolumeReminder()
+
     // 检查是否是恢复测评
     if (options && options.resume === '1') {
       this._resumeTest()
@@ -195,6 +213,10 @@ Page({
     if (this._timer) {
       clearInterval(this._timer)
       this._timer = null
+    }
+    if (this._volumeReminderTimer) {
+      clearTimeout(this._volumeReminderTimer)
+      this._volumeReminderTimer = null
     }
     if (this._recordTimer) {
       clearInterval(this._recordTimer)
@@ -1517,5 +1539,26 @@ Page({
 
   handleGuideSkip() {
     this.handleGuideStart()
+  },
+
+  /**
+   * 音量提醒：进入测评页时显示提醒框，引导用户关闭静音并调高音量
+   * 显示3秒后自动消失，不影响测评流程
+   */
+  _showVolumeReminder() {
+    this.setData({ showVolumeReminder: true })
+    // 3秒后自动隐藏
+    this._volumeReminderTimer = setTimeout(() => {
+      this.setData({ showVolumeReminder: false })
+    }, 4000)
+  },
+
+  /** 用户手动关闭音量提醒 */
+  dismissVolumeReminder() {
+    if (this._volumeReminderTimer) {
+      clearTimeout(this._volumeReminderTimer)
+      this._volumeReminderTimer = null
+    }
+    this.setData({ showVolumeReminder: false })
   }
 })

@@ -33,7 +33,7 @@
 - [x] 结果页庆祝动画
 
 ## 对接客户后端API
-- [x] 查看 https://tzapp-admin.figo.cn/api-docs 了解可用接口
+- [x] 查看 https://super.tuzheng.cn/api-docs 了解可用接口
 - [x] 对接captcha、login、register、me等认证接口（通过服务端代理解决CORS）
 - [x] 测评相关API用mock，后续对接后端
 
@@ -407,10 +407,10 @@
 - [x] api.js: evaluate和getTestResult增加majorLevelName、majorLevelLabel字段兼容
 - [ ] 待后端补充：startTest和evaluate(continue)接口返回majorLevelName和majorLevelLabel字段后，test.js改为优先使用后端字段
 
-## 域名替换（待小程序白名单配置完成后执行）
-- [ ] request.js: BASE_URL 从 https://tzapp-admin.figo.cn 替换为 https://super.tuzheng.cn
-- [ ] request.js: 注释中的后端地址同步更新
-- [ ] api.js: 注释中的后端地址同步更新
+## 域名替换（已完成）
+- [x] request.js: BASE_URL 已替换为 https://super.tuzheng.cn
+- [x] request.js: 注释中的后端地址已同步更新
+- [x] api.js: 注释中的后端地址已同步更新
 - [ ] 小程序后台: 服务器域名白名单添加 super.tuzheng.cn
 
 ## 第二十轮优化
@@ -482,3 +482,8 @@
 - [x] 查找所有引用tzapp-admin.figo.cn的文件并替换为super.tuzheng.cn
 - [x] 检查request.js/api.js中的域名配置（已是super.tuzheng.cn）
 - [x] 更新README.md、api-docs-notes.md、后端接口需求清单.md、client/src/lib/api.ts中的域名引用
+
+## 第三十六轮 - 静音模式双保险方案
+- [x] test.js: 页面onLoad时调用wx.setInnerAudioOption({ obeyMuteSwitch: false })强制忽略静音开关
+- [x] test.js: 音频播放器创建时已设置obeyMuteSwitch: false（已有）
+- [x] test.js/test.wxml/test.wxss: 进入测评页时显示音量提醒浮层（“请确保手机未静音”，4秒自动消失，可手动关闭）

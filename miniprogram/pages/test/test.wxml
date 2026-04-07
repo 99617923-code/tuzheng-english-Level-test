@@ -118,6 +118,20 @@
     </view>
   </view>
 
+  <!-- 音量提醒浮层 -->
+  <view wx:if="{{showVolumeReminder}}" class="volume-reminder-overlay" bindtap="dismissVolumeReminder">
+    <view class="volume-reminder-card animate-fade-in" catchtap="">
+      <view class="volume-reminder-icon-wrap">
+        <text class="volume-reminder-icon">🔊</text>
+      </view>
+      <text class="volume-reminder-title">请确保手机未静音</text>
+      <text class="volume-reminder-desc">测评过程中需要听清AI外教的英语提问，请关闭静音开关并调高音量。</text>
+      <view class="volume-reminder-btn" bindtap="dismissVolumeReminder">
+        <text>我知道了</text>
+      </view>
+    </view>
+  </view>
+
   <!-- 底部操作区 -->
   <view class="bottom-bar">
     <!-- 状态：准备回答 / 录音中（含自动播放后进入） -->

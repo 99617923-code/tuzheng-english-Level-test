@@ -900,3 +900,75 @@
   line-height: 1.6;
   font-family: 'Nunito', sans-serif;
 }
+
+/* ============ 音量提醒浮层 ============ */
+.volume-reminder-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60rpx;
+}
+
+.volume-reminder-card {
+  background: #ffffff;
+  border-radius: 32rpx;
+  padding: 56rpx 48rpx 40rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-shadow: 0 20rpx 60rpx rgba(0, 0, 0, 0.15);
+  max-width: 600rpx;
+  width: 100%;
+}
+
+.volume-reminder-icon-wrap {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FFF3E0, #FFE0B2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 32rpx;
+}
+
+.volume-reminder-icon {
+  font-size: 56rpx;
+}
+
+.volume-reminder-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1a2a3a;
+  margin-bottom: 16rpx;
+}
+
+.volume-reminder-desc {
+  font-size: 26rpx;
+  color: #6b7b8d;
+  line-height: 1.6;
+  margin-bottom: 36rpx;
+}
+
+.volume-reminder-btn {
+  background: linear-gradient(135deg, var(--brand-blue, #1B3F91), #2B5BA0);
+  color: #ffffff;
+  font-size: 30rpx;
+  font-weight: 600;
+  padding: 20rpx 80rpx;
+  border-radius: 48rpx;
+  letter-spacing: 2rpx;
+}
+
+.volume-reminder-btn:active {
+  opacity: 0.85;
+  transform: scale(0.97);
+}

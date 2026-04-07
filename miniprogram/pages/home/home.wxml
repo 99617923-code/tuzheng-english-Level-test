@@ -79,8 +79,8 @@
       </view>
     </view>
 
-    <!-- 讲解视频（动态从后台获取，有视频才展示） -->
-    <view wx:if="{{hasIntroVideo}}" class="video-card glass-card animate-fade-in-delay-2" bindtap="handlePlayDemo">
+    <!-- 讲解视频（动态从后台获取，有视频且未确认分级才展示） -->
+    <view wx:if="{{hasIntroVideo && !levelConfirmed}}" class="video-card glass-card animate-fade-in-delay-2" bindtap="handlePlayDemo">
       <view class="video-thumb-wrap">
         <image wx:if="{{introCoverUrl}}" class="video-thumb" src="{{introCoverUrl}}" mode="aspectFill" />
         <view wx:else class="video-thumb-placeholder">

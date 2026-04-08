@@ -127,7 +127,7 @@ function logout() {
     })
 }
 
-// ============ 测评接口（自适应引擎 v2 + v3智能预判引擎） ============
+// ============ 测评接口（自适应引擎 v2 + v3智能预判引擎，已对接后端实际字段名） ============
 
 /**
  * 创建测评会话（自适应引擎 v2）
@@ -528,8 +528,8 @@ function getUserLevelStatus() {
  * @param {string} params.sessionId - 测评会话ID（必填）
  * @param {string|number} params.questionId - 题目ID（必填）
  * @param {string} [params.audioUrl] - 录音OSS地址
- * @param {string} [params.recognizedText] - 前端语音识别文本
- * @param {number} [params.duration] - 录音时长（毫秒）
+ * @param {string} [params.recognizedText] - 前端语音识别文本（后端v3字段名: answerText）
+ * @param {number} [params.duration] - 录音时长（毫秒，后端v3字段名: audioDuration）
  * @param {number} [params.responseDelay] - 响应延迟（毫秒，题目播完到开始录音的间隔）
  * @param {string} [params.questionText] - 题目原文
  * @param {boolean} [params.skipped] - 是否跳过
@@ -565,10 +565,13 @@ function submitLite(params) {
     data.audioUrl = params.audioUrl
     data.audio_url = params.audioUrl
   }
+  // 后端v3接口字段名为answerText（同时兼容recognizedText）
+  data.answerText = params.recognizedText || ''
   data.recognizedText = params.recognizedText || ''
   data.recognized_text = params.recognizedText || ''
   if (params.duration !== undefined && params.duration !== null) {
-    data.duration = params.duration
+    data.audioDuration = params.duration  // 后端v3字段名
+    data.duration = params.duration       // 兼容旧字段名
   }
   if (params.responseDelay !== undefined && params.responseDelay !== null) {
     data.responseDelay = params.responseDelay
@@ -593,6 +596,21 @@ function submitLite(params) {
     if (result.levelUp === undefined && result.level_up !== undefined) result.levelUp = result.level_up
     if (!result.levelUpMessage && result.level_up_message) result.levelUpMessage = result.level_up_message
     if (result.skipLevel === undefined && result.skip_level !== undefined) result.skipLevel = result.skip_level
+    // 兼容后端v3 question对象字段名（text → questionText）
+    if (result.question) {
+      if (!result.question.questionText && result.question.text) result.question.questionText = result.question.text
+      if (!result.question.questionId && result.question.question_id) result.question.questionId = result.question.question_id
+      if (!result.question.audioUrl && result.question.audio_url) result.question.audioUrl = result.question.audio_url
+      if (!result.question.subLevel && result.question.sub_level) result.question.subLevel = result.question.sub_level
+    }
+    // 兼容后端v3预判字段（predictionScore/predictionPassed → prediction对象）
+    if (result.predictionScore !== undefined && !result.prediction) {
+      result.prediction = {
+        passed: result.predictionPassed,
+        confidence: result.predictionScore / 100,
+        score: result.predictionScore
+      }
+    }
     // finished状态的字段兼容
     if (result.pendingReport === undefined && result.pending_report !== undefined) result.pendingReport = result.pending_report
     if (!result.estimatedWaitSeconds && result.estimated_wait_seconds) result.estimatedWaitSeconds = result.estimated_wait_seconds
@@ -621,12 +639,20 @@ function getReportStatus(sessionId) {
   return request(`/api/v1/test/report-status/${sessionId}`).then(res => {
     if (res.code !== 200 && res.code !== 0) throw new Error(res.msg || '查询报告状态失败')
     const data = res.data || res
+    // 后端v3用reportStatus字段名，前端统一转为status
+    if (!data.status && data.reportStatus) data.status = data.reportStatus
+    if (!data.status && data.report_status) data.status = data.report_status
     // 兼容下划线命名
     if (!data.progressText && data.progress_text) data.progressText = data.progress_text
     if (!data.estimatedRemainingSeconds && data.estimated_remaining_seconds !== undefined) {
       data.estimatedRemainingSeconds = data.estimated_remaining_seconds
     }
     if (data.canRetry === undefined && data.can_retry !== undefined) data.canRetry = data.can_retry
+    // 兼容后端v3额外字段
+    if (!data.aiScoredCount && data.ai_scored_count !== undefined) data.aiScoredCount = data.ai_scored_count
+    if (!data.totalQuestions && data.total_questions !== undefined) data.totalQuestions = data.total_questions
+    if (!data.completedAt && data.completed_at) data.completedAt = data.completed_at
+    if (!data.preliminaryLevel && data.preliminary_level) data.preliminaryLevel = data.preliminary_level
     return data
   })
 }

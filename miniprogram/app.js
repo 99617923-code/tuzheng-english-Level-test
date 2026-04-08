@@ -138,9 +138,12 @@ App({
     wx.removeStorageSync('tz_user_info')
   },
 
-  /** 获取等级配置 */
+  /** 获取等级配置（安全降级：未知级别返回最高级配置，负数/无效值返回零级配置） */
   getLevelConfig(level) {
-    return this.globalData.levelConfig[level] || this.globalData.levelConfig[1]
+    const lvl = parseInt(level)
+    if (isNaN(lvl) || lvl < 0) return this.globalData.levelConfig[0]
+    if (lvl > 3) return this.globalData.levelConfig[3] // IELTS7/8/9等扩展级别映射到最高级
+    return this.globalData.levelConfig[lvl] || this.globalData.levelConfig[0]
   },
 
   /**

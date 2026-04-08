@@ -544,3 +544,13 @@
 - [x] 结果页result.js：轮询等待后端异步评分完成
 - [x] 结果页result.js：显示"正在生成报告"加载动画，评分完成后展示完整报告
 - [x] 后端技术文档：补充修改背景、目的和整体规划说明
+
+## 第四十三轮 - v3前后端联调（后端已完成部署）
+- [x] 查看后端API文档，了解submit-lite/report-status/report-retry实际接口格式
+- [x] 对比前端已写的接口定义与后端实际接口，修复差异
+- [x] 确认submit-lite请求参数和响应格式与前端代码一致（recognizedText→answerText, duration→audioDuration）
+- [x] 确认report-status/report-retry请求参数和响应格式与前端代码一致（reportStatus→status, 增加pending状态处理）
+- [x] 全部6处question字段兼容点增加text→questionText映射
+- [x] result.js轮询进度显示优化（利用aiScoredCount/totalQuestions显示“正在评分第X/Y题”）
+- [ ] 端到端测试验证完整流程（预加载→零等待做题→轮询出报告）—— 待真机联调验证
+- [x] 确认IELTS7/8/9扩展级别在前端的展示兼容（后端majorLevel仍为0-3，前端getLevelConfig增加安全降级：>3映射到最高级）

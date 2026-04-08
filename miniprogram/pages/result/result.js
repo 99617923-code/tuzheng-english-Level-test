@@ -133,13 +133,13 @@ Page({
       if (statusData.status === 'completed') {
         // 评分已完成，直接加载报告
         this.loadResult()
-      } else if (statusData.status === 'processing') {
-        // 评分进行中，进入轮询模式
+      } else if (statusData.status === 'processing' || statusData.status === 'pending') {
+        // 评分进行中或等待开始，进入轮询模式
         this.setData({
           loading: false,
           reportGenerating: true,
           reportProgress: statusData.progress || 0,
-          reportProgressText: statusData.progressText || '正在分析你的表现...',
+          reportProgressText: statusData.progressText || (statusData.status === 'pending' ? '正在准备分析...' : '正在分析你的表现...'),
           reportEstimatedTime: this._formatEstimatedTime(statusData.estimatedRemainingSeconds)
         })
         this._startPolling()
@@ -228,9 +228,14 @@ Page({
         })
       } else {
         // 还在处理中，更新进度
+        let progressText = statusData.progressText || this.data.reportProgressText
+        // 利用后端v3返回的aiScoredCount/totalQuestions生成更精确的进度文案
+        if (statusData.aiScoredCount !== undefined && statusData.totalQuestions) {
+          progressText = `正在评分第 ${statusData.aiScoredCount}/${statusData.totalQuestions} 题...`
+        }
         this.setData({
           reportProgress: statusData.progress || this.data.reportProgress,
-          reportProgressText: statusData.progressText || this.data.reportProgressText,
+          reportProgressText: progressText,
           reportEstimatedTime: this._formatEstimatedTime(statusData.estimatedRemainingSeconds)
         })
       }

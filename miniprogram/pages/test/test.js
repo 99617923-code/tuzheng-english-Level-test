@@ -348,10 +348,12 @@ Page({
     try {
       const data = await startTest()
       const question = data.question
-      // 兼容下划线命名
+      // 兼容下划线命名和后端v3字段名
       if (question) {
         if (!question.audioUrl && question.audio_url) question.audioUrl = question.audio_url
         if (!question.questionText && question.question_text) question.questionText = question.question_text
+        // 后端v3用text字段名
+        if (!question.questionText && question.text) question.questionText = question.text
         if (!question.questionId && question.question_id) question.questionId = question.question_id
         if (!question.subLevel && question.sub_level) question.subLevel = question.sub_level
       }
@@ -472,12 +474,16 @@ Page({
 
       const question = data.question
       if (question) {
-        // 兼容下划线命名：后端可能返回 audio_url 而不是 audioUrl
+        // 兼容下划线命名和后端v3字段名
         if (!question.audioUrl && question.audio_url) {
           question.audioUrl = question.audio_url
         }
         if (!question.questionText && question.question_text) {
           question.questionText = question.question_text
+        }
+        // 后端v3用text字段名
+        if (!question.questionText && question.text) {
+          question.questionText = question.text
         }
         if (!question.questionId && question.question_id) {
           question.questionId = question.question_id
@@ -1221,6 +1227,8 @@ Page({
         const q = evalRes.question
         if (!q.audioUrl && q.audio_url) q.audioUrl = q.audio_url
         if (!q.questionText && q.question_text) q.questionText = q.question_text
+        // 后端v3用text字段名，前端统一转为questionText
+        if (!q.questionText && q.text) q.questionText = q.text
         if (!q.questionId && q.question_id) q.questionId = q.question_id
         if (!q.subLevel && q.sub_level) q.subLevel = q.sub_level
       }
@@ -1363,6 +1371,8 @@ Page({
               const q = evalRes.question
               if (!q.audioUrl && q.audio_url) q.audioUrl = q.audio_url
               if (!q.questionText && q.question_text) q.questionText = q.question_text
+              // 后端v3用text字段名
+              if (!q.questionText && q.text) q.questionText = q.text
               if (!q.questionId && q.question_id) q.questionId = q.question_id
               if (!q.subLevel && q.sub_level) q.subLevel = q.sub_level
             }
@@ -1453,6 +1463,8 @@ Page({
         if (question) {
           if (!question.audioUrl && question.audio_url) question.audioUrl = question.audio_url
           if (!question.questionText && question.question_text) question.questionText = question.question_text
+          // 后端v3用text字段名
+          if (!question.questionText && question.text) question.questionText = question.text
           if (!question.questionId && question.question_id) question.questionId = question.question_id
           if (!question.subLevel && question.sub_level) question.subLevel = question.sub_level
         }
@@ -1509,6 +1521,8 @@ Page({
     if (nextQuestion) {
       if (!nextQuestion.audioUrl && nextQuestion.audio_url) nextQuestion.audioUrl = nextQuestion.audio_url
       if (!nextQuestion.questionText && nextQuestion.question_text) nextQuestion.questionText = nextQuestion.question_text
+      // 后端v3用text字段名
+      if (!nextQuestion.questionText && nextQuestion.text) nextQuestion.questionText = nextQuestion.text
       if (!nextQuestion.questionId && nextQuestion.question_id) nextQuestion.questionId = nextQuestion.question_id
       if (!nextQuestion.subLevel && nextQuestion.sub_level) nextQuestion.subLevel = nextQuestion.sub_level
     }

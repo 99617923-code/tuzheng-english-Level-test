@@ -300,8 +300,8 @@
 - [x] 后端需配合：当recognizedText为空但audioUrl存在时，后端应自己用audioUrl转写再评分
 
 ## Bug修复（第六轮）- 第一道题播放时Error: timeout
-- [ ] 排查playQuestionAudio中的超时保护逻辑，定位timeout错误来源
-- [ ] 修复timeout错误（音频已正常播放但仍报timeout）
+- [x] 排查playQuestionAudio中的超时保护逻辑：原因是固定15秒超时对较长音频不够
+- [x] 修复timeout错误：改为动态超时（音频时长+5秒缓冲，最少15秒），onPlay回调中根据ctx.duration动态计算
 
 ## Bug修复（第六轮）- Token过期导致upload失败→evaluate 0分
 - [x] upload-audio遇到30时，token刷新后自动重试上传（不能直接跳过）
@@ -366,8 +366,8 @@
 - [x] home.js: “重新开始”选项传forceNew:true，“继续测评”保持resume=1
 
 ## 性能优化（第十二轮）
-- [ ] 分析evaluate返回后到下一题展示的延迟环节
-- [ ] 优化前端处理流程，减少不必要的等待时间
+- [x] 分析evaluate返回后到下一题展示的延迟环节（录音上传+submitLite+delay+播放）
+- [x] 优化前端处理流程：录音上传与submitLite并行执行（200ms快速上传竞赛），delay从500ms缩短到300ms
 
 ## 适配后端preview状态（第十三轮）
 - [x] result.js: 处理后端返回的status:"preview"状态，设置isPreview字段
@@ -434,9 +434,9 @@
 
 ## 第二十四轮优化
 - [x] 竖屏视频宽度改为80%，高度按 9:16 比例自适应
-- [ ] 海报布局修复：圆圈与通过数间距太近
-- [ ] 海报布局修复：底部"途正英语·AI智能分级测评"与能力评估文字重叠
-- [ ] 海报和结果页按级别（0/1/2/3）展示不同色彩（级别越高越好看）
+- [x] 海报布局修复：圆圈与通过数间距太近（statsY从-80改为-90，增大间距）
+- [x] 海报布局修复：底部"途正英语·智能分级测评"与能力评估文字不再重叠（动态计算footerY+增加分割线）
+- [x] 海报和结果页按级别（0/1/2/3）展示不同色彩（级别越高越好看）
 
 ## 第二十五轮修复
 - [x] 首页“发现未完成的测评”弹窗改为自定义弹窗（带X关闭按钮），替换wx.showModal原生弹窗
@@ -513,7 +513,7 @@
 - [x] history页面：level-badge-sm添加max-width:200rpx+字号缩小+文字截断
 - [x] test页面：level-info-level字号缩小+flex自适应+文字截断，progress不缩
 - [x] result页面：逐题分析音频播放按钮改为绿底白三角形图标（纯CSS实现，替换原来看不清的白色SVG）
-- [ ] 海报绘制中等级名称文字宽度自适应（待后续处理）
+- [x] 海报绘制中等级名称文字宽度自适应（徽章宽度根据measureText动态计算）
 
 ## 第四十轮 - 测评页级别信息+录音交互全面优化
 - [x] test.wxml: 级别信息条改为"途正口语X级"格式，去掉PRE1/学前水平

@@ -684,10 +684,17 @@ Page({
       ctx.fillStyle = bgGrad
       ctx.fillRect(0, 0, W, H)
 
-      // 顶部装饰条
+      // 顶部装饰条（按级别色彩）
+      const levelColors = {
+        0: ['#22c55e', '#16a34a'],  // 绿色
+        1: ['#3B82F6', '#2563EB'],  // 蓝色
+        2: ['#8B5CF6', '#7C3AED'],  // 紫色
+        3: ['#F59E0B', '#D97706']   // 金色
+      }
+      const [gradStart, gradEnd] = levelColors[this._majorLevel] || levelColors[1]
       const topGrad = ctx.createLinearGradient(0, 0, W, 0)
-      topGrad.addColorStop(0, '#3B82F6')
-      topGrad.addColorStop(1, '#2563EB')
+      topGrad.addColorStop(0, gradStart)
+      topGrad.addColorStop(1, gradEnd)
       ctx.fillStyle = topGrad
       ctx.fillRect(0, 0, W, 8)
 
@@ -714,35 +721,47 @@ Page({
       ctx.shadowBlur = 0
       ctx.shadowOffsetY = 0
 
-      // 等级徽章
-      const badgeW = 200, badgeH = 64
-      const badgeX = (W - badgeW) / 2, badgeY = cardY + 40
+      // 等级徽章（宽度自适应）
       const levelColor = this.data.levelColor || '#3B82F6'
-      ctx.fillStyle = levelColor
+      const levelText = this.data.levelName || '未定级'
+      ctx.font = 'bold 34px sans-serif'
+      const textMetrics = ctx.measureText(levelText)
+      const badgeW = Math.max(200, textMetrics.width + 60)  // 最小200，文字宽+左右padding
+      const badgeH = 64
+      const badgeX = (W - badgeW) / 2, badgeY = cardY + 40
+      // 徽章渐变背景（按级别色彩）
+      const badgeGrad = ctx.createLinearGradient(badgeX, badgeY, badgeX + badgeW, badgeY)
+      badgeGrad.addColorStop(0, gradStart)
+      badgeGrad.addColorStop(1, gradEnd)
+      ctx.fillStyle = badgeGrad
       this._roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 32)
       ctx.fill()
       ctx.fillStyle = '#ffffff'
       ctx.font = 'bold 34px sans-serif'
       ctx.textAlign = 'center'
-      ctx.fillText(this.data.levelName || '未定级', W / 2, badgeY + 44)
+      ctx.fillText(levelText, W / 2, badgeY + 44)
 
       // 等级描述
       ctx.fillStyle = '#5a6577'
       ctx.font = '26px sans-serif'
       ctx.fillText(this.data.levelLabel || '', W / 2, badgeY + 100)
 
-      // 分数圆环
+      // 分数圆环（使用级别色彩）
       const ringCX = W / 2, ringCY = badgeY + 240, ringR = 80
       ctx.beginPath()
       ctx.arc(ringCX, ringCY, ringR, 0, Math.PI * 2)
-      ctx.strokeStyle = 'rgba(59,130,246,0.08)'
+      ctx.strokeStyle = levelColor + '15'  // 使用级别色+透明度作为背景环
       ctx.lineWidth = 14
       ctx.stroke()
       const percent = this.data.scorePercent || 0
       const endAngle = -Math.PI / 2 + (percent / 100) * Math.PI * 2
       ctx.beginPath()
       ctx.arc(ringCX, ringCY, ringR, -Math.PI / 2, endAngle)
-      ctx.strokeStyle = levelColor
+      // 圆环渐变色
+      const ringGrad = ctx.createLinearGradient(ringCX - ringR, ringCY, ringCX + ringR, ringCY)
+      ringGrad.addColorStop(0, gradStart)
+      ringGrad.addColorStop(1, gradEnd)
+      ctx.strokeStyle = ringGrad
       ctx.lineWidth = 14
       ctx.lineCap = 'round'
       ctx.stroke()
@@ -754,8 +773,8 @@ Page({
       ctx.font = '22px sans-serif'
       ctx.fillText('分', ringCX, ringCY + 46)
 
-      // 统计数据（增大与圆环的间距）
-      const statsY = cardY + cardH - 80
+      // 统计数据（增大与圆环的间距，固定在卡片底部）
+      const statsY = cardY + cardH - 90
       const stats = [
         { label: '答题数', value: String(this.data.totalQuestions || 0) },
         { label: '通过数', value: String(this.data.passedQuestions || 0) },
@@ -801,7 +820,7 @@ Page({
         ctx.textAlign = 'right'
         ctx.fillText(String(item.value), cardX + cardW, iy)
         const barY = iy + 12, barH = 10, barW = cardW
-        ctx.fillStyle = 'rgba(59,130,246,0.06)'
+        ctx.fillStyle = levelColor + '10'  // 使用级别色作为背景条
         this._roundRect(ctx, cardX, barY, barW, barH, 5)
         ctx.fill()
         ctx.fillStyle = item.color || '#3B82F6'
@@ -824,9 +843,17 @@ Page({
       })
 
       // ===== 底部品牌 =====
-      // 动态计算底部位置：确保在能力评估文字下方有足够间距
+      // 动态计算底部位置：确保在能力评估文字下方有足够间距，不重叠
       const summaryEndY = summaryY + 40 + summaryLines.length * 36
-      const footerY = Math.max(summaryEndY + 60, H - 60)
+      const footerY = Math.max(summaryEndY + 80, H - 50)
+      // 底部分割线
+      ctx.strokeStyle = 'rgba(0,0,0,0.06)'
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.moveTo(cardX, footerY - 30)
+      ctx.lineTo(cardX + cardW, footerY - 30)
+      ctx.stroke()
+      // 品牌文字
       ctx.fillStyle = '#b0b8c4'
       ctx.font = '22px sans-serif'
       ctx.textAlign = 'center'

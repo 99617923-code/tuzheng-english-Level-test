@@ -65,7 +65,7 @@ Page({
     navContentHeight: 0,
 
     // 测评状态
-    phase: 'loading', // guide | loading | listening | answering | evaluating | feedback | levelup
+    phase: 'loading', // guide | loading | listening | answering | levelup
 
     // 首次引导
     showGuide: false,
@@ -619,8 +619,10 @@ Page({
     ctx.onPlay(() => {
       this._clearAudioTimeout()
       this.setData({ audioPlaying: true, aiSpeaking: true, aiStatusText: `${this.data.teacherName || '外教'}正在提问...` })
-      // 开始播放后设置超时保护
-      this._setAudioTimeout()
+      // 开始播放后设置超时保护（动态超时：音频时长+5秒缓冲，最少15秒）
+      const duration = ctx.duration || 0
+      const dynamicTimeout = duration > 0 ? Math.max((duration * 1000) + 5000, AUDIO_PLAY_TIMEOUT) : AUDIO_PLAY_TIMEOUT
+      this._setAudioTimeout(dynamicTimeout)
     })
 
     ctx.onEnded(() => {
@@ -660,18 +662,21 @@ Page({
 
   /**
    * 设置音频播放超时保护
-   * 如果15秒内没有onEnded/onError触发，强制进入answering阶段
+   * @param {number} timeout - 超时时间（毫秒），默认AUDIO_PLAY_TIMEOUT(15秒)
+   * 动态超时：音频开始播放后，根据实际时长+5秒缓冲计算
+   * 修复“音频已正常播放但仍报timeout”的问题
    */
-  _setAudioTimeout() {
+  _setAudioTimeout(timeout) {
     this._clearAudioTimeout()
+    const ms = timeout || AUDIO_PLAY_TIMEOUT
     this._audioPlayTimeout = setTimeout(() => {
-      console.warn('[Audio] Play timeout! Force entering answering phase.')
+      console.warn(`[Audio] Play timeout after ${ms}ms! Force entering answering phase.`)
       // 检查当前是否还在listening阶段
       if (this.data.phase === 'listening') {
         this._destroyAudioContext()
         this._onAudioFinished()
       }
-    }, AUDIO_PLAY_TIMEOUT)
+    }, ms)
   },
 
   /**
@@ -1117,24 +1122,20 @@ Page({
     })
 
     try {
-      // 第一步：上传录音到OSS（异步上传，不阻塞下一题）
-      let audioUrl = ''
-      try {
-        const uploadRes = await uploadAudio(
-          this._recordFilePath,
-          sessionId,
-          currentQuestion.questionId
-        )
-        audioUrl = uploadRes.audioUrl || uploadRes.audio_url || uploadRes.url || ''
-      } catch (e) {
-        console.warn('[Upload] Failed:', e.message)
-        // 上传失败不阻断流程，继续提交
-      }
-
       let finalTranscription = userTranscription || ''
 
-      // v3核心改造：调用submitLite接口（毫秒级响应，不等待AI评分）
-      // 如果后端还没实现submitLite，自动降级到evaluateAnswer
+      // v3核心优化：录音上传和submitLite并行执行
+      // 录音上传不阻塞出题流程，后台异步上传即可
+      const uploadPromise = uploadAudio(
+        this._recordFilePath,
+        sessionId,
+        currentQuestion.questionId
+      ).then(res => res.audioUrl || res.audio_url || res.url || '').catch(e => {
+        console.warn('[Upload] Failed:', e.message)
+        return ''
+      })
+
+      // submitLite参数（先不带audioUrl，后端可以异步获取）
       const submitParams = {
         sessionId,
         questionId: currentQuestion.questionId,
@@ -1143,8 +1144,14 @@ Page({
         duration: recordSeconds * 1000,
         responseDelay: this._currentResponseDelay || 0
       }
-      if (audioUrl) {
-        submitParams.audioUrl = audioUrl
+
+      // 尝试并行：如果上传很快完成（200ms内），就带上audioUrl
+      const quickUpload = await Promise.race([
+        uploadPromise.then(url => ({ url, done: true })),
+        delay(200).then(() => ({ url: '', done: false }))
+      ])
+      if (quickUpload.url) {
+        submitParams.audioUrl = quickUpload.url
       }
 
       // 网络失败自动重试（最多3次）
@@ -1327,8 +1334,8 @@ Page({
           // 跳过时停止倒计时
           this.stopTimer()
           this.setData({
-            phase: 'evaluating',
-            aiStatusText: '正在处理...'
+            phase: 'loading',
+            aiStatusText: '正在准备下一题...'
           })
 
           try {
@@ -1479,7 +1486,7 @@ Page({
         this._saveTestSession()
 
         this.startTimer()
-        await delay(500)
+        await delay(300)  // 缩短过渡时间
         this._destroyAudioContext()  // 播放新题前先销毁旧音频
         this._playQuestionAudio()
         return
@@ -1580,8 +1587,8 @@ Page({
     // 重启每题倒计时
     this.startTimer()
 
-    // 自动播放下一题语音
-    await delay(500)
+    // 自动播放下一题语音（缩短过渡时间，提升流畅度）
+    await delay(300)
     this._destroyAudioContext()  // 播放新题前先销毁旧音频
     this._playQuestionAudio()
   },

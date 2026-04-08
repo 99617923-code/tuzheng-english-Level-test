@@ -581,3 +581,8 @@
 - [x] 登录页：微信手机号快捷登录按钮去掉前面的微信图标，只保留文字
 - [x] 测评记录页：总测评和已完成数字区域缩小（flex:0.7，字号36rpx）
 - [x] 测评记录页：途正口语X级区域放大（flex:1.6，字号48rpx）
+
+## 第四十八轮 - 修复后端同学代码中的变量未定义和录音器bug
+- [x] 定位test.js中2处newTotalAnswered残留引用（第1323行和第1458行）
+- [x] 修复newTotalAnswered→backendTotal（对应各自作用域内已定义的变量）
+- [x] 分析recorder not start根因：pendingStop时序竞争，但不是崩溃主因，主因是newTotalAnswered未定义导致submitAnswer崩溃

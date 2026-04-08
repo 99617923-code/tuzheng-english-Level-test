@@ -1320,7 +1320,7 @@ Page({
       }
 
       // 继续下一题（包括强制继续的情况）
-      this._autoNextQuestion(evalRes, newTotalAnswered, shouldForceContinue)
+      this._autoNextQuestion(evalRes, backendTotal, shouldForceContinue)
 
     } catch (err) {
       console.error('[Submit] Error:', err)
@@ -1455,7 +1455,7 @@ Page({
             }
 
             // 继续下一题
-            this._autoNextQuestion(evalRes, newTotalAnswered, shouldForceContinue)
+            this._autoNextQuestion(evalRes, backendTotal, shouldForceContinue)
 
           } catch (err) {
             console.error('[Skip] evaluate failed:', err)

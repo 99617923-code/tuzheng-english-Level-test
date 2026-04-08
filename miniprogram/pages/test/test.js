@@ -174,6 +174,7 @@ Page({
     this._touchStartTime = 0        // 按住开始时间戳
     this._touchActive = false       // 手指是否正在按住
     this._pendingStop = false       // 录音启动前手指已松开标志
+    this._recorderReallyStarted = false  // 录音器是否已真正启动（onStart回调后才为true）
     this._requestGeneration = 0     // 请求代数，用于忽略旧请求的回调
     this._setupRecorderEvents()
 
@@ -233,6 +234,8 @@ Page({
     // 重置所有锁状态
     this._isSubmitting = false
     this._isStartingRecord = false
+    this._recorderReallyStarted = false
+    this._pendingStop = false
     this._showingModal = false
   },
 
@@ -841,6 +844,7 @@ Page({
   _setupRecorderEvents() {
     this._recorderManager.onStart(() => {
       this._isStartingRecord = false  // 录音已成功启动，解除防抖锁
+      this._recorderReallyStarted = true  // 标记录音器已真正启动
       if (this._isPageUnloaded) {
         this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
         try { this._recorderManager.stop() } catch (e) {}
@@ -882,6 +886,8 @@ Page({
 
     this._recorderManager.onStop((res) => {
       this._isStartingRecord = false  // 确保录音停止后解除防抖锁
+      this._recorderReallyStarted = false  // 录音器已停止
+      this._pendingStop = false
       if (this._recordTimer) {
         clearInterval(this._recordTimer)
         this._recordTimer = null
@@ -909,6 +915,8 @@ Page({
     this._recorderManager.onError((err) => {
       console.error('[Recorder] Error:', err)
       this._isStartingRecord = false  // 录音失败，解除防抖锁
+      this._recorderReallyStarted = false
+      this._pendingStop = false
       if (this._recordTimer) {
         clearInterval(this._recordTimer)
         this._recordTimer = null
@@ -918,7 +926,8 @@ Page({
         return
       }
       this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
-      showError('录音失败，请重试')
+      // 不弹showError，避免打断用户，只toast提示
+      showToast('录音异常，请重新按住说话')
     })
   },
 
@@ -938,7 +947,7 @@ Page({
       return
     }
     // 已在录音中，不重复启动
-    if (this.data.isRecording) return
+    if (this.data.isRecording || this._recorderReallyStarted) return
 
     // 记录按下时间戳，用于松开时判断是否太短
     this._touchStartTime = Date.now()
@@ -967,21 +976,25 @@ Page({
   onRecordTouchEnd(e) {
     this._touchActive = false  // 手指已松开
 
-    // 如果录音还没启动成功（onStart还没触发），延迟停止
-    if (this._isStartingRecord && !this.data.isRecording) {
-      // 录音正在启动中，等待onStart后再停止
+    // 如果录音器还没真正启动（onStart回调还没触发），设置pendingStop等onStart里处理
+    if (this._isStartingRecord) {
       this._pendingStop = true
+      // 同时清除UI遮罩，避免卡住
+      this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
       return
     }
 
-    if (!this.data.isRecording) return
+    // 录音器没在录音，直接返回
+    if (!this._recorderReallyStarted) {
+      this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
+      return
+    }
 
     // 检查按住时长，太短则取消
     const holdDuration = Date.now() - (this._touchStartTime || 0)
     if (holdDuration < 500) {
       // 按住不到500ms，视为误触，取消录音
-      this._recorderManager.stop()
-      // 不提交，只提示
+      try { this._recorderManager.stop() } catch (e) {}
       this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
       showToast('说话时间太短，请按住说话')
       this._recordFilePath = ''
@@ -1028,28 +1041,43 @@ Page({
   _doStartRecording() {
     this.setData({ realtimeText: '', userTranscription: '', evaluationFeedback: '' })
 
-    try {
-      this._recorderManager.start({
-        duration: 60000,
-        sampleRate: 16000,
-        numberOfChannels: 1,
-        encodeBitRate: 96000,
-        format: 'mp3',
-        frameSize: 50
-      })
-      // 注意：_isStartingRecord 在 onStart 回调中解锁
-    } catch (e) {
-      console.error('[Recorder] Start exception:', e)
-      this._isStartingRecord = false  // 异常时解锁
-      this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
-      showError('录音启动失败，请重试')
-    }
+    // 启动前先强制stop，确保录音器状态干净（防止上次异常残留）
+    try { this._recorderManager.stop() } catch (e) {}
+    this._recorderReallyStarted = false
+
+    // 延迟50ms再start，给stop一点时间完成
+    setTimeout(() => {
+      // 如果在这50ms内页面卸载了或手指已松开，就不启动了
+      if (this._isPageUnloaded || this._pendingStop) {
+        this._isStartingRecord = false
+        this._pendingStop = false
+        this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
+        return
+      }
+      try {
+        this._recorderManager.start({
+          duration: 60000,
+          sampleRate: 16000,
+          numberOfChannels: 1,
+          encodeBitRate: 96000,
+          format: 'mp3',
+          frameSize: 50
+        })
+        // 注意：_isStartingRecord 在 onStart 回调中解锁
+      } catch (e) {
+        console.error('[Recorder] Start exception:', e)
+        this._isStartingRecord = false
+        this._recorderReallyStarted = false
+        this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
+        showToast('录音启动失败，请重新按住说话')
+      }
+    }, 50)
   },
 
   /** 停止录音 */
   stopRecording() {
-    if (!this.data.isRecording) return
-    this._recorderManager.stop()
+    if (!this._recorderReallyStarted && !this.data.isRecording) return
+    try { this._recorderManager.stop() } catch (e) {}
     // 清除录音遮罩状态
     this.setData({ recordCountdown: 0, recordWaveBars: [] })
   },
@@ -1633,13 +1661,13 @@ Page({
     // 释放录音资源
     this._isSubmitting = false
     this._isStartingRecord = false
+    this._recorderReallyStarted = false
+    this._pendingStop = false
     if (this._recordTimer) {
       clearInterval(this._recordTimer)
       this._recordTimer = null
     }
-    if (this.data.isRecording) {
-      try { this._recorderManager.stop() } catch (e) {}
-    }
+    try { this._recorderManager.stop() } catch (e) {}
     
     // 如果currentQuestion有效，回到answering状态
     if (this.data.currentQuestion && this.data.currentQuestion.questionId) {

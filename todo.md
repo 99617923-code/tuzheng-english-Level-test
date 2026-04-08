@@ -558,3 +558,13 @@
 ## 第四十四轮 - 联调BUG修复
 - [x] 修复第二题开始用TTS而不是外教录音：全部9处音频URL读取点增加teacherAudioUrl优先读取（api.js 3处 + test.js 6处）
 - [x] 第一题慢的原因：后端submit-lite之前500报错导致预加载失败，后端已修复，预加载应恢复正常
+
+## 第四十五轮 - 录音器启动失败BUG修复
+- [x] 分析录音器报错：operateRecorder:fail recorder not start
+- [x] 分析录音器状态冲突：operateRecorder:fail is recording or paused
+- [x] 修复录音器状态管理和启动逻辑
+- [x] 新增_recorderReallyStarted标志位，区分“UI显示录音中”和“录音器真正在录音”
+- [x] _doStartRecording启动前先强制stop清理残留状态，延迟50ms再启start
+- [x] onRecordTouchEnd用_recorderReallyStarted判断是否可以stop，避免对未启动的录音器调stop
+- [x] onError回调改为showToast而非showError，避免弹窗打断用户
+- [x] 所有状态重置点（cleanup/_resetToSafeState/onStop/onError）统一重置_recorderReallyStarted和_pendingStop

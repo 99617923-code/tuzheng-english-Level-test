@@ -127,7 +127,7 @@ function logout() {
     })
 }
 
-// ============ 测评接口（自适应引擎 v2） ============
+// ============ 测评接口（自适应引擎 v2 + v3智能预判引擎） ============
 
 /**
  * 创建测评会话（自适应引擎 v2）
@@ -518,6 +518,132 @@ function getUserLevelStatus() {
   })
 }
 
+// ============ v3智能预判引擎接口 ============
+
+/**
+ * v3轻量提交接口（替代evaluate，毫秒级响应）
+ * 做题过程中不调用AI，用规则引擎预判并返回下一题
+ * 
+ * @param {object} params
+ * @param {string} params.sessionId - 测评会话ID（必填）
+ * @param {string|number} params.questionId - 题目ID（必填）
+ * @param {string} [params.audioUrl] - 录音OSS地址
+ * @param {string} [params.recognizedText] - 前端语音识别文本
+ * @param {number} [params.duration] - 录音时长（毫秒）
+ * @param {number} [params.responseDelay] - 响应延迟（毫秒，题目播完到开始录音的间隔）
+ * @param {string} [params.questionText] - 题目原文
+ * @param {boolean} [params.skipped] - 是否跳过
+ * 
+ * Response (status=continue): {
+ *   status: "continue",
+ *   sessionId, currentSubLevel, currentMajorLevel, questionIndex, totalAnswered,
+ *   levelUp, levelUpMessage, skipLevel,
+ *   question: { questionId, audioUrl, questionText, subLevel },
+ *   prediction: { passed, confidence, signals }
+ * }
+ * 
+ * Response (status=finished): {
+ *   status: "finished",
+ *   sessionId, totalAnswered, question: null,
+ *   pendingReport: true, estimatedWaitSeconds,
+ *   preliminaryLevel: { majorLevel, majorLevelName, majorLevelLabel }
+ * }
+ */
+function submitLite(params) {
+  const data = {
+    sessionId: params.sessionId,
+    session_id: params.sessionId,
+    questionId: params.questionId,
+    question_id: params.questionId
+  }
+
+  if (params.questionText) {
+    data.questionText = params.questionText
+    data.question_text = params.questionText
+  }
+  if (params.audioUrl) {
+    data.audioUrl = params.audioUrl
+    data.audio_url = params.audioUrl
+  }
+  data.recognizedText = params.recognizedText || ''
+  data.recognized_text = params.recognizedText || ''
+  if (params.duration !== undefined && params.duration !== null) {
+    data.duration = params.duration
+  }
+  if (params.responseDelay !== undefined && params.responseDelay !== null) {
+    data.responseDelay = params.responseDelay
+    data.response_delay = params.responseDelay
+  }
+  if (params.skipped) {
+    data.skipped = true
+  }
+
+  return request('/api/v1/test/submit-lite', {
+    method: 'POST',
+    data
+  }).then(res => {
+    if (res.code !== 200) throw new Error(res.msg || '提交失败')
+    const result = res.data
+    // 兼容下划线命名
+    if (!result.totalAnswered && result.total_answered !== undefined) result.totalAnswered = result.total_answered
+    if (!result.currentSubLevel && result.current_sub_level) result.currentSubLevel = result.current_sub_level
+    if (result.currentMajorLevel === undefined && result.current_major_level !== undefined) result.currentMajorLevel = result.current_major_level
+    if (!result.questionIndex && result.question_index) result.questionIndex = result.question_index
+    if (!result.sessionId && result.session_id) result.sessionId = result.session_id
+    if (result.levelUp === undefined && result.level_up !== undefined) result.levelUp = result.level_up
+    if (!result.levelUpMessage && result.level_up_message) result.levelUpMessage = result.level_up_message
+    if (result.skipLevel === undefined && result.skip_level !== undefined) result.skipLevel = result.skip_level
+    // finished状态的字段兼容
+    if (result.pendingReport === undefined && result.pending_report !== undefined) result.pendingReport = result.pending_report
+    if (!result.estimatedWaitSeconds && result.estimated_wait_seconds) result.estimatedWaitSeconds = result.estimated_wait_seconds
+    if (result.preliminaryLevel) {
+      const pl = result.preliminaryLevel
+      if (!pl.majorLevelName && pl.major_level_name) pl.majorLevelName = pl.major_level_name
+      if (!pl.majorLevelLabel && pl.major_level_label) pl.majorLevelLabel = pl.major_level_label
+    } else if (result.preliminary_level) {
+      result.preliminaryLevel = result.preliminary_level
+    }
+    return result
+  })
+}
+
+/**
+ * 查询报告生成状态（v3异步精评）
+ * 前端轮询此接口，检查后端异步评分是否完成
+ * 
+ * @param {string} sessionId - 测评会话ID
+ * 
+ * Response (processing): { status: "processing", progress: 60, progressText, estimatedRemainingSeconds }
+ * Response (completed): { status: "completed", progress: 100 }
+ * Response (failed): { status: "failed", error, canRetry }
+ */
+function getReportStatus(sessionId) {
+  return request(`/api/v1/test/report-status/${sessionId}`).then(res => {
+    if (res.code !== 200 && res.code !== 0) throw new Error(res.msg || '查询报告状态失败')
+    const data = res.data || res
+    // 兼容下划线命名
+    if (!data.progressText && data.progress_text) data.progressText = data.progress_text
+    if (!data.estimatedRemainingSeconds && data.estimated_remaining_seconds !== undefined) {
+      data.estimatedRemainingSeconds = data.estimated_remaining_seconds
+    }
+    if (data.canRetry === undefined && data.can_retry !== undefined) data.canRetry = data.can_retry
+    return data
+  })
+}
+
+/**
+ * 触发重新生成报告（v3异步精评失败时重试）
+ * @param {string} sessionId - 测评会话ID
+ */
+function retryReport(sessionId) {
+  return request(`/api/v1/test/report-retry/${sessionId}`, {
+    method: 'POST'
+  }).then(res => {
+    if (res.code !== 200 && res.code !== 0) throw new Error(res.msg || '重新生成失败')
+    return res.data
+  })
+}
+
 module.exports = {
   sendSmsCode,
   smsLogin,
@@ -538,5 +664,9 @@ module.exports = {
   getUserLevelStatus,
   getQrcodeDisplaySetting,
   getTeacherConfig,
-  getTestReport
+  getTestReport,
+  // v3智能预判引擎接口
+  submitLite,
+  getReportStatus,
+  retryReport
 }

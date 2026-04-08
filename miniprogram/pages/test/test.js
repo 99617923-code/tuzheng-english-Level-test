@@ -1,38 +1,24 @@
 /**
- * 途正英语AI分级测评 - 测评主页面（自适应引擎 v2）
+ * 途正英语AI分级测评 - 测评主页面（v3 智能预判引擎 - 零等待模式）
+ * 
+ * v3核心优化：
+ * 1. 首页预加载：用户登录后立即后台调用startTest预加载第一题，进入测评页时零等待
+ * 2. submitLite接口：做题过程中不等待AI评分，后端用规则引擎快速预判出下一题
+ * 3. 响应延迟记录：记录音频播放结束到用户开始录音的时间间隔，传给后端辅助预判
+ * 4. 异步精评：测评结束后后端统一调用LLM精确评分，结果页轮询等待报告
+ * 5. 保守定级：后端应用保守系数，确保定级偏保守
  * 
  * 核心流程：
- * 1. startTest → 后端返回第一题（从PRE1开始）
- * 2. 自动播放外教真人语音 → 用户点击录音回答
- * 3. evaluate → 后端AI评分 + 自适应升级判断
- * 4. status=continue → 自动播放下一题（可能升级到更高小级）
- * 5. status=finished → 跳转结果页
+ * 1. startTest → 后端返回第一题（从PRE1开始，或从预加载缓存读取）
+ * 2. 自动播放外教真人语音 → 用户按住录音回答
+ * 3. submitLite → 后端规则预判 + 快速返回下一题（毫秒级）
+ * 4. status=continue → 立即播放下一题（可能升级/跳级）
+ * 5. status=finished → 跳转结果页（轮询等待异步精评完成）
  * 
- * 前端保底规则：至少答完6题才允许定级结束
- * 如果后端在6题内返回finished，前端会继续请求新题目
- * 
- * 后端新算法（v4）：
- * - 每个小级2-4题动态出题
- * - 连续2题≥60分直接升级（快速通道）
- * - 4题平均分<60判定不通过
- * - 升级时返回levelUp=true + levelUpMessage字段
- * 
- * 关键修复（v3）：
- * - InnerAudioContext每次播放前销毁重建（解决onEnded不触发的bug）
- * - 增加播放超时保护（15秒内无onEnded则强制进入answering）
- * - 新测评题号强制从1开始（不依赖后端totalAnswered）
- * - 录音上传失败时仍然提交evaluate（让后端处理）
- *
- * 稳定性修复（v5 - 第20题后崩溃修复）：
- * - 录音按钮防抖锁（_isStartingRecord）：防止快速连点导致多次启动录音
- * - currentQuestion null安全检查：submitAnswer/handleSkip/handleNext中防止"null is not an object"
- * - 弹窗互斥锁（_showingModal）：防止多个wx.showModal叠加导致UI卡死
- * - 全局异常恢复（_resetToSafeState）：状态混乱时提供用户可操作的恢复选项
- * - 跳过失败恢复（_handleSkipFailure）：跳过题目valuate失败时提供重试/继续录音选项
- * - 后端question:null安全处理：status:continue但question为null时不崩溃，提示用户选择
+ * 降级兼容：如果后端还没实现submitLite接口，自动降级到evaluateAnswer
  */
 const app = getApp()
-const { startTest, evaluateAnswer, uploadAudio, terminateTest, transcribeAudio, textToSpeech, getTeacherConfig } = require('../../utils/api')
+const { startTest, evaluateAnswer, uploadAudio, terminateTest, transcribeAudio, textToSpeech, getTeacherConfig, submitLite } = require('../../utils/api')
 const { formatTime, showToast, showError, delay } = require('../../utils/util')
 const { ensureTokenValid } = require('../../utils/request')
 
@@ -160,6 +146,8 @@ Page({
   _frontendQuestionCount: 0, // 前端自己维护的答题计数（不依赖后端）
   _pendingLevelUp: false,    // 后端返回的升级标志（缓存到handleNext使用）
   _pendingLevelUpMessage: '', // 后端返回的升级提示文案
+  _audioEndedTimestamp: 0,    // v3: 音频播放结束时间戳（用于计算响应延迟）
+  _currentResponseDelay: 0,   // v3: 当前题目的响应延迟（ms）
 
   onLoad(options) {
     const navLayout = app.getNavLayout()
@@ -467,8 +455,18 @@ Page({
     this._frontendQuestionCount = 0
 
     try {
-      // forceNew=true 时强制创建新会话（后端会终止旧会话）
-      const data = await startTest(forceNew ? { forceNew: true } : {})
+      // v3优化：优先读取预加载缓存（非强制新建时）
+      let data = null
+      if (!forceNew) {
+        data = await app.getPreloadedTestData()
+        if (data) {
+          console.log('[Test] Using preloaded data, sessionId:', data.sessionId)
+        }
+      }
+      // 缓存未命中或强制新建，正常调用startTest
+      if (!data) {
+        data = await startTest(forceNew ? { forceNew: true } : {})
+      }
 
       // 打印后端返回的完整数据，方便调试
 
@@ -650,6 +648,8 @@ Page({
    * 音频播放完成后的统一处理
    */
   _onAudioFinished() {
+    // v3: 记录音频播放结束时间戳（用于计算响应延迟）
+    this._audioEndedTimestamp = Date.now()
     this.setData({
       audioPlaying: false,
       aiSpeaking: false,
@@ -929,6 +929,12 @@ Page({
     // 记录按下时间戳，用于松开时判断是否太短
     this._touchStartTime = Date.now()
     this._touchActive = true  // 标记手指正在按住
+    // v3: 计算响应延迟（音频播放结束到用户开始录音的时间间隔）
+    if (this._audioEndedTimestamp > 0) {
+      this._currentResponseDelay = Date.now() - this._audioEndedTimestamp
+    } else {
+      this._currentResponseDelay = 0
+    }
 
     // 立即显示录音遮罩（不等onStart回调，消除视觉延迟）
     const waveBars = Array.from({ length: 24 }, () => Math.floor(Math.random() * 80) + 20)
@@ -1073,7 +1079,7 @@ Page({
     }
   },
 
-  // ============ 提交评估（v2 自适应引擎） ============
+  // ============ 提交评估（v3 智能预判引擎 - 零等待模式） ============
 
   async submitAnswer() {
     const { sessionId, currentQuestion, userTranscription, recordSeconds } = this.data
@@ -1086,7 +1092,7 @@ Page({
     // 安全检查：currentQuestion为null时不提交（防止"null is not an object"报错）
     if (!currentQuestion || !currentQuestion.questionId) {
       console.error('[Submit] currentQuestion is null or missing questionId, resetting to safe state')
-      this._resetToSafeState('题目数据异常，请点击“跳过此题”或等待下一题')
+      this._resetToSafeState('题目数据异常，请点击"跳过此题"或等待下一题')
       return
     }
 
@@ -1104,13 +1110,14 @@ Page({
     // 提前检查Token有效性，快过期时主动刷新（避免上传/评估过程中遇到401）
     await ensureTokenValid()
 
+    // v3优化：不再进入evaluating等待阶段，直接显示"正在准备下一题"
     this.setData({
-      phase: 'evaluating',
-      aiStatusText: '正在评估你的回答...'
+      phase: 'loading',
+      aiStatusText: '正在准备下一题...'
     })
 
     try {
-      // 第一步：上传录音到OSS
+      // 第一步：上传录音到OSS（异步上传，不阻塞下一题）
       let audioUrl = ''
       try {
         const uploadRes = await uploadAudio(
@@ -1121,46 +1128,49 @@ Page({
         audioUrl = uploadRes.audioUrl || uploadRes.audio_url || uploadRes.url || ''
       } catch (e) {
         console.warn('[Upload] Failed:', e.message)
-        // 上传失败不阻断流程，继续提交evaluate
+        // 上传失败不阻断流程，继续提交
       }
 
-      // 第二步：跳过单独的Whisper转写调用，直接把audioUrl传给evaluate
-      // 速度优化：让后端在evaluate内部并行处理转写+评分，节省3-5秒
       let finalTranscription = userTranscription || ''
-      if (!finalTranscription && audioUrl) {
-      }
 
-      // 第三步：调用v2 evaluate接口（带重试机制）
-      // 即使audioUrl和recognizedText都为空，也要提交（让后端判断）
-      const evalParams = {
+      // v3核心改造：调用submitLite接口（毫秒级响应，不等待AI评分）
+      // 如果后端还没实现submitLite，自动降级到evaluateAnswer
+      const submitParams = {
         sessionId,
         questionId: currentQuestion.questionId,
-        // 传递questionText给后端，确保LLM评分使用正确的题目上下文
         questionText: currentQuestion.questionText || '',
         recognizedText: finalTranscription || '',
-        duration: recordSeconds * 1000
+        duration: recordSeconds * 1000,
+        responseDelay: this._currentResponseDelay || 0
       }
-      // 始终传递audioUrl（后端需要用它做转写+评分）
       if (audioUrl) {
-        evalParams.audioUrl = audioUrl
+        submitParams.audioUrl = audioUrl
       }
 
-
-      // evaluate网络失败自动重试（最多3次）
-      // 避免网络中断导致跳过评分，造成前后端题目状态不同步
-      const MAX_EVALUATE_RETRIES = 3
+      // 网络失败自动重试（最多3次）
+      const MAX_RETRIES = 3
       let evalRes = null
       let lastError = null
-      for (let attempt = 1; attempt <= MAX_EVALUATE_RETRIES; attempt++) {
+      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         try {
-          evalRes = await evaluateAnswer(evalParams)
+          // 优先尝试submitLite，失败时降级到evaluateAnswer
+          try {
+            evalRes = await submitLite(submitParams)
+          } catch (liteErr) {
+            // submitLite接口不存在（404）或服务器错误，降级到旧接口
+            if (liteErr.message && (liteErr.message.includes('404') || liteErr.message.includes('Not Found'))) {
+              console.warn('[Submit] submitLite not available, fallback to evaluateAnswer')
+              evalRes = await evaluateAnswer(submitParams)
+            } else {
+              throw liteErr
+            }
+          }
           break // 成功则跳出重试循环
         } catch (retryErr) {
           lastError = retryErr
-          console.warn(`[Evaluate] Attempt ${attempt} failed:`, retryErr.message)
-          if (attempt < MAX_EVALUATE_RETRIES) {
-            // 等待1.5秒后重试
-            this.setData({ aiStatusText: `网络异常，正在重试(${attempt}/${MAX_EVALUATE_RETRIES})...` })
+          console.warn(`[Submit] Attempt ${attempt} failed:`, retryErr.message)
+          if (attempt < MAX_RETRIES) {
+            this.setData({ aiStatusText: `网络异常，正在重试(${attempt}/${MAX_RETRIES})...` })
             await delay(1500)
           }
         }
@@ -1168,8 +1178,7 @@ Page({
 
       // 3次重试都失败 → 不跳下一题，提示用户重新提交
       if (!evalRes) {
-        console.error('[Evaluate] All retries failed:', lastError?.message)
-        // 使用弹窗互斥锁防止叠加
+        console.error('[Submit] All retries failed:', lastError?.message)
         if (this._showingModal) {
           this.setData({ phase: 'answering', aiStatusText: '请重新录音回答' })
           return
@@ -1177,17 +1186,15 @@ Page({
         this._showingModal = true
         wx.showModal({
           title: '网络异常',
-          content: '评估请求失败，请检查网络后点击“重新提交”',
+          content: '提交失败，请检查网络后点击"重新提交"',
           confirmText: '重新提交',
           cancelText: '跳过此题',
           success: (res) => {
             this._showingModal = false
             if (res.confirm) {
-              // 用户点“重新提交”→ 重新调用submitAnswer
               this._isSubmitting = false
               this.submitAnswer()
             } else {
-              // 用户点“跳过此题”→ 回到answering状态，不跳下一题
               this.setData({ phase: 'answering', aiStatusText: '请重新录音回答' })
             }
           },
@@ -1196,13 +1203,13 @@ Page({
             this.setData({ phase: 'answering', aiStatusText: '请重新录音回答' })
           }
         })
-        return // 不继续执行后续逻辑
+        return
       }
 
       // 缓存完整响应
       this._lastEvalResponse = evalRes
 
-      // 兼容下划线命名：evaluate返回的下一题question
+      // 兼容下划线命名：返回的下一题question
       if (evalRes.question) {
         const q = evalRes.question
         if (!q.audioUrl && q.audio_url) q.audioUrl = q.audio_url
@@ -1210,8 +1217,6 @@ Page({
         if (!q.questionId && q.question_id) q.questionId = q.question_id
         if (!q.subLevel && q.sub_level) q.subLevel = q.sub_level
       }
-
-      // 第四步：处理评估结果（v0.1.7精简版：去掉逐题反馈，答完直接下一题）
 
       // 检查请求代数：如果用户已退出重进，旧请求的回调应被忽略
       if (myGeneration !== (this._requestGeneration || 0)) {
@@ -1227,7 +1232,7 @@ Page({
       const isFinished = evalRes.status === 'finished'
       const shouldForceContinue = isFinished && newTotalAnswered < MIN_QUESTIONS_BEFORE_FINISH
 
-      // 缓存后端返回的升级信息（handleNext中使用）
+      // 缓存后端返回的升级信息
       this._pendingLevelUp = evalRes.levelUp || false
       this._pendingLevelUpMessage = evalRes.levelUpMessage || ''
 
@@ -1237,7 +1242,6 @@ Page({
         questionCountDisplay: `第 ${newTotalAnswered} 题`
       })
 
-      // 精简版：不再显示逐题反馈，直接进入下一题或结果页
       this._lastEvalResponse = evalRes
 
       if (isFinished && !shouldForceContinue) {
@@ -1245,6 +1249,8 @@ Page({
         if (this._isNavigating) return
         this._isNavigating = true
         this._clearTestSession()
+        // v3: 清除预加载缓存
+        app.clearPreloadCache()
         this.cleanup()
         wx.redirectTo({
           url: `/pages/result/result?sessionId=${this.data.sessionId}`,
@@ -1257,8 +1263,8 @@ Page({
       this._autoNextQuestion(evalRes, newTotalAnswered, shouldForceContinue)
 
     } catch (err) {
-      console.error('[Evaluate] Error:', err)
-      showError(err.message || '评估失败')
+      console.error('[Submit] Error:', err)
+      showError(err.message || '提交失败')
       this.setData({ phase: 'answering', aiStatusText: '请重新回答' })
     } finally {
       this._isSubmitting = false
@@ -1326,18 +1332,38 @@ Page({
           })
 
           try {
-            const evalRes = await evaluateAnswer({
+            // v3优化：跳过也使用submitLite（毫秒级响应）
+            let evalRes = null
+            const skipParams = {
               sessionId: this.data.sessionId,
               questionId: this.data.currentQuestion.questionId,
               recognizedText: '',
-              duration: 0
-            })
+              duration: 0,
+              responseDelay: 0  // 跳过时响应延迟为0
+            }
+            try {
+              evalRes = await submitLite(skipParams)
+            } catch (liteErr) {
+              if (liteErr.message && (liteErr.message.includes('404') || liteErr.message.includes('Not Found'))) {
+                evalRes = await evaluateAnswer(skipParams)
+              } else {
+                throw liteErr
+              }
+            }
 
+            // 兼容下划线命名
+            if (evalRes.question) {
+              const q = evalRes.question
+              if (!q.audioUrl && q.audio_url) q.audioUrl = q.audio_url
+              if (!q.questionText && q.question_text) q.questionText = q.question_text
+              if (!q.questionId && q.question_id) q.questionId = q.question_id
+              if (!q.subLevel && q.sub_level) q.subLevel = q.sub_level
+            }
             this._lastEvalResponse = evalRes
 
             // 跳过也算答了一题
             this._frontendQuestionCount += 1
-            const backendTotal = evalRes.totalAnswered || this._frontendQuestionCount
+            const backendTotal = evalRes.totalAnswered || evalRes.total_answered || this._frontendQuestionCount
             const newTotalAnswered = Math.max(this._frontendQuestionCount, backendTotal)
 
             const isFinished = evalRes.status === 'finished'
@@ -1354,6 +1380,7 @@ Page({
               if (this._isNavigating) return
               this._isNavigating = true
               this._clearTestSession()
+              app.clearPreloadCache()  // v3: 清除预加载缓存
               this.cleanup()
               wx.redirectTo({
                 url: `/pages/result/result?sessionId=${this.data.sessionId}`,

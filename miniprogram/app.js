@@ -19,6 +19,10 @@ App({
     screenWidth: 375,
     screenHeight: 667,
     safeAreaBottom: 0,
+    // v3预加载缓存（登录后立即预加载第一题数据）
+    preloadedTestData: null,
+    preloadTestPromise: null,
+    preloadStartTime: 0,
     // 品牌资源
     logoUrl: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/tuzheng-logo-transparent_4a301562.png',
     aiAvatarUrl: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/male-teacher-avatar-T5xrDtUUzwee9GXzJpVr28.webp',
@@ -115,6 +119,8 @@ App({
         this.globalData.userInfo = res.data.user_info
         this.globalData.isAuthenticated = true
         wx.setStorageSync('tz_user_info', res.data.user_info)
+        // v3优化：登录成功后立即预加载测评数据
+        this.preloadTestData()
       } else {
         this.clearAuth()
       }
@@ -135,6 +141,86 @@ App({
   /** 获取等级配置 */
   getLevelConfig(level) {
     return this.globalData.levelConfig[level] || this.globalData.levelConfig[1]
+  },
+
+  /**
+   * v3预加载：后台预加载测评第一题数据
+   * 登录成功后立即调用，用户浏览首页期间后台完成加载
+   * 测评页进入时直接读取缓存，零等待
+   */
+  preloadTestData() {
+    // 防止重复预加载
+    if (this.globalData.preloadTestPromise) return this.globalData.preloadTestPromise
+    // 如果已有未过期的缓存，不重复加载（10分钟内有效）
+    if (this.globalData.preloadedTestData) {
+      const elapsed = Date.now() - this.globalData.preloadStartTime
+      if (elapsed < 10 * 60 * 1000) {
+        return Promise.resolve(this.globalData.preloadedTestData)
+      }
+    }
+
+    const { startTest } = require('./utils/api')
+    this.globalData.preloadStartTime = Date.now()
+
+    this.globalData.preloadTestPromise = startTest()
+      .then(data => {
+        // 兼容下划线命名（question字段）
+        if (data.question) {
+          const q = data.question
+          if (!q.audioUrl && q.audio_url) q.audioUrl = q.audio_url
+          if (!q.questionText && q.question_text) q.questionText = q.question_text
+          if (!q.questionId && q.question_id) q.questionId = q.question_id
+          if (!q.subLevel && q.sub_level) q.subLevel = q.sub_level
+        }
+        this.globalData.preloadedTestData = data
+        console.log('[App] Preload test data success, sessionId:', data.sessionId)
+        return data
+      })
+      .catch(err => {
+        console.warn('[App] Preload test data failed:', err.message)
+        this.globalData.preloadedTestData = null
+        this.globalData.preloadTestPromise = null
+        return null
+      })
+
+    return this.globalData.preloadTestPromise
+  },
+
+  /**
+   * 获取预加载的测评数据（测评页调用）
+   * 如果预加载完成，直接返回缓存数据；否则等待预加载完成
+   * @returns {Promise<object|null>} 预加载的测评数据，失败返回null
+   */
+  getPreloadedTestData() {
+    // 已有缓存且未过期，直接返回
+    if (this.globalData.preloadedTestData) {
+      const elapsed = Date.now() - this.globalData.preloadStartTime
+      if (elapsed < 10 * 60 * 1000) {
+        const data = this.globalData.preloadedTestData
+        // 清除缓存（一次性使用，避免重复使用同一个session）
+        this.globalData.preloadedTestData = null
+        this.globalData.preloadTestPromise = null
+        return Promise.resolve(data)
+      }
+    }
+    // 正在预加载中，等待完成
+    if (this.globalData.preloadTestPromise) {
+      return this.globalData.preloadTestPromise.then(data => {
+        // 清除缓存
+        this.globalData.preloadedTestData = null
+        this.globalData.preloadTestPromise = null
+        return data
+      })
+    }
+    // 没有预加载，返回null（调用方需要自己调startTest）
+    return Promise.resolve(null)
+  },
+
+  /** 清除预加载缓存（用户登出或测评开始后清除） */
+  clearPreloadCache() {
+    this.globalData.preloadedTestData = null
+    this.globalData.preloadTestPromise = null
+    this.globalData.preloadStartTime = 0
   },
 
   /**

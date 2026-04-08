@@ -1,18 +1,25 @@
 /**
- * 途正英语分级测评 - 结果页（自适应引擎 v2）
+ * 途正英语分级测评 - 结果页（v3 智能预判引擎 - 轮询等待模式）
+ * 
+ * v3核心改动：
+ * - 测评结束后，后端异步进行精确评分（调用LLM逐题评分）
+ * - 结果页轮询report-status接口，等待评分完成
+ * - 评分进行中显示"正在生成报告"加载动画（带进度提示）
+ * - 评分完成后自动加载完整报告
+ * - 评分失败可重试
+ * 
+ * 降级兼容：
+ * - 如果后端还没实现report-status接口，直接调用report/result接口
  * 
  * 核心流程：
- * 1. 显示测评结果（等级、得分、报告）
- * 2. 用户可以"重新测评"（不满意当前结果）
- * 3. 用户点击"确认最终评级"后锁定结果，显示班级群二维码
- * 4. 确认后不可更改
- * 
- * 数据来源：
- * - 主数据：GET /api/v1/test/report/:sessionId（详细报告，含逐题分析）
- * - 降级：GET /api/v1/test/result/:sessionId（旧接口，无逐题分析）
+ * 1. 进入页面 → 先查询report-status
+ * 2. status=processing → 显示加载动画+进度提示，每3秒轮询
+ * 3. status=completed → 加载完整报告
+ * 4. status=failed → 显示失败提示+重试按钮
+ * 5. report-status接口不存在 → 降级到直接调用report/result
  */
 const app = getApp()
-const { getTestReport, getTestResult, getQrcodeByLevel, confirmLevel, getUserLevelStatus, getQrcodeDisplaySetting } = require('../../utils/api')
+const { getTestReport, getTestResult, getQrcodeByLevel, confirmLevel, getUserLevelStatus, getQrcodeDisplaySetting, getReportStatus, retryReport } = require('../../utils/api')
 const { showError, formatDuration } = require('../../utils/util')
 
 Page({
@@ -26,6 +33,13 @@ Page({
     confirmed: false,
     // 预览状态（测评未正式结束，后端返回status:preview）
     isPreview: false,
+
+    // v3轮询状态
+    reportGenerating: false,    // 报告正在生成中
+    reportFailed: false,        // 报告生成失败
+    reportProgress: 0,          // 报告生成进度 0-100
+    reportProgressText: '',     // 报告进度描述文字
+    reportEstimatedTime: '',    // 预计剩余时间
 
     // 等级信息
     levelName: '',
@@ -74,6 +88,10 @@ Page({
 
   _sessionId: '',
   _majorLevel: 0,
+  _pollTimer: null,       // 轮询定时器
+  _pollCount: 0,          // 轮询次数
+  _maxPollCount: 120,     // 最大轮询次数（120次 x 3秒 = 6分钟）
+  _isDestroyed: false,    // 页面是否已销毁
 
   onLoad(options) {
     const navLayout = app.getNavLayout()
@@ -84,16 +102,172 @@ Page({
     })
 
     this._sessionId = options.sessionId || ''
+    this._isDestroyed = false
     if (this._sessionId) {
       // 检查二维码显示开关
       this._checkQrcodeSwitch()
       // 检查是否已经确认过
       this._checkConfirmed()
-      this.loadResult()
+      // v3: 先查询报告状态，决定是轮询还是直接加载
+      this._startReportCheck()
     } else {
       showError('缺少测评会话信息')
       this.setData({ loading: false })
     }
+  },
+
+  onUnload() {
+    this._isDestroyed = true
+    this._stopPolling()
+  },
+
+  /**
+   * v3: 开始报告状态检查
+   * 先调用report-status接口，根据返回状态决定后续操作
+   * 如果report-status接口不存在（404），降级到直接加载报告
+   */
+  async _startReportCheck() {
+    try {
+      const statusData = await getReportStatus(this._sessionId)
+      
+      if (statusData.status === 'completed') {
+        // 评分已完成，直接加载报告
+        this.loadResult()
+      } else if (statusData.status === 'processing') {
+        // 评分进行中，进入轮询模式
+        this.setData({
+          loading: false,
+          reportGenerating: true,
+          reportProgress: statusData.progress || 0,
+          reportProgressText: statusData.progressText || '正在分析你的表现...',
+          reportEstimatedTime: this._formatEstimatedTime(statusData.estimatedRemainingSeconds)
+        })
+        this._startPolling()
+      } else if (statusData.status === 'failed') {
+        // 评分失败
+        this.setData({
+          loading: false,
+          reportFailed: true,
+          reportProgressText: statusData.error || '报告生成失败'
+        })
+      } else {
+        // 未知状态，降级到直接加载
+        this.loadResult()
+      }
+    } catch (err) {
+      // report-status接口不存在或失败，降级到直接加载报告
+      if (err.message && (err.message.includes('404') || err.message.includes('Not Found'))) {
+        console.warn('[Result] report-status API not available, fallback to direct load')
+      } else {
+        console.warn('[Result] report-status check failed:', err.message)
+      }
+      this.loadResult()
+    }
+  },
+
+  /**
+   * v3: 开始轮询
+   * 每3秒查询一次report-status，直到completed或failed
+   */
+  _startPolling() {
+    this._pollCount = 0
+    this._stopPolling()  // 清除可能存在的旧定时器
+    this._pollTimer = setInterval(() => {
+      if (this._isDestroyed) {
+        this._stopPolling()
+        return
+      }
+      this._pollCount++
+      if (this._pollCount >= this._maxPollCount) {
+        this._stopPolling()
+        this.setData({
+          reportGenerating: false,
+          reportFailed: true,
+          reportProgressText: '报告生成超时，请稍后重试'
+        })
+        return
+      }
+      this._pollReportStatus()
+    }, 3000)
+  },
+
+  /** v3: 停止轮询 */
+  _stopPolling() {
+    if (this._pollTimer) {
+      clearInterval(this._pollTimer)
+      this._pollTimer = null
+    }
+  },
+
+  /** v3: 单次轮询查询 */
+  async _pollReportStatus() {
+    try {
+      const statusData = await getReportStatus(this._sessionId)
+      if (this._isDestroyed) return
+
+      if (statusData.status === 'completed') {
+        // 评分完成，停止轮询，加载报告
+        this._stopPolling()
+        this.setData({
+          reportGenerating: false,
+          reportProgress: 100,
+          reportProgressText: '报告已生成！',
+          loading: true  // 切换到加载报告状态
+        })
+        // 稍延迟再加载，让用户看到100%的动画
+        setTimeout(() => {
+          if (!this._isDestroyed) this.loadResult()
+        }, 500)
+      } else if (statusData.status === 'failed') {
+        // 评分失败
+        this._stopPolling()
+        this.setData({
+          reportGenerating: false,
+          reportFailed: true,
+          reportProgressText: statusData.error || '报告生成失败'
+        })
+      } else {
+        // 还在处理中，更新进度
+        this.setData({
+          reportProgress: statusData.progress || this.data.reportProgress,
+          reportProgressText: statusData.progressText || this.data.reportProgressText,
+          reportEstimatedTime: this._formatEstimatedTime(statusData.estimatedRemainingSeconds)
+        })
+      }
+    } catch (err) {
+      // 单次轮询失败不停止，继续重试
+      console.warn('[Result] Poll report status failed:', err.message)
+    }
+  },
+
+  /** v3: 重试生成报告 */
+  async handleRetryReport() {
+    this.setData({
+      reportFailed: false,
+      reportGenerating: true,
+      reportProgress: 0,
+      reportProgressText: '正在重新生成报告...'
+    })
+    try {
+      await retryReport(this._sessionId)
+      // 重新开始轮询
+      this._startPolling()
+    } catch (err) {
+      console.error('[Result] Retry report failed:', err)
+      // 重试失败，尝试直接加载报告（可能后端没实现retry接口）
+      this.setData({
+        reportGenerating: false,
+        loading: true
+      })
+      this.loadResult()
+    }
+  },
+
+  /** v3: 格式化预计剩余时间 */
+  _formatEstimatedTime(seconds) {
+    if (!seconds || seconds <= 0) return ''
+    if (seconds < 60) return `预计还需${Math.ceil(seconds)}秒`
+    return `预计还需${Math.ceil(seconds / 60)}分钟`
   },
 
   /** 检查用户是否已确认分级（优先查后端，本地存储做兜底） */

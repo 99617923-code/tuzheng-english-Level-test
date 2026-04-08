@@ -75,6 +75,135 @@
   color: var(--text-muted);
 }
 
+/* ========== v3: 报告生成中动画 ========== */
+.report-generating-card {
+  padding: 60rpx 48rpx;
+}
+
+.report-gen-animation {
+  margin-bottom: 40rpx;
+}
+
+.report-gen-circle {
+  position: relative;
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.report-gen-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 50%;
+  transition: background 0.5s ease;
+}
+
+.report-gen-inner {
+  position: relative;
+  z-index: 1;
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.report-gen-percent {
+  font-size: 36rpx;
+  font-weight: 800;
+  color: var(--brand-blue);
+}
+
+.loading-estimate {
+  font-size: 24rpx;
+  color: var(--text-muted);
+  margin-top: 8rpx;
+}
+
+.report-gen-steps {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  margin-top: 48rpx;
+  padding: 0 20rpx;
+}
+
+.report-gen-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+  opacity: 0.4;
+  transition: opacity 0.3s ease;
+}
+
+.report-gen-step.active {
+  opacity: 1;
+}
+
+.step-dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.3);
+  transition: background 0.3s ease;
+}
+
+.report-gen-step.active .step-dot {
+  background: var(--brand-blue);
+  box-shadow: 0 0 12rpx rgba(59, 130, 246, 0.4);
+}
+
+.step-text {
+  font-size: 22rpx;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.report-gen-step.active .step-text {
+  color: var(--brand-blue);
+  font-weight: 600;
+}
+
+/* v3: 报告生成失败 */
+.report-failed-card {
+  padding: 60rpx 48rpx;
+}
+
+.report-failed-icon {
+  font-size: 80rpx;
+  margin-bottom: 24rpx;
+}
+
+.retry-report-btn {
+  margin-top: 40rpx;
+  background: var(--brand-blue) !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: var(--radius-full) !important;
+  padding: 20rpx 60rpx !important;
+  font-size: 28rpx !important;
+  font-weight: 600 !important;
+}
+
+.retry-report-btn::after {
+  border: none;
+}
+
+.retry-hint {
+  font-size: 22rpx;
+  color: var(--text-muted);
+  margin-top: 16rpx;
+}
+
 /* ========== 等级展示头部 ========== */
 .hero-card {
   position: relative;

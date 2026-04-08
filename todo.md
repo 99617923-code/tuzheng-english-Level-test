@@ -505,3 +505,12 @@
 - [x] result.js: 对接report接口获取测评报告详情（含逐题分析展示）
 - [x] home.js: 更新user-level-status接口对接新字段
 - [x] 全局清理"AI外教"/"AI分析"/"AI正在"等文案（替换为"外教"/"评分分析"/"正在"）
+
+## 第三十九轮 - "途正口语X级"文字过长布局优化 + 播放按钮优化
+- [x] result页面：等级徽章（hero-badge）宽度自适应，max-width:90%+字号缩小+文字截断
+- [x] result页面："加入途正口语X级学习群"按钮字号缩小+内边距优化+文字截断
+- [x] home页面：confirmed-level-pill添加max-width:85%+字号缩小+文字截断
+- [x] history页面：level-badge-sm添加max-width:200rpx+字号缩小+文字截断
+- [x] test页面：level-info-level字号缩小+flex自适应+文字截断，progress不缩
+- [x] result页面：逐题分析音频播放按钮改为绿底白三角形图标（纯CSS实现，替换原来看不清的白色SVG）
+- [ ] 海报绘制中等级名称文字宽度自适应（待后续处理）

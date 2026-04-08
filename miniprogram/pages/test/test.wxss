@@ -17,19 +17,29 @@
 .level-info-left {
   display: flex;
   align-items: baseline;
-  gap: 16rpx;
+  gap: 12rpx;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .level-info-level {
-  font-size: 32rpx;
+  font-size: 28rpx;
   font-weight: 700;
   color: var(--brand-blue);
+  white-space: nowrap;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .level-info-progress {
   font-size: 22rpx;
   color: var(--text-muted);
   font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* 级别信息条右侧计时器 */

@@ -182,7 +182,7 @@
               <text class="qd-text">{{item.questionText}}</text>
               <!-- 播放题目录音 -->
               <view wx:if="{{item.audioUrl}}" class="qd-play-btn" data-url="{{item.audioUrl}}" bindtap="playQuestionAudio">
-                <image class="qd-play-icon" src="/assets/icons/play.svg" mode="aspectFit" />
+                <view class="qd-play-icon"></view>
               </view>
             </view>
             <!-- 用户回答 -->
@@ -191,7 +191,7 @@
               <text class="qd-text {{item.userAnswer === '（未作答）' ? 'qd-no-answer' : ''}}">{{item.userAnswer}}</text>
               <!-- 播放用户录音 -->
               <view wx:if="{{item.userAudioUrl}}" class="qd-play-btn" data-url="{{item.userAudioUrl}}" bindtap="playQuestionAudio">
-                <image class="qd-play-icon" src="/assets/icons/play.svg" mode="aspectFit" />
+                <view class="qd-play-icon"></view>
               </view>
             </view>
             <!-- 评分分析 -->

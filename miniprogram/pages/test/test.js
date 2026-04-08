@@ -186,6 +186,7 @@ Page({
     this._touchStartTime = 0        // 按住开始时间戳
     this._touchActive = false       // 手指是否正在按住
     this._pendingStop = false       // 录音启动前手指已松开标志
+    this._requestGeneration = 0     // 请求代数，用于忽略旧请求的回调
     this._setupRecorderEvents()
 
     // 方案一：强制忽略iOS静音开关，确保外教语音正常播放
@@ -338,7 +339,17 @@ Page({
   },
 
   async _resumeTest() {
-    this.setData({ phase: 'loading', aiStatusText: '正在恢复测评...' })
+    // 彻底清理旧音频，防止重叠播放
+    this._destroyAudioContext()
+    this._clearAudioTimeout()
+    this._requestGeneration = (this._requestGeneration || 0) + 1
+
+    this.setData({
+      phase: 'loading',
+      aiStatusText: '正在恢复测评...',
+      audioPlaying: false,
+      aiSpeaking: false
+    })
 
     const saved = this._getSavedSession()
     if (!saved) {
@@ -393,6 +404,7 @@ Page({
 
       // 自动播放语音
       await delay(800)
+      this._destroyAudioContext()  // 播放前先销毁旧音频
       this._playQuestionAudio()
 
     } catch (err) {
@@ -430,7 +442,26 @@ Page({
   // ============ 初始化测评（v2） ============
 
   async initTest(forceNew = false) {
-    this.setData({ phase: 'loading', aiStatusText: '正在准备测评...' })
+    // 彻底清理旧音频和旧请求，防止重叠播放
+    this._destroyAudioContext()
+    this._clearAudioTimeout()
+    this.stopTimer()
+    if (this._recordTimer) {
+      clearInterval(this._recordTimer)
+      this._recordTimer = null
+    }
+    // 标记旧请求应被忽略
+    this._requestGeneration = (this._requestGeneration || 0) + 1
+
+    this.setData({
+      phase: 'loading',
+      aiStatusText: '正在准备测评...',
+      isRecording: false,
+      recordCountdown: 0,
+      recordWaveBars: [],
+      audioPlaying: false,
+      aiSpeaking: false
+    })
 
     // 新测评：前端计数强制归零
     this._frontendQuestionCount = 0
@@ -797,6 +828,7 @@ Page({
     this._recorderManager.onStart(() => {
       this._isStartingRecord = false  // 录音已成功启动，解除防抖锁
       if (this._isPageUnloaded) {
+        this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
         try { this._recorderManager.stop() } catch (e) {}
         return
       }
@@ -805,20 +837,13 @@ Page({
       if (this._pendingStop || !this._touchActive) {
         this._pendingStop = false
         // 手指已经松开，直接停止录音
+        this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
         try { this._recorderManager.stop() } catch (e) {}
         showToast('说话时间太短，请按住说话')
         return
       }
 
-      // 生成录音遮罩波形条
-      const waveBars = Array.from({ length: 24 }, () => Math.floor(Math.random() * 80) + 20)
-      this.setData({
-        isRecording: true,
-        recordSeconds: 0,
-        recordTimeDisplay: '0"',
-        recordCountdown: 0,
-        recordWaveBars: waveBars
-      })
+      // isRecording已在touchstart时立即设置，这里只启动计时器
 
       // 录音计时器：每秒更新，最后10秒倒计时，60秒自动提交
       this._recordTimer = setInterval(() => {
@@ -852,7 +877,7 @@ Page({
         return
       }
       this._recordFilePath = res.tempFilePath
-      this.setData({ isRecording: false })
+      this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
 
       if (plugin && plugin.voiceRecognizer) {
         try { plugin.voiceRecognizer.stop() } catch (e) {}
@@ -878,10 +903,13 @@ Page({
       if (this._isPageUnloaded) {
         return
       }
-      this.setData({ isRecording: false })
+      this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
       showError('录音失败，请重试')
     })
   },
+
+  /** 阻止录音遮罩层的滚动穿透 */
+  preventTouchMove() {},
 
   /** 按住开始录音（微信风格：纯长按模式） */
   onRecordTouchStart(e) {
@@ -901,6 +929,17 @@ Page({
     // 记录按下时间戳，用于松开时判断是否太短
     this._touchStartTime = Date.now()
     this._touchActive = true  // 标记手指正在按住
+
+    // 立即显示录音遮罩（不等onStart回调，消除视觉延迟）
+    const waveBars = Array.from({ length: 24 }, () => Math.floor(Math.random() * 80) + 20)
+    this.setData({
+      isRecording: true,
+      recordSeconds: 0,
+      recordTimeDisplay: '0"',
+      recordCountdown: 0,
+      recordWaveBars: waveBars
+    })
+
     this.startRecording()
   },
 
@@ -934,7 +973,6 @@ Page({
 
   /** 开始录音 */
   startRecording() {
-    if (this.data.isRecording) return
     if (this._isStartingRecord) return  // 防抖锁
 
     this._isStartingRecord = true  // 加锁
@@ -944,6 +982,7 @@ Page({
       success: (res) => {
         if (res.authSetting['scope.record'] === false) {
           this._isStartingRecord = false  // 解锁
+          this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
           wx.showModal({
             title: '需要录音权限',
             content: '请在设置中开启麦克风权限，否则无法进行测评',
@@ -982,6 +1021,7 @@ Page({
     } catch (e) {
       console.error('[Recorder] Start exception:', e)
       this._isStartingRecord = false  // 异常时解锁
+      this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
       showError('录音启动失败，请重试')
     }
   },
@@ -1055,6 +1095,8 @@ Page({
       return
     }
     this._isSubmitting = true
+    // 记录当前请求代数，用于忽略旧请求的回调
+    const myGeneration = this._requestGeneration || 0
 
     // 提交时停止倒计时
     this.stopTimer()
@@ -1170,6 +1212,12 @@ Page({
       }
 
       // 第四步：处理评估结果（v0.1.7精简版：去掉逐题反馈，答完直接下一题）
+
+      // 检查请求代数：如果用户已退出重进，旧请求的回调应被忽略
+      if (myGeneration !== (this._requestGeneration || 0)) {
+        console.warn('[Submit] Request generation mismatch, ignoring stale response')
+        return
+      }
 
       // 更新答题计数（前端自己维护 + 后端返回的取较大值）
       this._frontendQuestionCount += 1
@@ -1405,6 +1453,7 @@ Page({
 
         this.startTimer()
         await delay(500)
+        this._destroyAudioContext()  // 播放新题前先销毁旧音频
         this._playQuestionAudio()
         return
       } catch (err) {
@@ -1506,6 +1555,7 @@ Page({
 
     // 自动播放下一题语音
     await delay(500)
+    this._destroyAudioContext()  // 播放新题前先销毁旧音频
     this._playQuestionAudio()
   },
 

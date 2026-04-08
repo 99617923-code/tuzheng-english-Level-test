@@ -523,3 +523,12 @@
 - [x] test.js: 完全改为纯长按录音模式（touchstart/touchend+pendingStop机制）
 - [x] test.js: 录音最长1分钟，最后10秒倒计时显示，60秒自动提交
 - [x] test.js: 快速点击防护（500ms最短按住时长+录音启动前松开自动取消）
+
+## 第四十一轮 - 录音遮罩效果修复 + 音频重叠播放bug修复
+- [x] 修复录音中全屏遮罩效果（移到页面最外层，fixed定位+z-index:999）
+- [x] 录音中遮罩覆盖全屏，隐藏"跳过此题"等其他按钮
+- [x] 修复退出再进来音频重叠播放bug（initTest/resumeTest开头destroyAudioContext+requestGeneration机制）
+- [x] initTest时先停止所有正在播放的音频，再开始新测评
+- [x] 添加requestGeneration请求代数机制，evaluate返回后检查代数不匹配则忽略旧回调
+- [x] 按住说话时立即显示录音遮罩动画（touchstart时立即setData，不等onStart回调）
+- [x] 所有异常路径（onStop/onError/权限拒绝/pendingStop）都清除录音遮罩状态

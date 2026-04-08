@@ -102,20 +102,6 @@
       </view>
     </view>
 
-    <!-- 录音中全屏遮罩（微信风格） -->
-    <view wx:if="{{isRecording}}" class="recording-overlay">
-      <view class="recording-overlay-bg"></view>
-      <view class="recording-indicator">
-        <view class="recording-wave-box">
-          <view class="recording-wave-bar" wx:for="{{recordWaveBars}}" wx:key="index" style="height: {{item}}rpx;"></view>
-        </view>
-      </view>
-      <view class="recording-bottom">
-        <text class="recording-countdown" wx:if="{{recordCountdown > 0}}">{{recordCountdown}}s</text>
-        <text class="recording-send-hint">松开 发送</text>
-      </view>
-    </view>
-
     <!-- 状态：正在播放AI语音（自动播放中，不可操作） -->
     <view wx:elif="{{phase === 'listening'}}" class="action-area">
       <view class="listening-hint-wrap">
@@ -200,6 +186,20 @@
           </view>
         </view>
       </view>
+    </view>
+  </view>
+
+  <!-- 录音中全屏遮罩（微信风格） - 放在页面最外层确保覆盖全屏 -->
+  <view wx:if="{{isRecording}}" class="recording-overlay" catchtouchmove="preventTouchMove">
+    <view class="recording-overlay-bg"></view>
+    <view class="recording-indicator">
+      <view class="recording-wave-box">
+        <view class="recording-wave-bar" wx:for="{{recordWaveBars}}" wx:key="index" style="height: {{item}}rpx;"></view>
+      </view>
+    </view>
+    <view class="recording-bottom">
+      <text class="recording-countdown" wx:if="{{recordCountdown > 0}}">{{recordCountdown}}s</text>
+      <text class="recording-send-hint">松开 发送</text>
     </view>
   </view>
 </view>

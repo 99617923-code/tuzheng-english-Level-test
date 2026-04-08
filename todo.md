@@ -586,3 +586,9 @@
 - [x] 定位test.js中2处newTotalAnswered残留引用（第1323行和第1458行）
 - [x] 修复newTotalAnswered→backendTotal（对应各自作用域内已定义的变量）
 - [x] 分析recorder not start根因：pendingStop时序竞争，但不是崩溃主因，主因是newTotalAnswered未定义导致submitAnswer崩溃
+
+## 第四十九轮 - 修复第2题开始外教录音未使用的问题
+- [ ] 排查第2题开始teacherAudioUrl未被使用的根因
+- [ ] 检查_autoNextQuestion中外教录音字段提取逻辑
+- [ ] 检查_playQuestionAudio中音频URL选择逻辑
+- [ ] 修复确保所有题目优先使用外教录音

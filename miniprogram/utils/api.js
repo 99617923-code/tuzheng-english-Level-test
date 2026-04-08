@@ -255,9 +255,19 @@ function evaluateAnswer(params) {
     if (!result.majorLevelLabel && result.major_level_label) result.majorLevelLabel = result.major_level_label
     // v3: question对象中优先使用外教录音teacherAudioUrl
     if (result.question) {
+      console.log('[API Debug] submitLite原始返回 question:', JSON.stringify({
+        teacherAudioUrl: result.question.teacherAudioUrl,
+        teacher_audio_url: result.question.teacher_audio_url,
+        audioUrl: result.question.audioUrl,
+        audio_url: result.question.audio_url,
+        questionId: result.question.questionId || result.question.question_id
+      }))
       const teacherAudio = result.question.teacherAudioUrl || result.question.teacher_audio_url
       const baseAudio = result.question.audioUrl || result.question.audio_url
       result.question.audioUrl = teacherAudio || baseAudio || ''
+      console.log('[API Debug] submitLite最终audioUrl:', result.question.audioUrl)
+    } else {
+      console.warn('[API Debug] submitLite返回无question对象！result keys:', Object.keys(result))
     }
     // finished状态时，从finished result中提取字段
     if (result.result) {

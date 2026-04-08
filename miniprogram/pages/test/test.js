@@ -715,6 +715,7 @@ Page({
     }
 
     const audioUrl = currentQuestion.audioUrl
+    console.log('[Audio Debug] _playQuestionAudio audioUrl:', audioUrl, '| questionId:', currentQuestion.questionId)
     if (audioUrl) {
       this.setData({ phase: 'listening', aiStatusText: `${this.data.teacherName || '外教'}正在提问...` })
 
@@ -759,6 +760,7 @@ Page({
    */
   _tryTTSFallback() {
     const { currentQuestion } = this.data
+    console.warn('[Audio Debug] →→→ 进入TTS降级！说明currentQuestion.audioUrl为空，questionId:', currentQuestion?.questionId)
     if (!currentQuestion || !currentQuestion.questionText) {
       console.warn('[TTS] No questionText available, skip to answering')
       this._onAudioFinished()
@@ -1268,12 +1270,16 @@ Page({
         // v3: 优先使用外教录音teacherAudioUrl
         const tA = q.teacherAudioUrl || q.teacher_audio_url
         const bA = q.audioUrl || q.audio_url
+        console.log('[Audio Debug] submitLite返回 teacherAudioUrl:', q.teacherAudioUrl, 'teacher_audio_url:', q.teacher_audio_url, 'audioUrl:', q.audioUrl, 'audio_url:', q.audio_url)
         q.audioUrl = tA || bA || ''
+        console.log('[Audio Debug] 最终使用audioUrl:', q.audioUrl)
         if (!q.questionText && q.question_text) q.questionText = q.question_text
         // 后端v3用text字段名，前端统一转为questionText
         if (!q.questionText && q.text) q.questionText = q.text
         if (!q.questionId && q.question_id) q.questionId = q.question_id
         if (!q.subLevel && q.sub_level) q.subLevel = q.sub_level
+      } else {
+        console.warn('[Audio Debug] submitLite返回中没有question对象！evalRes keys:', Object.keys(evalRes))
       }
 
       // 检查请求代数：如果用户已退出重进，旧请求的回调应被忽略

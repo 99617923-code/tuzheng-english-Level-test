@@ -575,3 +575,9 @@
 - [x] 用后端同学的代码替换miniprogram目录（diff -r验证完全一致）
 - [x] 对比关键差异：录音启动去掉stop+延迟、短按500ms→800ms、pendingStop不清UI、题号统一用前端计数器
 - [x] 保存checkpoint并同步到GitHub
+
+## 第四十七轮 - 登录页和测评记录页UI优化
+- [x] 登录页：外教头像换成途正英语LOGO（brand-avatar→brand-logo，用logoUrl替代aiAvatarUrl）
+- [x] 登录页：微信手机号快捷登录按钮去掉前面的微信图标，只保留文字
+- [x] 测评记录页：总测评和已完成数字区域缩小（flex:0.7，字号36rpx）
+- [x] 测评记录页：途正口语X级区域放大（flex:1.6，字号48rpx）

@@ -18,7 +18,7 @@
   <view class="content" style="padding-top: {{navBarHeight}}px;">
     <!-- 品牌区域 -->
     <view class="brand-area">
-      <image class="brand-avatar" src="{{aiAvatarUrl}}" mode="aspectFill" />
+      <image class="brand-logo" src="{{logoUrl}}" mode="aspectFit" />
       <text class="brand-title">途正英语</text>
       <text class="brand-subtitle">智能英语口语水平测评</text>
     </view>
@@ -28,7 +28,6 @@
       <!-- 微信一键登录（推荐） -->
       <view class="wx-login-section">
         <button class="wx-login-btn" open-type="getPhoneNumber" bindgetphonenumber="onGetPhoneNumber">
-          <image class="wx-icon" src="/assets/icons/wechat.svg" mode="aspectFit" />
           <text class="wx-login-text">微信手机号快捷登录</text>
         </button>
         <text class="wx-login-hint">推荐使用，无需输入手机号</text>

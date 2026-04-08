@@ -25,8 +25,8 @@
     <!-- 级别 & 题号信息条 + 计时器 -->
     <view class="level-info-bar">
       <view class="level-info-left">
-        <text class="level-info-level">{{majorLevelDisplay}}</text>
-        <text class="level-info-progress">{{questionCountDisplay}} · {{subLevelDisplay}}</text>
+        <text class="level-info-level">途正口语{{currentMajorLevel}}级</text>
+        <text class="level-info-progress">{{questionCountDisplay}}</text>
       </view>
       <view class="level-info-timer">
         <image class="timer-icon" src="/assets/icons/clock.svg" mode="aspectFit" />
@@ -88,21 +88,31 @@
   <view class="bottom-bar">
     <!-- 状态：准备回答 / 录音中（含自动播放后进入） -->
     <view wx:if="{{phase === 'answering'}}" class="action-area">
-      <view class="record-area">
-        <view wx:if="{{isRecording}}" class="record-pulse-ring"></view>
-        <view
-          class="record-btn {{isRecording ? 'recording' : ''}}"
-          bindtouchstart="onRecordTouchStart"
-          bindtouchend="onRecordTouchEnd"
-          bindtouchcancel="onRecordTouchEnd"
-        >
-          <image class="record-mic-icon" src="/assets/icons/mic-white.svg" mode="aspectFit" />
-        </view>
-        <text class="record-hint">{{isRecording ? '松开结束录音' : '按住说话'}}</text>
-        <text wx:if="{{isRecording}}" class="record-timer">{{recordTimeDisplay}}</text>
+      <!-- 微信风格长条按住说话按钮 -->
+      <view
+        class="wechat-record-btn {{isRecording ? 'recording' : ''}}"
+        bindtouchstart="onRecordTouchStart"
+        bindtouchend="onRecordTouchEnd"
+        bindtouchcancel="onRecordTouchEnd"
+      >
+        <text class="wechat-record-text">按住 说话</text>
       </view>
       <view class="skip-row">
         <button class="skip-btn" bindtap="handleSkip">跳过此题</button>
+      </view>
+    </view>
+
+    <!-- 录音中全屏遮罩（微信风格） -->
+    <view wx:if="{{isRecording}}" class="recording-overlay">
+      <view class="recording-overlay-bg"></view>
+      <view class="recording-indicator">
+        <view class="recording-wave-box">
+          <view class="recording-wave-bar" wx:for="{{recordWaveBars}}" wx:key="index" style="height: {{item}}rpx;"></view>
+        </view>
+      </view>
+      <view class="recording-bottom">
+        <text class="recording-countdown" wx:if="{{recordCountdown > 0}}">{{recordCountdown}}s</text>
+        <text class="recording-send-hint">松开 发送</text>
       </view>
     </view>
 

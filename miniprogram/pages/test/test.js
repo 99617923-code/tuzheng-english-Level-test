@@ -115,6 +115,8 @@ Page({
     isRecording: false,
     recordTimeDisplay: '0"',
     recordSeconds: 0,
+    recordCountdown: 0,       // 最后10秒倒计时
+    recordWaveBars: [],       // 录音遮罩波形条
     realtimeText: '',
     userTranscription: '',
 
@@ -181,6 +183,9 @@ Page({
     this._isPageUnloaded = false  // 页面卸载标志，防止离开后录音回调仍弹窗
     this._initRetryCount = 0
     this._frontendQuestionCount = 0
+    this._touchStartTime = 0        // 按住开始时间戳
+    this._touchActive = false       // 手指是否正在按住
+    this._pendingStop = false       // 录音启动前手指已松开标志
     this._setupRecorderEvents()
 
     // 方案一：强制忽略iOS静音开关，确保外教语音正常播放
@@ -786,7 +791,7 @@ Page({
     }, 3000)
   },
 
-  // ============ 录音（tap切换模式） ============
+  // ============ 录音（微信风格纯长按模式） ============
 
   _setupRecorderEvents() {
     this._recorderManager.onStart(() => {
@@ -795,15 +800,40 @@ Page({
         try { this._recorderManager.stop() } catch (e) {}
         return
       }
-      this.setData({ isRecording: true, recordSeconds: 0, recordTimeDisplay: '0"' })
 
+      // 检查是否手指已松开（pendingStop）
+      if (this._pendingStop || !this._touchActive) {
+        this._pendingStop = false
+        // 手指已经松开，直接停止录音
+        try { this._recorderManager.stop() } catch (e) {}
+        showToast('说话时间太短，请按住说话')
+        return
+      }
+
+      // 生成录音遮罩波形条
+      const waveBars = Array.from({ length: 24 }, () => Math.floor(Math.random() * 80) + 20)
+      this.setData({
+        isRecording: true,
+        recordSeconds: 0,
+        recordTimeDisplay: '0"',
+        recordCountdown: 0,
+        recordWaveBars: waveBars
+      })
+
+      // 录音计时器：每秒更新，最后10秒倒计时，60秒自动提交
       this._recordTimer = setInterval(() => {
         const secs = this.data.recordSeconds + 1
+        const countdown = secs >= 50 ? (60 - secs) : 0
+        // 随机更新波形条高度（模拟录音动画）
+        const waveBars = Array.from({ length: 24 }, () => Math.floor(Math.random() * 80) + 20)
         this.setData({
           recordSeconds: secs,
-          recordTimeDisplay: `${secs}"`
+          recordTimeDisplay: `${secs}"`,
+          recordCountdown: countdown,
+          recordWaveBars: waveBars
         })
         if (secs >= 60) {
+          // 1分钟到，自动提交
           this.stopRecording()
         }
       }, 1000)
@@ -853,7 +883,7 @@ Page({
     })
   },
 
-  /** 按住开始录音（微信风格） */
+  /** 按住开始录音（微信风格：纯长按模式） */
   onRecordTouchStart(e) {
     // 防护：非回答阶段不响应
     if (this.data.phase !== 'answering') {
@@ -868,12 +898,37 @@ Page({
     // 已在录音中，不重复启动
     if (this.data.isRecording) return
 
+    // 记录按下时间戳，用于松开时判断是否太短
+    this._touchStartTime = Date.now()
+    this._touchActive = true  // 标记手指正在按住
     this.startRecording()
   },
 
-  /** 松开结束录音（微信风格） */
+  /** 松开结束录音（微信风格：纯长按模式） */
   onRecordTouchEnd(e) {
+    this._touchActive = false  // 手指已松开
+
+    // 如果录音还没启动成功（onStart还没触发），延迟停止
+    if (this._isStartingRecord && !this.data.isRecording) {
+      // 录音正在启动中，等待onStart后再停止
+      this._pendingStop = true
+      return
+    }
+
     if (!this.data.isRecording) return
+
+    // 检查按住时长，太短则取消
+    const holdDuration = Date.now() - (this._touchStartTime || 0)
+    if (holdDuration < 500) {
+      // 按住不到500ms，视为误触，取消录音
+      this._recorderManager.stop()
+      // 不提交，只提示
+      this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
+      showToast('说话时间太短，请按住说话')
+      this._recordFilePath = ''
+      return
+    }
+
     this.stopRecording()
   },
 
@@ -935,6 +990,8 @@ Page({
   stopRecording() {
     if (!this.data.isRecording) return
     this._recorderManager.stop()
+    // 清除录音遮罩状态
+    this.setData({ recordCountdown: 0, recordWaveBars: [] })
   },
 
   /** 启动同声传译语音识别 */

@@ -118,7 +118,7 @@
         <view class="hero-badge" style="background: {{levelColor}}; box-shadow: 0 8rpx 32rpx {{levelShadow}};">
           <text class="hero-badge-text">{{levelName}}</text>
         </view>
-        <text class="hero-label">{{levelLabel}}</text>
+        <!-- levelLabel已移除，只保留途正口语X级 -->
         <text wx:if="{{highestSubLevel}}" class="hero-sublevel">最高通过：{{highestSubLevel}}</text>
 
         <!-- 综合得分 - 圆环 -->

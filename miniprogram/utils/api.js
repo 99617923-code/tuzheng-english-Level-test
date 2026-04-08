@@ -620,13 +620,24 @@ function submitLite(params) {
     if (result.skipLevel === undefined && result.skip_level !== undefined) result.skipLevel = result.skip_level
     // 兼容后端v3 question对象字段名（text → questionText）
     if (result.question) {
+      console.log('[API Debug] submit-lite原始返回 question:', JSON.stringify({
+        teacherAudioUrl: result.question.teacherAudioUrl,
+        teacher_audio_url: result.question.teacher_audio_url,
+        audioUrl: result.question.audioUrl,
+        audio_url: result.question.audio_url,
+        questionId: result.question.questionId || result.question.question_id,
+        text: result.question.text ? '有' : '无'
+      }))
       if (!result.question.questionText && result.question.text) result.question.questionText = result.question.text
       if (!result.question.questionId && result.question.question_id) result.question.questionId = result.question.question_id
       // v3: 优先使用外教录音teacherAudioUrl，其次audioUrl，兼容下划线命名
       const teacherAudio = result.question.teacherAudioUrl || result.question.teacher_audio_url
       const baseAudio = result.question.audioUrl || result.question.audio_url
       result.question.audioUrl = teacherAudio || baseAudio || ''
+      console.log('[API Debug] submit-lite最终audioUrl:', result.question.audioUrl, teacherAudio ? '(外教录音)' : baseAudio ? '(基础音频)' : '(无音频→TTS降级)')
       if (!result.question.subLevel && result.question.sub_level) result.question.subLevel = result.question.sub_level
+    } else {
+      console.warn('[API Debug] submit-lite返回无question对象！status:', result.status, 'keys:', Object.keys(result))
     }
     // 兼容后端v3预判字段（predictionScore/predictionPassed → prediction对象）
     if (result.predictionScore !== undefined && !result.prediction) {

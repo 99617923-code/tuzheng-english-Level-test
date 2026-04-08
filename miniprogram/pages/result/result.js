@@ -746,10 +746,7 @@ Page({
       ctx.textAlign = 'center'
       ctx.fillText(levelText, W / 2, badgeY + 44)
 
-      // 等级描述
-      ctx.fillStyle = '#5a6577'
-      ctx.font = '26px sans-serif'
-      ctx.fillText(this.data.levelLabel || '', W / 2, badgeY + 100)
+      // 等级描述（已移除levelLabel，只保留途正口语X级）
 
       // 分数圆环（使用级别色彩）
       const ringCX = W / 2, ringCY = badgeY + 240, ringR = 80

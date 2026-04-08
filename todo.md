@@ -554,3 +554,7 @@
 - [x] result.js轮询进度显示优化（利用aiScoredCount/totalQuestions显示“正在评分第X/Y题”）
 - [ ] 端到端测试验证完整流程（预加载→零等待做题→轮询出报告）—— 待真机联调验证
 - [x] 确认IELTS7/8/9扩展级别在前端的展示兼容（后端majorLevel仍为0-3，前端getLevelConfig增加安全降级：>3映射到最高级）
+
+## 第四十四轮 - 联调BUG修复
+- [x] 修复第二题开始用TTS而不是外教录音：全部9处音频URL读取点增加teacherAudioUrl优先读取（api.js 3处 + test.js 6处）
+- [x] 第一题慢的原因：后端submit-lite之前500报错导致预加载失败，后端已修复，预加载应恢复正常

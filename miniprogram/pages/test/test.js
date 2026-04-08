@@ -350,7 +350,10 @@ Page({
       const question = data.question
       // 兼容下划线命名和后端v3字段名
       if (question) {
-        if (!question.audioUrl && question.audio_url) question.audioUrl = question.audio_url
+        // v3: 优先使用外教录音teacherAudioUrl
+        const tAudio = question.teacherAudioUrl || question.teacher_audio_url
+        const bAudio = question.audioUrl || question.audio_url
+        question.audioUrl = tAudio || bAudio || ''
         if (!question.questionText && question.question_text) question.questionText = question.question_text
         // 后端v3用text字段名
         if (!question.questionText && question.text) question.questionText = question.text
@@ -474,10 +477,10 @@ Page({
 
       const question = data.question
       if (question) {
-        // 兼容下划线命名和后端v3字段名
-        if (!question.audioUrl && question.audio_url) {
-          question.audioUrl = question.audio_url
-        }
+        // v3: 优先使用外教录音teacherAudioUrl，兼容下划线命名
+        const teacherAudio = question.teacherAudioUrl || question.teacher_audio_url
+        const baseAudio = question.audioUrl || question.audio_url
+        question.audioUrl = teacherAudio || baseAudio || ''
         if (!question.questionText && question.question_text) {
           question.questionText = question.question_text
         }
@@ -1225,7 +1228,10 @@ Page({
       // 兼容下划线命名：返回的下一题question
       if (evalRes.question) {
         const q = evalRes.question
-        if (!q.audioUrl && q.audio_url) q.audioUrl = q.audio_url
+        // v3: 优先使用外教录音teacherAudioUrl
+        const tA = q.teacherAudioUrl || q.teacher_audio_url
+        const bA = q.audioUrl || q.audio_url
+        q.audioUrl = tA || bA || ''
         if (!q.questionText && q.question_text) q.questionText = q.question_text
         // 后端v3用text字段名，前端统一转为questionText
         if (!q.questionText && q.text) q.questionText = q.text
@@ -1369,7 +1375,10 @@ Page({
             // 兼容下划线命名
             if (evalRes.question) {
               const q = evalRes.question
-              if (!q.audioUrl && q.audio_url) q.audioUrl = q.audio_url
+              // v3: 优先使用外教录音teacherAudioUrl
+              const tA2 = q.teacherAudioUrl || q.teacher_audio_url
+              const bA2 = q.audioUrl || q.audio_url
+              q.audioUrl = tA2 || bA2 || ''
               if (!q.questionText && q.question_text) q.questionText = q.question_text
               // 后端v3用text字段名
               if (!q.questionText && q.text) q.questionText = q.text
@@ -1461,7 +1470,10 @@ Page({
         const data = await startTest({ forceNew: true })
         const question = data.question
         if (question) {
-          if (!question.audioUrl && question.audio_url) question.audioUrl = question.audio_url
+          // v3: 优先使用外教录音teacherAudioUrl
+          const tA3 = question.teacherAudioUrl || question.teacher_audio_url
+          const bA3 = question.audioUrl || question.audio_url
+          question.audioUrl = tA3 || bA3 || ''
           if (!question.questionText && question.question_text) question.questionText = question.question_text
           // 后端v3用text字段名
           if (!question.questionText && question.text) question.questionText = question.text
@@ -1519,7 +1531,10 @@ Page({
     // status === 'continue' → 加载下一题
     const nextQuestion = evalRes.question
     if (nextQuestion) {
-      if (!nextQuestion.audioUrl && nextQuestion.audio_url) nextQuestion.audioUrl = nextQuestion.audio_url
+      // v3: 优先使用外教录音teacherAudioUrl
+      const tA4 = nextQuestion.teacherAudioUrl || nextQuestion.teacher_audio_url
+      const bA4 = nextQuestion.audioUrl || nextQuestion.audio_url
+      nextQuestion.audioUrl = tA4 || bA4 || ''
       if (!nextQuestion.questionText && nextQuestion.question_text) nextQuestion.questionText = nextQuestion.question_text
       // 后端v3用text字段名
       if (!nextQuestion.questionText && nextQuestion.text) nextQuestion.questionText = nextQuestion.text

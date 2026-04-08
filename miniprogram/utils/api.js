@@ -159,6 +159,12 @@ function startTest(options = {}) {
     if (!data.currentSubLevel && data.current_sub_level) data.currentSubLevel = data.current_sub_level
     if (data.currentMajorLevel === undefined && data.current_major_level !== undefined) data.currentMajorLevel = data.current_major_level
     if (!data.questionIndex && data.question_index) data.questionIndex = data.question_index
+    // v3: question对象中优先使用外教录音teacherAudioUrl
+    if (data.question) {
+      const teacherAudio = data.question.teacherAudioUrl || data.question.teacher_audio_url
+      const baseAudio = data.question.audioUrl || data.question.audio_url
+      data.question.audioUrl = teacherAudio || baseAudio || ''
+    }
     return data
   })
 }
@@ -247,6 +253,12 @@ function evaluateAnswer(params) {
     // 兼容等级名称和描述字段
     if (!result.majorLevelName && result.major_level_name) result.majorLevelName = result.major_level_name
     if (!result.majorLevelLabel && result.major_level_label) result.majorLevelLabel = result.major_level_label
+    // v3: question对象中优先使用外教录音teacherAudioUrl
+    if (result.question) {
+      const teacherAudio = result.question.teacherAudioUrl || result.question.teacher_audio_url
+      const baseAudio = result.question.audioUrl || result.question.audio_url
+      result.question.audioUrl = teacherAudio || baseAudio || ''
+    }
     // finished状态时，从finished result中提取字段
     if (result.result) {
       if (!result.result.majorLevelName && result.result.major_level_name) result.result.majorLevelName = result.result.major_level_name
@@ -600,7 +612,10 @@ function submitLite(params) {
     if (result.question) {
       if (!result.question.questionText && result.question.text) result.question.questionText = result.question.text
       if (!result.question.questionId && result.question.question_id) result.question.questionId = result.question.question_id
-      if (!result.question.audioUrl && result.question.audio_url) result.question.audioUrl = result.question.audio_url
+      // v3: 优先使用外教录音teacherAudioUrl，其次audioUrl，兼容下划线命名
+      const teacherAudio = result.question.teacherAudioUrl || result.question.teacher_audio_url
+      const baseAudio = result.question.audioUrl || result.question.audio_url
+      result.question.audioUrl = teacherAudio || baseAudio || ''
       if (!result.question.subLevel && result.question.sub_level) result.question.subLevel = result.question.sub_level
     }
     // 兼容后端v3预判字段（predictionScore/predictionPassed → prediction对象）

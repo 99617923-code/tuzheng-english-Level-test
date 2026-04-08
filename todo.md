@@ -568,3 +568,10 @@
 - [x] onRecordTouchEnd用_recorderReallyStarted判断是否可以stop，避免对未启动的录音器调stop
 - [x] onError回调改为showToast而非showError，避免弹窗打断用户
 - [x] 所有状态重置点（cleanup/_resetToSafeState/onStop/onError）统一重置_recorderReallyStarted和_pendingStop
+
+## 第四十六轮 - 替换后端同学修改的小程序代码
+- [x] 备份现有miniprogram目录（项目内+外部双重备份）
+- [x] 解压后端同学的代码包并检查结构（文件结构一致，仅test.js有166行差异）
+- [x] 用后端同学的代码替换miniprogram目录（diff -r验证完全一致）
+- [x] 对比关键差异：录音启动去掉stop+延迟、短按500ms→800ms、pendingStop不清UI、题号统一用前端计数器
+- [x] 保存checkpoint并同步到GitHub

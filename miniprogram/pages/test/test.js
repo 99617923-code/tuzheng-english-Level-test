@@ -852,12 +852,25 @@ Page({
       }
 
       // 检查是否手指已松开（pendingStop）
-      if (this._pendingStop || !this._touchActive) {
+      // 不再立即停止！让录音继续，用户松开时在onRecordTouchEnd中处理
+      // 这样即使启动有延迟，只要用户按住足够时间，录音就能正常工作
+      if (this._pendingStop) {
         this._pendingStop = false
-        // 手指已经松开，直接停止录音
-        this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
-        try { this._recorderManager.stop() } catch (e) {}
-        showToast('说话时间太短，请按住说话')
+        // 手指已松开，但录音刚启动成功，延迟500ms再停止（确保至少录到一点声音）
+        setTimeout(() => {
+          if (this._recorderReallyStarted) {
+            try { this._recorderManager.stop() } catch (e) {}
+          }
+        }, 500)
+        return
+      }
+      if (!this._touchActive) {
+        // 手指已松开但不是通过pendingStop，同样延迟停止
+        setTimeout(() => {
+          if (this._recorderReallyStarted) {
+            try { this._recorderManager.stop() } catch (e) {}
+          }
+        }, 500)
         return
       }
 
@@ -976,11 +989,10 @@ Page({
   onRecordTouchEnd(e) {
     this._touchActive = false  // 手指已松开
 
-    // 如果录音器还没真正启动（onStart回调还没触发），设置pendingStop等onStart里处理
-    if (this._isStartingRecord) {
+    // 如果录音器还没真正启动（onStart回调还没触发）
+    if (this._isStartingRecord && !this._recorderReallyStarted) {
+      // 设置pendingStop，让onStart回调中延迟500ms停止（而不是立即放弃）
       this._pendingStop = true
-      // 同时清除UI遮罩，避免卡住
-      this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
       return
     }
 
@@ -990,14 +1002,16 @@ Page({
       return
     }
 
-    // 检查按住时长，太短则取消
+    // 录音器已启动，检查实际录音时长
     const holdDuration = Date.now() - (this._touchStartTime || 0)
-    if (holdDuration < 500) {
-      // 按住不到500ms，视为误触，取消录音
-      try { this._recorderManager.stop() } catch (e) {}
-      this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
-      showToast('说话时间太短，请按住说话')
-      this._recordFilePath = ''
+    if (holdDuration < 800) {
+      // 按住不到800ms（包含启动延迟），延迟停止以确保至少录到一点声音
+      const remaining = Math.max(800 - holdDuration, 300)
+      setTimeout(() => {
+        if (this._recorderReallyStarted) {
+          try { this._recorderManager.stop() } catch (e) {}
+        }
+      }, remaining)
       return
     }
 
@@ -1040,38 +1054,33 @@ Page({
   /** 实际启动录音 */
   _doStartRecording() {
     this.setData({ realtimeText: '', userTranscription: '', evaluationFeedback: '' })
-
-    // 启动前先强制stop，确保录音器状态干净（防止上次异常残留）
-    try { this._recorderManager.stop() } catch (e) {}
     this._recorderReallyStarted = false
+    this._pendingStop = false
 
-    // 延迟50ms再start，给stop一点时间完成
-    setTimeout(() => {
-      // 如果在这50ms内页面卸载了或手指已松开，就不启动了
-      if (this._isPageUnloaded || this._pendingStop) {
-        this._isStartingRecord = false
-        this._pendingStop = false
-        this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
-        return
-      }
-      try {
-        this._recorderManager.start({
-          duration: 60000,
-          sampleRate: 16000,
-          numberOfChannels: 1,
-          encodeBitRate: 96000,
-          format: 'mp3',
-          frameSize: 50
-        })
-        // 注意：_isStartingRecord 在 onStart 回调中解锁
-      } catch (e) {
-        console.error('[Recorder] Start exception:', e)
-        this._isStartingRecord = false
-        this._recorderReallyStarted = false
-        this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
-        showToast('录音启动失败，请重新按住说话')
-      }
-    }, 50)
+    // 直接启动录音，不做stop+延迟（避免时序竞争导致录音无法启动）
+    // 如果录音器有残留状态，微信底层会自动处理
+    if (this._isPageUnloaded) {
+      this._isStartingRecord = false
+      this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
+      return
+    }
+    try {
+      this._recorderManager.start({
+        duration: 60000,
+        sampleRate: 16000,
+        numberOfChannels: 1,
+        encodeBitRate: 96000,
+        format: 'mp3',
+        frameSize: 50
+      })
+      // 注意：_isStartingRecord 在 onStart 回调中解锁
+    } catch (e) {
+      console.error('[Recorder] Start exception:', e)
+      this._isStartingRecord = false
+      this._recorderReallyStarted = false
+      this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
+      showToast('录音启动失败，请重新按住说话')
+    }
   },
 
   /** 停止录音 */
@@ -1273,22 +1282,24 @@ Page({
         return
       }
 
-      // 更新答题计数（前端自己维护 + 后端返回的取较大值）
+      // 更新答题计数
+      // 前端自己维护显示题号（严格顺序1/2/3/4），不受后端跳级影响
       this._frontendQuestionCount += 1
       const backendTotal = evalRes.totalAnswered || evalRes.total_answered || this._frontendQuestionCount
-      const newTotalAnswered = Math.max(this._frontendQuestionCount, backendTotal)
+      // 题号显示始终用前端计数器，后端totalAnswered用于结束判断
+      const displayCount = this._frontendQuestionCount
 
       const isFinished = evalRes.status === 'finished'
-      const shouldForceContinue = isFinished && newTotalAnswered < MIN_QUESTIONS_BEFORE_FINISH
+      const shouldForceContinue = isFinished && displayCount < MIN_QUESTIONS_BEFORE_FINISH
 
       // 缓存后端返回的升级信息
       this._pendingLevelUp = evalRes.levelUp || false
       this._pendingLevelUpMessage = evalRes.levelUpMessage || ''
 
-      // 更新计数显示
+      // 更新计数显示（用前端顺序计数器）
       this.setData({
-        totalAnswered: newTotalAnswered,
-        questionCountDisplay: `第 ${newTotalAnswered} 题`
+        totalAnswered: backendTotal,
+        questionCountDisplay: `第 ${displayCount} 题`
       })
 
       this._lastEvalResponse = evalRes
@@ -1418,15 +1429,15 @@ Page({
             // 跳过也算答了一题
             this._frontendQuestionCount += 1
             const backendTotal = evalRes.totalAnswered || evalRes.total_answered || this._frontendQuestionCount
-            const newTotalAnswered = Math.max(this._frontendQuestionCount, backendTotal)
+            const skipDisplayCount = this._frontendQuestionCount
 
             const isFinished = evalRes.status === 'finished'
-            const shouldForceContinue = isFinished && newTotalAnswered < MIN_QUESTIONS_BEFORE_FINISH
+            const shouldForceContinue = isFinished && skipDisplayCount < MIN_QUESTIONS_BEFORE_FINISH
 
-            // 更新计数
+            // 更新计数（用前端顺序计数器）
             this.setData({
-              totalAnswered: newTotalAnswered,
-              questionCountDisplay: `第 ${newTotalAnswered} 题`
+              totalAnswered: backendTotal,
+              questionCountDisplay: `第 ${skipDisplayCount} 题`
             })
 
             // 精简版：跳过后也直接进入下一题或结果页
@@ -1521,7 +1532,7 @@ Page({
           questionIndex: data.questionIndex || 1,
           subLevelDisplay: subLevel,
           majorLevelDisplay: MAJOR_LEVEL_NAMES[majorLevel] || '零级 · 预备',
-          questionCountDisplay: `第 ${totalAnswered + 1} 题`,
+          questionCountDisplay: `第 ${this._frontendQuestionCount + 1} 题`,
           progressPercent: Math.min((totalAnswered / 34) * 100, 95),
           phase: 'listening',
           aiStatusText: '请听题目',
@@ -1624,7 +1635,7 @@ Page({
       currentMajorLevel: newMajorLevel,
       subLevelDisplay: newSubLevel,
       majorLevelDisplay: MAJOR_LEVEL_NAMES[newMajorLevel] || '零级 · 预备',
-      questionCountDisplay: `第 ${totalAnswered + 1} 题`,
+      questionCountDisplay: `第 ${this._frontendQuestionCount + 1} 题`,
       progressPercent: progress,
       phase: 'listening',
       aiStatusText: '请听题目',

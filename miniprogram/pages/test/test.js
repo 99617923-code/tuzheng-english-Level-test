@@ -1072,34 +1072,24 @@ Page({
       return
     }
 
-    // 先尝试stop清理可能的残留状态（静默失败），然后立即start
-    try { this._recorderManager.stop() } catch (e) {}
-
-    // 用微小延迟确保stop处理完毕后再启动
-    setTimeout(() => {
-      if (this._isPageUnloaded) {
-        this._isStartingRecord = false
-        this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
-        return
-      }
-      try {
-        this._recorderManager.start({
-          duration: 60000,
-          sampleRate: 16000,
-          numberOfChannels: 1,
-          encodeBitRate: 96000,
-          format: 'mp3',
-          frameSize: 50
-        })
-        // 注意：_isStartingRecord 在 onStart 回调中解锁
-      } catch (e) {
-        console.error('[Recorder] Start exception:', e)
-        this._isStartingRecord = false
-        this._recorderReallyStarted = false
-        this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
-        showToast('录音启动失败，请重新按住说话')
-      }
-    }, 50)  // 50ms微小延迟，确保前一次stop处理完毕
+    // 直接启动录音，不做stop+延迟（微信底层会自动处理残留状态）
+    try {
+      this._recorderManager.start({
+        duration: 60000,
+        sampleRate: 16000,
+        numberOfChannels: 1,
+        encodeBitRate: 96000,
+        format: 'mp3',
+        frameSize: 50
+      })
+      // 注意：_isStartingRecord 在 onStart 回调中解锁
+    } catch (e) {
+      console.error('[Recorder] Start exception:', e)
+      this._isStartingRecord = false
+      this._recorderReallyStarted = false
+      this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
+      showToast('录音启动失败，请重新按住说话')
+    }
   },
 
   /** 停止录音 */

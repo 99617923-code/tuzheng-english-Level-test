@@ -603,3 +603,7 @@
 - [x] 修复录音太短误报：改用微信返回的res.duration判断（>=500ms），不再依赖计时器recordSeconds
 - [x] 修夏recorder not start：_doStartRecording前先stop清理+50ms延迟再启动
 - [x] 修复pendingStop路径不启动计时器的bug：先启动计时器再延迟1200ms停止
+
+## 第五十二轮 - 修复录音一按就闪掉（recorder not start）
+- [x] 去掉_doStartRecording中的stop+50ms延迟，改回直接start（后端同学原始方案）
+- [x] onStop中的res.duration判断逻辑保留（>=500ms即有效）

@@ -853,26 +853,27 @@ Page({
         return
       }
 
-      // 检查是否手指已松开（pendingStop）
-      // 不再立即停止！让录音继续，用户松开时在onRecordTouchEnd中处理
-      // 这样即使启动有延迟，只要用户按住足够时间，录音就能正常工作
-      if (this._pendingStop) {
+      // 检查是否手指已松开（pendingStop）或手指不在按住状态
+      if (this._pendingStop || !this._touchActive) {
         this._pendingStop = false
-        // 手指已松开，但录音刚启动成功，延迟500ms再停止（确保至少录到一点声音）
+        // 手指已松开，但录音刚启动成功
+        // 关键修复：先启动计时器，让recordSeconds能正常计数
+        // 然后延迟1200ms再停止，确保录到足够的声音且recordSeconds >= 1
+        this._recordTimer = setInterval(() => {
+          const secs = this.data.recordSeconds + 1
+          const waveBars = Array.from({ length: 24 }, () => Math.floor(Math.random() * 80) + 20)
+          this.setData({
+            recordSeconds: secs,
+            recordTimeDisplay: `${secs}"`,
+            recordCountdown: 0,
+            recordWaveBars: waveBars
+          })
+        }, 1000)
         setTimeout(() => {
           if (this._recorderReallyStarted) {
             try { this._recorderManager.stop() } catch (e) {}
           }
-        }, 500)
-        return
-      }
-      if (!this._touchActive) {
-        // 手指已松开但不是通过pendingStop，同样延迟停止
-        setTimeout(() => {
-          if (this._recorderReallyStarted) {
-            try { this._recorderManager.stop() } catch (e) {}
-          }
-        }, 500)
+        }, 1200)
         return
       }
 
@@ -918,11 +919,17 @@ Page({
         try { plugin.voiceRecognizer.stop() } catch (e) {}
       }
 
-      if (this._recordFilePath && this.data.recordSeconds >= 1) {
-        // 至少录了1秒才提交
+      // 关键修复：用微信返回的实际录音时长(res.duration)而不是计时器recordSeconds
+      // 因为计时器是每秒+1，录音可能实际录了1.2秒但recordSeconds还是0
+      const actualDurationMs = res.duration || 0  // 微信返回的实际录音时长（毫秒）
+      const holdDuration = Date.now() - (this._touchStartTime || 0)  // 用户按住时长
+      console.log('[Recorder] onStop: actualDuration=', actualDurationMs, 'ms, holdDuration=', holdDuration, 'ms, recordSeconds=', this.data.recordSeconds)
+      
+      // 只要微信返回的实际录音时长 >= 500ms，或用户按住 >= 1秒，就认为有效录音
+      if (this._recordFilePath && (actualDurationMs >= 500 || holdDuration >= 1000 || this.data.recordSeconds >= 1)) {
         this.submitAnswer()
-      } else if (this._recordFilePath && this.data.recordSeconds < 1) {
-        showToast('录音时间太短，请重新录制')
+      } else if (this._recordFilePath) {
+        showToast('录音时间太短，请长按说话')
         this._recordFilePath = ''
       }
     })
@@ -1059,30 +1066,40 @@ Page({
     this._recorderReallyStarted = false
     this._pendingStop = false
 
-    // 直接启动录音，不做stop+延迟（避免时序竞争导致录音无法启动）
-    // 如果录音器有残留状态，微信底层会自动处理
     if (this._isPageUnloaded) {
       this._isStartingRecord = false
       this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
       return
     }
-    try {
-      this._recorderManager.start({
-        duration: 60000,
-        sampleRate: 16000,
-        numberOfChannels: 1,
-        encodeBitRate: 96000,
-        format: 'mp3',
-        frameSize: 50
-      })
-      // 注意：_isStartingRecord 在 onStart 回调中解锁
-    } catch (e) {
-      console.error('[Recorder] Start exception:', e)
-      this._isStartingRecord = false
-      this._recorderReallyStarted = false
-      this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
-      showToast('录音启动失败，请重新按住说话')
-    }
+
+    // 先尝试stop清理可能的残留状态（静默失败），然后立即start
+    try { this._recorderManager.stop() } catch (e) {}
+
+    // 用微小延迟确保stop处理完毕后再启动
+    setTimeout(() => {
+      if (this._isPageUnloaded) {
+        this._isStartingRecord = false
+        this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
+        return
+      }
+      try {
+        this._recorderManager.start({
+          duration: 60000,
+          sampleRate: 16000,
+          numberOfChannels: 1,
+          encodeBitRate: 96000,
+          format: 'mp3',
+          frameSize: 50
+        })
+        // 注意：_isStartingRecord 在 onStart 回调中解锁
+      } catch (e) {
+        console.error('[Recorder] Start exception:', e)
+        this._isStartingRecord = false
+        this._recorderReallyStarted = false
+        this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
+        showToast('录音启动失败，请重新按住说话')
+      }
+    }, 50)  // 50ms微小延迟，确保前一次stop处理完毕
   },
 
   /** 停止录音 */

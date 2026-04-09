@@ -596,3 +596,10 @@
 ## 第五十轮 - 测评报告页去掉学前水平 + 外教录音时有时无分析- [x] 测评报告页（预览页）去掉“学前水平”标签（result.wxml和result.js分享海报）"
 - [x] 分析外教录音时有时无的原因：前端逻辑正确，后端部分题目未返回teacherAudioUrl
 - [x] 在api.js两个接口和test.js关键路径添加调试日志，方便定位具体哪些题目缺失外教录音
+
+## 第五十一轮 - 彻底修复submit-lite返回数据不完整 + 录音问题
+- [x] 查看后端submit-lite接口：确认是后端未返回teacherAudioUrl字段，已写接口对接说明文档
+- [x] 后端问题已记录在docs/submit-lite-bug-report.md，需后端同学修复
+- [x] 修复录音太短误报：改用微信返回的res.duration判断（>=500ms），不再依赖计时器recordSeconds
+- [x] 修夏recorder not start：_doStartRecording前先stop清理+50ms延迟再启动
+- [x] 修复pendingStop路径不启动计时器的bug：先启动计时器再延迟1200ms停止

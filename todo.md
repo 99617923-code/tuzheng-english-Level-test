@@ -607,3 +607,8 @@
 ## 第五十二轮 - 修复录音一按就闪掉（recorder not start）
 - [x] 去掉_doStartRecording中的stop+50ms延迟，改回直接start（后端同学原始方案）
 - [x] onStop中的res.duration判断逻辑保留（>=500ms即有效）
+
+## 第五十三轮 - 修复结果页显示0分0通过的问题
+- [x] 排查结果页分数数据来源：report-status→report接口链路
+- [x] 定位0分0通过根因：后端v3异步评分未完成时report接口返回0值，或report-status接口404降级直接调report
+- [x] 添加调试日志：report-status返回、report原始数据、_processResultData入参全部打印

@@ -129,9 +129,11 @@ Page({
   async _startReportCheck() {
     try {
       const statusData = await getReportStatus(this._sessionId)
+      console.log('[Result Debug] report-status返回:', JSON.stringify(statusData))
       
       if (statusData.status === 'completed') {
         // 评分已完成，直接加载报告
+        console.log('[Result Debug] 状态=completed，直接加载报告')
         this.loadResult()
       } else if (statusData.status === 'processing' || statusData.status === 'pending') {
         // 评分进行中或等待开始，进入轮询模式
@@ -156,11 +158,7 @@ Page({
       }
     } catch (err) {
       // report-status接口不存在或失败，降级到直接加载报告
-      if (err.message && (err.message.includes('404') || err.message.includes('Not Found'))) {
-        console.warn('[Result] report-status API not available, fallback to direct load')
-      } else {
-        console.warn('[Result] report-status check failed:', err.message)
-      }
+      console.warn('[Result Debug] report-status接口异常，降级直接加载:', err.message)
       this.loadResult()
     }
   },
@@ -322,6 +320,7 @@ Page({
     // 优先调用report接口（v0.1.7新增，含逐题分析）
     try {
       data = await getTestReport(this._sessionId)
+      console.log('[Result Debug] report接口返回原始数据:', JSON.stringify(data))
       // report接口成功，检查是否包含逐题分析
       if (data && data.questions && data.questions.length > 0) {
         hasDetailQuestions = true
@@ -358,6 +357,7 @@ Page({
    * 处理结果数据（report和result接口共用）
    */
   _processResultData(data, hasDetailQuestions) {
+    console.log('[Result Debug] _processResultData入参 overallScore:', data.overallScore, 'overall_score:', data.overall_score, 'totalQuestions:', data.totalQuestions, 'total_questions:', data.total_questions, 'passedQuestions:', data.passedQuestions, 'passed_questions:', data.passed_questions, 'status:', data.status)
     // 检测后端返回的预览状态（测评未正式结束，数据为实时计算的预览）
     const isPreview = data.status === 'preview'
 

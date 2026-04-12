@@ -1,24 +1,15 @@
 /**
- * 途正英语AI分级测评 - 测评主页面（v3 智能预判引擎 - 零等待模式）
- * 
- * v3核心优化：
- * 1. 首页预加载：用户登录后立即后台调用startTest预加载第一题，进入测评页时零等待
- * 2. submitLite接口：做题过程中不等待AI评分，后端用规则引擎快速预判出下一题
- * 3. 响应延迟记录：记录音频播放结束到用户开始录音的时间间隔，传给后端辅助预判
- * 4. 异步精评：测评结束后后端统一调用LLM精确评分，结果页轮询等待报告
- * 5. 保守定级：后端应用保守系数，确保定级偏保守
+ * 途正英语AI分级测评 - 测评主页面（v2 全AI评分模式）
  * 
  * 核心流程：
- * 1. startTest → 后端返回第一题（从PRE1开始，或从预加载缓存读取）
+ * 1. startTest → 后端返回第一题（从PRE1开始）
  * 2. 自动播放外教真人语音 → 用户按住录音回答
- * 3. submitLite → 后端规则预判 + 快速返回下一题（毫秒级）
- * 4. status=continue → 立即播放下一题（可能升级/跳级）
- * 5. status=finished → 跳转结果页（轮询等待异步精评完成）
- * 
- * 降级兼容：如果后端还没实现submitLite接口，自动降级到evaluateAnswer
+ * 3. evaluateAnswer → 后端AI评分 + 返回下一题（同步）
+ * 4. status=continue → 播放下一题（可能升级）
+ * 5. status=finished → 跳转结果页
  */
 const app = getApp()
-const { startTest, evaluateAnswer, uploadAudio, terminateTest, transcribeAudio, textToSpeech, getTeacherConfig, submitLite } = require('../../utils/api')
+const { startTest, evaluateAnswer, uploadAudio, terminateTest, transcribeAudio, textToSpeech, getTeacherConfig } = require('../../utils/api')
 const { formatTime, showToast, showError, delay } = require('../../utils/util')
 const { ensureTokenValid } = require('../../utils/request')
 
@@ -146,8 +137,8 @@ Page({
   _frontendQuestionCount: 0, // 前端自己维护的答题计数（不依赖后端）
   _pendingLevelUp: false,    // 后端返回的升级标志（缓存到handleNext使用）
   _pendingLevelUpMessage: '', // 后端返回的升级提示文案
-  _audioEndedTimestamp: 0,    // v3: 音频播放结束时间戳（用于计算响应延迟）
-  _currentResponseDelay: 0,   // v3: 当前题目的响应延迟（ms）
+  _audioEndedTimestamp: 0,    // 音频播放结束时间戳
+  _currentResponseDelay: 0,   // 当前题目的响应延迟（ms）
 
   onLoad(options) {
     const navLayout = app.getNavLayout()
@@ -351,14 +342,13 @@ Page({
     try {
       const data = await startTest()
       const question = data.question
-      // 兼容下划线命名和后端v3字段名
+      // 兼容下划线命名
       if (question) {
-        // v3: 优先使用外教录音teacherAudioUrl
+        // 优先使用外教录音teacherAudioUrl
         const tAudio = question.teacherAudioUrl || question.teacher_audio_url
         const bAudio = question.audioUrl || question.audio_url
         question.audioUrl = tAudio || bAudio || ''
         if (!question.questionText && question.question_text) question.questionText = question.question_text
-        // 后端v3用text字段名
         if (!question.questionText && question.text) question.questionText = question.text
         if (!question.questionId && question.question_id) question.questionId = question.question_id
         if (!question.subLevel && question.sub_level) question.subLevel = question.sub_level
@@ -463,31 +453,17 @@ Page({
     this._frontendQuestionCount = 0
 
     try {
-      // v3优化：优先读取预加载缓存（非强制新建时）
-      let data = null
-      if (!forceNew) {
-        data = await app.getPreloadedTestData()
-        if (data) {
-          console.log('[Test] Using preloaded data, sessionId:', data.sessionId)
-        }
-      }
-      // 缓存未命中或强制新建，正常调用startTest
-      if (!data) {
-        data = await startTest(forceNew ? { forceNew: true } : {})
-      }
-
-      // 打印后端返回的完整数据，方便调试
+      const data = await startTest(forceNew ? { forceNew: true } : {})
 
       const question = data.question
       if (question) {
-        // v3: 优先使用外教录音teacherAudioUrl，兼容下划线命名
+        // 优先使用外教录音teacherAudioUrl
         const teacherAudio = question.teacherAudioUrl || question.teacher_audio_url
         const baseAudio = question.audioUrl || question.audio_url
         question.audioUrl = teacherAudio || baseAudio || ''
         if (!question.questionText && question.question_text) {
           question.questionText = question.question_text
         }
-        // 后端v3用text字段名
         if (!question.questionText && question.text) {
           question.questionText = question.text
         }
@@ -662,7 +638,7 @@ Page({
    * 音频播放完成后的统一处理
    */
   _onAudioFinished() {
-    // v3: 记录音频播放结束时间戳（用于计算响应延迟）
+    // 记录音频播放结束时间戳（用于计算响应延迟）
     this._audioEndedTimestamp = Date.now()
     this.setData({
       audioPlaying: false,
@@ -974,7 +950,7 @@ Page({
     // 记录按下时间戳，用于松开时判断是否太短
     this._touchStartTime = Date.now()
     this._touchActive = true  // 标记手指正在按住
-    // v3: 计算响应延迟（音频播放结束到用户开始录音的时间间隔）
+    // 计算响应延迟（音频播放结束到用户开始录音的时间间隔）
     if (this._audioEndedTimestamp > 0) {
       this._currentResponseDelay = Date.now() - this._audioEndedTimestamp
     } else {
@@ -1139,7 +1115,7 @@ Page({
     }
   },
 
-  // ============ 提交评估（v3 智能预判引擎 - 零等待模式） ============
+  // ============ 提交评估（v2 全AI评分模式） ============
 
   async submitAnswer() {
     const { sessionId, currentQuestion, userTranscription, recordSeconds } = this.data
@@ -1170,43 +1146,36 @@ Page({
     // 提前检查Token有效性，快过期时主动刷新（避免上传/评估过程中遇到401）
     await ensureTokenValid()
 
-    // v3优化：不再进入evaluating等待阶段，直接显示"正在准备下一题"
+    // 进入评估等待阶段
     this.setData({
       phase: 'loading',
-      aiStatusText: '正在准备下一题...'
+      aiStatusText: '正在评估中...'
     })
 
     try {
       let finalTranscription = userTranscription || ''
 
-      // v3核心优化：录音上传和submitLite并行执行
-      // 录音上传不阻塞出题流程，后台异步上传即可
-      const uploadPromise = uploadAudio(
-        this._recordFilePath,
-        sessionId,
-        currentQuestion.questionId
-      ).then(res => res.audioUrl || res.audio_url || res.url || '').catch(e => {
+      // 先上传录音，获取audioUrl
+      let audioUrl = ''
+      try {
+        const uploadRes = await uploadAudio(
+          this._recordFilePath,
+          sessionId,
+          currentQuestion.questionId
+        )
+        audioUrl = uploadRes.audioUrl || uploadRes.audio_url || uploadRes.url || ''
+      } catch (e) {
         console.warn('[Upload] Failed:', e.message)
-        return ''
-      })
+      }
 
-      // submitLite参数（先不带audioUrl，后端可以异步获取）
+      // v2: 调用evaluate接口（同步AI评分）
       const submitParams = {
         sessionId,
         questionId: currentQuestion.questionId,
         questionText: currentQuestion.questionText || '',
+        audioUrl,
         recognizedText: finalTranscription || '',
-        duration: recordSeconds * 1000,
-        responseDelay: this._currentResponseDelay || 0
-      }
-
-      // 尝试并行：如果上传很快完成（200ms内），就带上audioUrl
-      const quickUpload = await Promise.race([
-        uploadPromise.then(url => ({ url, done: true })),
-        delay(200).then(() => ({ url: '', done: false }))
-      ])
-      if (quickUpload.url) {
-        submitParams.audioUrl = quickUpload.url
+        duration: recordSeconds * 1000
       }
 
       // 网络失败自动重试（最多3次）
@@ -1215,18 +1184,7 @@ Page({
       let lastError = null
       for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         try {
-          // 优先尝试submitLite，失败时降级到evaluateAnswer
-          try {
-            evalRes = await submitLite(submitParams)
-          } catch (liteErr) {
-            // submitLite接口不存在（404）或服务器错误，降级到旧接口
-            if (liteErr.message && (liteErr.message.includes('404') || liteErr.message.includes('Not Found'))) {
-              console.warn('[Submit] submitLite not available, fallback to evaluateAnswer')
-              evalRes = await evaluateAnswer(submitParams)
-            } else {
-              throw liteErr
-            }
-          }
+          evalRes = await evaluateAnswer(submitParams)
           break // 成功则跳出重试循环
         } catch (retryErr) {
           lastError = retryErr
@@ -1274,19 +1232,14 @@ Page({
       // 兼容下划线命名：返回的下一题question
       if (evalRes.question) {
         const q = evalRes.question
-        // v3: 优先使用外教录音teacherAudioUrl
+        // 优先使用外教录音teacherAudioUrl
         const tA = q.teacherAudioUrl || q.teacher_audio_url
         const bA = q.audioUrl || q.audio_url
-        console.log('[Audio Debug] submitLite返回 teacherAudioUrl:', q.teacherAudioUrl, 'teacher_audio_url:', q.teacher_audio_url, 'audioUrl:', q.audioUrl, 'audio_url:', q.audio_url)
         q.audioUrl = tA || bA || ''
-        console.log('[Audio Debug] 最终使用audioUrl:', q.audioUrl)
         if (!q.questionText && q.question_text) q.questionText = q.question_text
-        // 后端v3用text字段名，前端统一转为questionText
         if (!q.questionText && q.text) q.questionText = q.text
         if (!q.questionId && q.question_id) q.questionId = q.question_id
         if (!q.subLevel && q.sub_level) q.subLevel = q.sub_level
-      } else {
-        console.warn('[Audio Debug] submitLite返回中没有question对象！evalRes keys:', Object.keys(evalRes))
       }
 
       // 检查请求代数：如果用户已退出重进，旧请求的回调应被忽略
@@ -1322,8 +1275,6 @@ Page({
         if (this._isNavigating) return
         this._isNavigating = true
         this._clearTestSession()
-        // v3: 清除预加载缓存
-        app.clearPreloadCache()
         this.cleanup()
         wx.redirectTo({
           url: `/pages/result/result?sessionId=${this.data.sessionId}`,
@@ -1405,34 +1356,23 @@ Page({
           })
 
           try {
-            // v3优化：跳过也使用submitLite（毫秒级响应）
-            let evalRes = null
+            // v2: 跳过也使用evaluate接口
             const skipParams = {
               sessionId: this.data.sessionId,
               questionId: this.data.currentQuestion.questionId,
               recognizedText: '',
-              duration: 0,
-              responseDelay: 0  // 跳过时响应延迟为0
+              duration: 0
             }
-            try {
-              evalRes = await submitLite(skipParams)
-            } catch (liteErr) {
-              if (liteErr.message && (liteErr.message.includes('404') || liteErr.message.includes('Not Found'))) {
-                evalRes = await evaluateAnswer(skipParams)
-              } else {
-                throw liteErr
-              }
-            }
+            const evalRes = await evaluateAnswer(skipParams)
 
             // 兼容下划线命名
             if (evalRes.question) {
               const q = evalRes.question
-              // v3: 优先使用外教录音teacherAudioUrl
+              // 优先使用外教录音teacherAudioUrl
               const tA2 = q.teacherAudioUrl || q.teacher_audio_url
               const bA2 = q.audioUrl || q.audio_url
               q.audioUrl = tA2 || bA2 || ''
               if (!q.questionText && q.question_text) q.questionText = q.question_text
-              // 后端v3用text字段名
               if (!q.questionText && q.text) q.questionText = q.text
               if (!q.questionId && q.question_id) q.questionId = q.question_id
               if (!q.subLevel && q.sub_level) q.subLevel = q.sub_level
@@ -1458,7 +1398,6 @@ Page({
               if (this._isNavigating) return
               this._isNavigating = true
               this._clearTestSession()
-              app.clearPreloadCache()  // v3: 清除预加载缓存
               this.cleanup()
               wx.redirectTo({
                 url: `/pages/result/result?sessionId=${this.data.sessionId}`,
@@ -1510,7 +1449,7 @@ Page({
   },
 
   /**
-   * 精简版：答完后自动进入下一题（不再显示反馈）
+   * 答完后自动进入下一题
    * 抽取公共逻辑，供submitAnswer和handleSkip复用
    */
   async _autoNextQuestion(evalRes, totalAnswered, shouldForceContinue) {
@@ -1522,12 +1461,11 @@ Page({
         const data = await startTest({ forceNew: true })
         const question = data.question
         if (question) {
-          // v3: 优先使用外教录音teacherAudioUrl
+          // 优先使用外教录音teacherAudioUrl
           const tA3 = question.teacherAudioUrl || question.teacher_audio_url
           const bA3 = question.audioUrl || question.audio_url
           question.audioUrl = tA3 || bA3 || ''
           if (!question.questionText && question.question_text) question.questionText = question.question_text
-          // 后端v3用text字段名
           if (!question.questionText && question.text) question.questionText = question.text
           if (!question.questionId && question.question_id) question.questionId = question.question_id
           if (!question.subLevel && question.sub_level) question.subLevel = question.sub_level
@@ -1583,12 +1521,11 @@ Page({
     // status === 'continue' → 加载下一题
     const nextQuestion = evalRes.question
     if (nextQuestion) {
-      // v3: 优先使用外教录音teacherAudioUrl
+      // 优先使用外教录音teacherAudioUrl
       const tA4 = nextQuestion.teacherAudioUrl || nextQuestion.teacher_audio_url
       const bA4 = nextQuestion.audioUrl || nextQuestion.audio_url
       nextQuestion.audioUrl = tA4 || bA4 || ''
       if (!nextQuestion.questionText && nextQuestion.question_text) nextQuestion.questionText = nextQuestion.question_text
-      // 后端v3用text字段名
       if (!nextQuestion.questionText && nextQuestion.text) nextQuestion.questionText = nextQuestion.text
       if (!nextQuestion.questionId && nextQuestion.question_id) nextQuestion.questionId = nextQuestion.question_id
       if (!nextQuestion.subLevel && nextQuestion.sub_level) nextQuestion.subLevel = nextQuestion.sub_level

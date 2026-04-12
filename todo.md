@@ -612,3 +612,12 @@
 - [x] 排查结果页分数数据来源：report-status→report接口链路
 - [x] 定位0分0通过根因：后端v3异步评分未完成时report接口返回0值，或report-status接口404降级直接调report
 - [x] 添加调试日志：report-status返回、report原始数据、_processResultData入参全部打印
+
+## 第五十四轮 - 方案B：前端彻底回到v2模式（evaluate接口）
+- [ ] test.js: submitAnswer中submitLite改为直接调用evaluateAnswer，去掉降级逻辑
+- [ ] test.js: handleSkip中submitLite改为evaluateAnswer
+- [ ] test.js: 去掉v3预判引擎相关逻辑（prediction、predictionScore、pendingStop等）
+- [ ] test.js: 去掉submitLite的import引用
+- [ ] api.js: 清理submitLite调试日志，保留evaluateAnswer
+- [ ] 清理result.js中的调试日志
+- [ ] 验证改动完整性：grep确认无submitLite残留调用

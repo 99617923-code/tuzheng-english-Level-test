@@ -82,8 +82,6 @@ Page({
     this._checkQrcodeSwitch()
     if (isAuth) {
       this._checkLevelStatus()
-      // v3优化：登录后触发预加载（如果app.js的checkAuth还没完成预加载，这里补触发）
-      this._triggerPreload()
     } else {
       this.setData({ levelConfirmed: false })
     }
@@ -216,18 +214,6 @@ Page({
     } catch (e) {}
     // 如果找不到，跳到历史记录
     wx.navigateTo({ url: '/pages/history/history' })
-  },
-
-  /**
-   * v3优化：触发预加载测评数据
-   * 登录后立即在后台调用startTest预加载第一题
-   * 用户浏览首页、看视频、看说明期间，后台已完成加载
-   */
-  _triggerPreload() {
-    // 已确认分级的用户不需要预加载
-    if (this.data.levelConfirmed) return
-    // 委托给app全局预加载
-    app.preloadTestData()
   },
 
   /** 静默检查录音权限状态（不弹窗） */

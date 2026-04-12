@@ -37,54 +37,9 @@
     </view>
   </view>
 
-  <!-- v3: 报告生成中（异步评分轮询等待） -->
-  <view wx:if="{{reportGenerating}}" class="loading-wrap" style="padding-top: {{navBarHeight}}px;">
-    <view class="loading-card report-generating-card">
-      <view class="report-gen-animation">
-        <view class="report-gen-circle">
-          <view class="report-gen-progress" style="background: conic-gradient(#3B82F6 {{reportProgress}}%, rgba(59,130,246,0.1) {{reportProgress}}%);"></view>
-          <view class="report-gen-inner">
-            <text class="report-gen-percent">{{reportProgress}}%</text>
-          </view>
-        </view>
-      </view>
-      <text class="loading-title">正在生成测评报告</text>
-      <text class="loading-desc">{{reportProgressText}}</text>
-      <text wx:if="{{reportEstimatedTime}}" class="loading-estimate">{{reportEstimatedTime}}</text>
-      <view class="report-gen-steps">
-        <view class="report-gen-step {{reportProgress >= 10 ? 'active' : ''}}">
-          <view class="step-dot"></view>
-          <text class="step-text">录音转写</text>
-        </view>
-        <view class="report-gen-step {{reportProgress >= 40 ? 'active' : ''}}">
-          <view class="step-dot"></view>
-          <text class="step-text">逐题评分</text>
-        </view>
-        <view class="report-gen-step {{reportProgress >= 70 ? 'active' : ''}}">
-          <view class="step-dot"></view>
-          <text class="step-text">综合分析</text>
-        </view>
-        <view class="report-gen-step {{reportProgress >= 90 ? 'active' : ''}}">
-          <view class="step-dot"></view>
-          <text class="step-text">生成报告</text>
-        </view>
-      </view>
-    </view>
-  </view>
 
-  <!-- v3: 报告生成失败 -->
-  <view wx:if="{{reportFailed}}" class="loading-wrap" style="padding-top: {{navBarHeight}}px;">
-    <view class="loading-card report-failed-card">
-      <view class="report-failed-icon">⚠️</view>
-      <text class="loading-title">报告生成失败</text>
-      <text class="loading-desc">{{reportProgressText}}</text>
-      <button class="retry-report-btn" bindtap="handleRetryReport">重新生成报告</button>
-      <view class="retry-hint">如果多次失败，请联系客服</view>
-    </view>
-  </view>
-
-  <!-- 结果内容（非loading、非生成中、非失败时显示） -->
-  <scroll-view wx:if="{{!loading && !reportGenerating && !reportFailed}}" scroll-y class="scroll-area" style="top: {{navBarHeight}}px;" enhanced show-scrollbar="{{false}}">
+  <!-- 结果内容 -->
+  <scroll-view wx:if="{{!loading}}" scroll-y class="scroll-area" style="top: {{navBarHeight}}px;" enhanced show-scrollbar="{{false}}">
 
     <!-- 预览状态提示条（测评未正式结束） -->
     <view wx:if="{{isPreview && !confirmed}}" class="confirm-banner animate-fade-in" style="background: linear-gradient(135deg, #fff3e0, #fff8e1); border-color: #ffb74d;">

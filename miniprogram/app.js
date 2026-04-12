@@ -3,7 +3,6 @@
  * 全局适配：状态栏 + 胶囊按钮 + 安全区域
  */
 const { request, getToken } = require('./utils/request')
-const { getTeacherConfig } = require('./utils/api')
 
 App({
   globalData: {
@@ -37,8 +36,6 @@ App({
     this.initSystemInfo()
     // 检查登录状态
     this.checkAuth()
-    // 加载外教配置（动态获取外教头像、名字、开场白录音）
-    this.loadTeacherConfig()
   },
 
   /** 全局错误处理 */
@@ -135,30 +132,5 @@ App({
   /** 获取等级配置 */
   getLevelConfig(level) {
     return this.globalData.levelConfig[level] || this.globalData.levelConfig[1]
-  },
-
-  /**
-   * 加载外教信息配置（从后台动态获取）
-   * 接口：GET /api/v1/test/teacher-config
-   * 返回：{ name, title, avatarUrl, introAudioUrl }
-   */
-  loadTeacherConfig() {
-    getTeacherConfig().then(data => {
-      if (data) {
-        // 更新全局外教配置
-        if (data.avatarUrl) {
-          this.globalData.aiAvatarUrl = data.avatarUrl
-        }
-        this.globalData.teacherName = data.name || 'Kristyan'
-        this.globalData.teacherTitle = data.title || '外教Kristyan老师'
-        this.globalData.teacherIntroAudioUrl = data.introAudioUrl || ''
-        console.log('[App] Teacher config loaded:', data.name, data.title)
-      }
-    }).catch(err => {
-      console.warn('[App] Load teacher config failed, using defaults:', err)
-      // 失败时使用默认值
-      this.globalData.teacherName = this.globalData.teacherName || 'Kristyan'
-      this.globalData.teacherTitle = this.globalData.teacherTitle || '外教Kristyan老师'
-    })
   }
 })

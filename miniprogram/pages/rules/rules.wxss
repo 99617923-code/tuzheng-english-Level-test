@@ -16,7 +16,7 @@
   padding: 24rpx 0 32rpx;
 }
 
-/* 外教简介 */
+/* AI外教简介 */
 .hero-teacher {
   display: flex;
   align-items: center;

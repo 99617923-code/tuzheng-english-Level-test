@@ -125,25 +125,21 @@ Page({
     }
   },
 
-  /** 检查用户分级确认状态（兼容后端新旧字段） */
+  /** 检查用户分级确认状态 */
   async _checkLevelStatus() {
     if (this.data.checkingLevelStatus) return
     this.setData({ checkingLevelStatus: true })
     try {
       const status = await getUserLevelStatus()
       if (status && status.confirmed) {
-        // 兼容多种字段名：majorLevel / major_level
-        const majorLevel = status.majorLevel !== undefined ? status.majorLevel : (status.major_level !== undefined ? status.major_level : 0)
-        const config = app.getLevelConfig(majorLevel)
-        // 等级名称：优先后端返回的levelName/finalLevel/majorLevelName，再用本地config
-        const levelName = status.levelName || status.finalLevel || status.majorLevelName || config.name || ''
+        const config = app.getLevelConfig(status.majorLevel || 0)
         this.setData({
           levelConfirmed: true,
-          confirmedLevelName: levelName,
-          confirmedMajorLevel: majorLevel,
+          confirmedLevelName: status.majorLevelName || config.name || '',
+          confirmedMajorLevel: status.majorLevel || 0,
           confirmedLevelColor: config.color || '#3B82F6',
-          confirmedQrcodeUrl: status.qrcodeUrl || status.qrcode_url || '',
-          confirmedGroupName: status.groupName || status.group_name || ''
+          confirmedQrcodeUrl: status.qrcodeUrl || '',
+          confirmedGroupName: status.groupName || ''
         })
       } else {
         this.setData({ levelConfirmed: false })

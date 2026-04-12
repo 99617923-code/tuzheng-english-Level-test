@@ -23,7 +23,7 @@
       <view class="hero-teacher">
         <image class="hero-avatar" src="{{aiAvatarUrl}}" mode="aspectFill" />
         <view class="hero-teacher-info">
-          <text class="hero-teacher-name">{{teacherName}}</text>
+          <text class="hero-teacher-name">外教</text>
           <text class="hero-teacher-desc">和你进行英语对话，精准评估你的水平</text>
         </view>
       </view>

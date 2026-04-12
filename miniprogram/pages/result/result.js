@@ -1,5 +1,5 @@
 /**
- * 途正英语分级测评 - 结果页（自适应引擎 v2）
+ * 途正英语AI分级测评 - 结果页（自适应引擎 v2）
  * 
  * 核心流程：
  * 1. 显示测评结果（等级、得分、报告）
@@ -7,12 +7,10 @@
  * 3. 用户点击"确认最终评级"后锁定结果，显示班级群二维码
  * 4. 确认后不可更改
  * 
- * 数据来源：
- * - 主数据：GET /api/v1/test/report/:sessionId（详细报告，含逐题分析）
- * - 降级：GET /api/v1/test/result/:sessionId（旧接口，无逐题分析）
+ * 数据来源：GET /api/v1/test/result/:sessionId
  */
 const app = getApp()
-const { getTestReport, getTestResult, getQrcodeByLevel, confirmLevel, getUserLevelStatus, getQrcodeDisplaySetting } = require('../../utils/api')
+const { getTestResult, getQrcodeByLevel, confirmLevel, getUserLevelStatus, getQrcodeDisplaySetting } = require('../../utils/api')
 const { showError, formatDuration } = require('../../utils/util')
 
 Page({
@@ -53,10 +51,6 @@ Page({
     // 分项得分
     scoreItems: [],
 
-    // 逐题分析
-    questionDetails: [],
-    showQuestionDetails: false,
-
     // 海报
     posterSaving: false,
 
@@ -96,7 +90,7 @@ Page({
     }
   },
 
-  /** 检查用户是否已确认分级（优先查后端，本地存储做兜底） */
+  /** 检查用户是否已确认分级（优先查后端，本地存储做兆底） */
   async _checkConfirmed() {
     try {
       const status = await getUserLevelStatus()
@@ -118,7 +112,7 @@ Page({
     } catch (e) {}
   },
 
-  /** 保存确认状态到本地（做兜底缓存） */
+  /** 保存确认状态到本地（做兆底缓存） */
   _saveConfirmedLocal() {
     try {
       const confirmedSessions = wx.getStorageSync('tz_confirmed_sessions') || {}
@@ -133,194 +127,122 @@ Page({
     }
   },
 
-  /**
-   * 加载测评结果 - 优先使用report接口（含逐题分析），降级到result接口
-   */
+  /** 加载测评结果 - 对接v2 API */
   async loadResult() {
-    let data = null
-    let hasDetailQuestions = false
-
-    // 优先调用report接口（v0.1.7新增，含逐题分析）
     try {
-      data = await getTestReport(this._sessionId)
-      // report接口成功，检查是否包含逐题分析
-      if (data && data.questions && data.questions.length > 0) {
-        hasDetailQuestions = true
-      }
-    } catch (reportErr) {
-      console.warn('[Result] getTestReport failed, fallback to getTestResult:', reportErr.message)
-      // report接口失败，降级到旧的result接口
-      try {
-        data = await getTestResult(this._sessionId)
-      } catch (resultErr) {
-        console.error('[Result] Both report and result APIs failed:', resultErr)
-        showError(resultErr.message || '获取结果失败')
-        this.setData({ loading: false })
-        return
-      }
-    }
+      const data = await getTestResult(this._sessionId)
 
-    if (!data) {
-      showError('获取结果失败')
-      this.setData({ loading: false })
-      return
-    }
+      // 检测后端返回的预览状态（测评未正式结束，数据为实时计算的预览）
+      const isPreview = data.status === 'preview'
 
-    try {
-      this._processResultData(data, hasDetailQuestions)
-    } catch (err) {
-      console.error('[Result] Process data error:', err)
-      showError('数据处理异常')
-      this.setData({ loading: false })
-    }
-  },
+      // v2字段
+      this._majorLevel = data.majorLevel !== undefined ? data.majorLevel : 0
+      const config = app.getLevelConfig(this._majorLevel)
 
-  /**
-   * 处理结果数据（report和result接口共用）
-   */
-  _processResultData(data, hasDetailQuestions) {
-    // 检测后端返回的预览状态（测评未正式结束，数据为实时计算的预览）
-    const isPreview = data.status === 'preview'
+      // 报告数据
+      const report = data.report || {}
 
-    // v2字段 - 兼容多种字段名
-    this._majorLevel = data.majorLevel !== undefined ? data.majorLevel : (data.major_level !== undefined ? data.major_level : 0)
-    const config = app.getLevelConfig(this._majorLevel)
-
-    // 等级名称：优先后端返回的finalLevel/levelName/majorLevelName
-    const levelName = data.finalLevel || data.levelName || data.majorLevelName || config.name
-    const levelLabel = data.levelLabel || data.majorLevelLabel || config.label || ''
-
-    // 报告数据
-    const report = data.report || {}
-
-    // 分项得分
-    const scoreItems = []
-    if (report.pronunciation !== undefined) {
-      scoreItems.push({
-        label: '发音准确度',
-        value: report.pronunciation,
-        percent: report.pronunciation,
-        color: '#3B82F6'
-      })
-    }
-    if (report.grammar !== undefined) {
-      scoreItems.push({
-        label: '语法运用',
-        value: report.grammar,
-        percent: report.grammar,
-        color: '#8B5CF6'
-      })
-    }
-    if (report.vocabulary !== undefined) {
-      scoreItems.push({
-        label: '词汇量',
-        value: report.vocabulary,
-        percent: report.vocabulary,
-        color: '#22c55e'
-      })
-    }
-    if (report.fluency !== undefined) {
-      scoreItems.push({
-        label: '口语流利度',
-        value: report.fluency,
-        percent: report.fluency,
-        color: '#F59E0B'
-      })
-    }
-
-    // 星级
-    const totalStars = 5
-    const filledStars = config.stars || 1
-    const starsArray = Array.from({ length: totalStars }, (_, i) => i < filledStars)
-
-    // 背景渐变
-    const bgGradients = {
-      0: 'linear-gradient(135deg, rgba(138,149,165,0.06), rgba(200,210,220,0.06))',
-      1: 'linear-gradient(135deg, rgba(27,63,145,0.06), rgba(43,91,160,0.04))',
-      2: 'linear-gradient(135deg, rgba(131,186,18,0.06), rgba(106,154,16,0.04))',
-      3: 'linear-gradient(135deg, rgba(43,91,160,0.06), rgba(27,63,145,0.04))'
-    }
-
-    const levelShadows = {
-      0: 'rgba(138,149,165,0.25)',
-      1: 'rgba(27,63,145,0.25)',
-      2: 'rgba(131,186,18,0.25)',
-      3: 'rgba(43,91,160,0.25)'
-    }
-
-    const scorePercent = Math.min(Math.round(data.overallScore || data.overall_score || 0), 100)
-
-    // 时长（后端返回毫秒或秒，做兼容）
-    const totalDuration = data.totalDuration || data.total_duration || 0
-    // 如果值大于10000，认为是毫秒；否则认为是秒
-    const durationSeconds = totalDuration > 10000 ? Math.round(totalDuration / 1000) : totalDuration
-    // 如果后端返回0（全部跳过或数据缺失），显示为短横线而非0''
-    const durationText = durationSeconds > 0 ? formatDuration(durationSeconds) : '--'
-
-    // 群二维码（v2直接在result里返回，但不立即显示）
-    const groupQrcode = data.groupQrcode || data.group_qrcode || {}
-
-    // 逐题分析数据处理
-    const questionDetails = []
-    if (hasDetailQuestions && data.questions) {
-      data.questions.forEach((q, idx) => {
-        // 兼容下划线命名
-        const questionText = q.questionText || q.question_text || ''
-        const userAnswer = q.userAnswer || q.user_answer || q.recognizedText || q.recognized_text || ''
-        const score = q.score !== undefined ? q.score : 0
-        const feedback = q.feedback || q.evaluation || ''
-        const suggestion = q.suggestion || ''
-        const audioUrl = q.audioUrl || q.audio_url || ''
-        const userAudioUrl = q.userAudioUrl || q.user_audio_url || ''
-        const passed = q.passed !== undefined ? q.passed : (score >= 60)
-
-        questionDetails.push({
-          index: idx + 1,
-          questionText,
-          userAnswer: userAnswer || '（未作答）',
-          score,
-          feedback,
-          suggestion,
-          audioUrl,
-          userAudioUrl,
-          passed,
-          scoreColor: passed ? '#22c55e' : '#ef4444',
-          passedText: passed ? '通过' : '未通过'
-        })
-      })
-    }
-
-    this.setData({
-      loading: false,
-      isPreview,
-      // 等级
-      levelName,
-      levelLabel,
-      levelColor: config.color,
-      levelBgGradient: bgGradients[this._majorLevel] || bgGradients[1],
-      heroBgGradient: bgGradients[this._majorLevel] || bgGradients[1],
-      levelShadow: levelShadows[this._majorLevel] || levelShadows[1],
-      scorePercent,
-      starsArray,
-      highestSubLevel: data.highestSubLevel || data.highest_sub_level || '',
-      // 得分
-      overallScore: Math.round(data.overallScore || data.overall_score || 0),
-      totalQuestions: data.totalQuestions || data.total_questions || 0,
-      passedQuestions: data.passedQuestions || data.passed_questions || 0,
-      durationText,
-      // 报告
-      summary: report.summary || '',
-      strengths: report.strengths || [],
-      weaknesses: report.weaknesses || [],
-      recommendation: report.recommendation || '',
       // 分项得分
-      scoreItems,
-      // 逐题分析
-      questionDetails,
-      // 群二维码（预存但不显示，确认后才可见）
-      qrcodeUrl: groupQrcode.qrcodeUrl || groupQrcode.qrcode_url || '',
-      groupName: groupQrcode.groupName || groupQrcode.group_name || ''
-    })
+      const scoreItems = []
+      if (report.pronunciation !== undefined) {
+        scoreItems.push({
+          label: '发音准确度',
+          value: report.pronunciation,
+          percent: report.pronunciation,
+          color: '#3B82F6'
+        })
+      }
+      if (report.grammar !== undefined) {
+        scoreItems.push({
+          label: '语法运用',
+          value: report.grammar,
+          percent: report.grammar,
+          color: '#8B5CF6'
+        })
+      }
+      if (report.vocabulary !== undefined) {
+        scoreItems.push({
+          label: '词汇量',
+          value: report.vocabulary,
+          percent: report.vocabulary,
+          color: '#22c55e'
+        })
+      }
+      if (report.fluency !== undefined) {
+        scoreItems.push({
+          label: '口语流利度',
+          value: report.fluency,
+          percent: report.fluency,
+          color: '#F59E0B'
+        })
+      }
+
+      // 星级
+      const totalStars = 5
+      const filledStars = config.stars || 1
+      const starsArray = Array.from({ length: totalStars }, (_, i) => i < filledStars)
+
+      // 背景渐变
+      const bgGradients = {
+        0: 'linear-gradient(135deg, rgba(138,149,165,0.06), rgba(200,210,220,0.06))',
+        1: 'linear-gradient(135deg, rgba(27,63,145,0.06), rgba(43,91,160,0.04))',
+        2: 'linear-gradient(135deg, rgba(131,186,18,0.06), rgba(106,154,16,0.04))',
+        3: 'linear-gradient(135deg, rgba(43,91,160,0.06), rgba(27,63,145,0.04))'
+      }
+
+      const levelShadows = {
+        0: 'rgba(138,149,165,0.25)',
+        1: 'rgba(27,63,145,0.25)',
+        2: 'rgba(131,186,18,0.25)',
+        3: 'rgba(43,91,160,0.25)'
+      }
+
+      const scorePercent = Math.min(Math.round(data.overallScore || 0), 100)
+
+      // 时长（后端返回毫秒）
+      const totalDuration = data.totalDuration || 0
+      const durationSeconds = Math.round(totalDuration / 1000)
+      // 如果后端返回0（全部跳过或数据缺失），显示为短横线而非0''
+      const durationText = durationSeconds > 0 ? formatDuration(durationSeconds) : '--'
+
+      // 群二维码（v2直接在result里返回，但不立即显示）
+      const groupQrcode = data.groupQrcode || {}
+
+      this.setData({
+        loading: false,
+        isPreview,
+        // 等级
+        levelName: data.majorLevelName || config.name,
+        levelLabel: data.majorLevelLabel || config.label || '',
+        levelColor: config.color,
+        levelBgGradient: bgGradients[this._majorLevel] || bgGradients[1],
+        heroBgGradient: bgGradients[this._majorLevel] || bgGradients[1],
+        levelShadow: levelShadows[this._majorLevel] || levelShadows[1],
+        scorePercent,
+        starsArray,
+        highestSubLevel: data.highestSubLevel || '',
+        // 得分
+        overallScore: Math.round(data.overallScore || 0),
+        totalQuestions: data.totalQuestions || 0,
+        passedQuestions: data.passedQuestions || 0,
+        durationText,
+        // 报告
+        summary: report.summary || '',
+        strengths: report.strengths || [],
+        weaknesses: report.weaknesses || [],
+        recommendation: report.recommendation || '',
+        // 分项得分
+        scoreItems,
+        // 群二维码（预存但不显示，确认后才可见）
+        qrcodeUrl: groupQrcode.qrcodeUrl || '',
+        groupName: groupQrcode.groupName || ''
+      })
+
+    } catch (err) {
+      console.error('[Result] Load error:', err)
+      showError(err.message || '获取结果失败')
+      this.setData({ loading: false })
+    }
   },
 
   /** 确认最终评级 */
@@ -332,7 +254,7 @@ Page({
     }
     wx.showModal({
       title: '确认最终评级',
-      content: `你的评级为"${this.data.levelName}"（${this.data.overallScore}分）。确认后将不可再次测评，是否确认？`,
+      content: `你的评级为“${this.data.levelName}”（${this.data.overallScore}分）。确认后将不可再次测评，是否确认？`,
       confirmText: '确认评级',
       confirmColor: '#3B82F6',
       cancelText: '再想想',
@@ -411,34 +333,6 @@ Page({
     this.setData({ showDetailReport: !this.data.showDetailReport })
   },
 
-  /** 切换逐题分析展开/折叠 */
-  toggleQuestionDetails() {
-    this.setData({ showQuestionDetails: !this.data.showQuestionDetails })
-  },
-
-  /** 播放题目录音（逐题分析中） */
-  playQuestionAudio(e) {
-    const url = e.currentTarget.dataset.url
-    if (!url) return
-    if (this._detailAudioCtx) {
-      try { this._detailAudioCtx.stop() } catch (e) {}
-      try { this._detailAudioCtx.destroy() } catch (e) {}
-    }
-    this._detailAudioCtx = wx.createInnerAudioContext()
-    this._detailAudioCtx.obeyMuteSwitch = false
-    this._detailAudioCtx.src = url
-    this._detailAudioCtx.play()
-    this._detailAudioCtx.onEnded(() => {
-      try { this._detailAudioCtx.destroy() } catch (e) {}
-      this._detailAudioCtx = null
-    })
-    this._detailAudioCtx.onError(() => {
-      wx.showToast({ title: '播放失败', icon: 'none' })
-      try { this._detailAudioCtx.destroy() } catch (e) {}
-      this._detailAudioCtx = null
-    })
-  },
-
   /** 关闭二维码弹窗 */
   closeQrModal() {
     this.setData({ showQrModal: false })
@@ -463,6 +357,7 @@ Page({
         if (res.confirm) {
           // 清除中断恢复缓存
           try { wx.removeStorageSync('tz_test_session') } catch (e) {}
+          // 传递forceNew=1，告知测评页强制创建新会话
           wx.redirectTo({ url: '/pages/test/test?forceNew=1' })
         }
       }
@@ -521,7 +416,7 @@ Page({
       ctx.fillStyle = '#1a2340'
       ctx.font = 'bold 42px sans-serif'
       ctx.textAlign = 'center'
-      ctx.fillText('途正英语智能分级测评', W / 2, 80)
+      ctx.fillText('途正英语AI分级测评', W / 2, 80)
 
       ctx.fillStyle = '#7a8a9a'
       ctx.font = '26px sans-serif'
@@ -748,8 +643,8 @@ Page({
   onShareAppMessage() {
     const { levelName, overallScore, confirmed } = this.data
     const title = confirmed
-      ? `我在途正英语分级测评中获得了${levelName}（${overallScore}分），快来测测你的英语水平！`
-      : `我正在途正英语分级测评中测试，快来一起测测吧！`
+      ? `我在途正英语AI分级测评中获得了${levelName}（${overallScore}分），快来测测你的英语水平！`
+      : `我正在途正英语AI分级测评中测试，快来一起测测吧！`
     return {
       title,
       path: '/pages/home/home',
@@ -761,7 +656,7 @@ Page({
   onShareTimeline() {
     const { levelName, overallScore } = this.data
     return {
-      title: `途正英语分级测评 - ${levelName}（${overallScore}分）`,
+      title: `途正英语AI分级测评 - ${levelName}（${overallScore}分）`,
       imageUrl: app.globalData.shareCoverUrl,
       query: ''
     }

@@ -50,18 +50,18 @@
         <view class="stats-bg"></view>
         <view class="stats-content">
           <view class="stats-row">
-            <view class="stat-block stat-block-sm">
-              <text class="stat-number stat-number-sm">{{list.length}}</text>
+            <view class="stat-block">
+              <text class="stat-number">{{list.length}}</text>
               <text class="stat-label">总测评</text>
             </view>
             <view class="stat-divider"></view>
-            <view class="stat-block stat-block-sm">
-              <text class="stat-number stat-number-sm">{{completedCount}}</text>
+            <view class="stat-block">
+              <text class="stat-number">{{completedCount}}</text>
               <text class="stat-label">已完成</text>
             </view>
             <view class="stat-divider"></view>
-            <view class="stat-block stat-block-lg">
-              <text class="stat-number stat-number-lg {{bestLevel ? '' : 'no-data'}}">{{bestLevel || '-'}}</text>
+            <view class="stat-block">
+              <text class="stat-number {{bestLevel ? '' : 'no-data'}}">{{bestLevel || '-'}}</text>
               <text class="stat-label">最高等级</text>
             </view>
           </view>

@@ -1,10 +1,15 @@
 /**
- * 途正英语分级测评 - 结果页（v2 直接加载报告模式）
+ * 途正英语分级测评 - 结果页（自适应引擎 v2）
  * 
  * 核心流程：
- * 1. 进入页面 → 直接调用report/result接口加载报告
- * 2. 显示测评结果（等级、得分、报告）
- * 3. 用户可以确认分级或重新测评
+ * 1. 显示测评结果（等级、得分、报告）
+ * 2. 用户可以"重新测评"（不满意当前结果）
+ * 3. 用户点击"确认最终评级"后锁定结果，显示班级群二维码
+ * 4. 确认后不可更改
+ * 
+ * 数据来源：
+ * - 主数据：GET /api/v1/test/report/:sessionId（详细报告，含逐题分析）
+ * - 降级：GET /api/v1/test/result/:sessionId（旧接口，无逐题分析）
  */
 const app = getApp()
 const { getTestReport, getTestResult, getQrcodeByLevel, confirmLevel, getUserLevelStatus, getQrcodeDisplaySetting } = require('../../utils/api')
@@ -69,7 +74,6 @@ Page({
 
   _sessionId: '',
   _majorLevel: 0,
-  _isDestroyed: false,    // 页面是否已销毁
 
   onLoad(options) {
     const navLayout = app.getNavLayout()
@@ -80,22 +84,16 @@ Page({
     })
 
     this._sessionId = options.sessionId || ''
-    this._isDestroyed = false
     if (this._sessionId) {
       // 检查二维码显示开关
       this._checkQrcodeSwitch()
       // 检查是否已经确认过
       this._checkConfirmed()
-      // 直接加载报告
       this.loadResult()
     } else {
       showError('缺少测评会话信息')
       this.setData({ loading: false })
     }
-  },
-
-  onUnload() {
-    this._isDestroyed = true
   },
 
   /** 检查用户是否已确认分级（优先查后端，本地存储做兜底） */
@@ -145,7 +143,6 @@ Page({
     // 优先调用report接口（v0.1.7新增，含逐题分析）
     try {
       data = await getTestReport(this._sessionId)
-      console.log('[Result Debug] report接口返回原始数据:', JSON.stringify(data))
       // report接口成功，检查是否包含逐题分析
       if (data && data.questions && data.questions.length > 0) {
         hasDetailQuestions = true
@@ -182,7 +179,6 @@ Page({
    * 处理结果数据（report和result接口共用）
    */
   _processResultData(data, hasDetailQuestions) {
-    console.log('[Result Debug] _processResultData入参 overallScore:', data.overallScore, 'overall_score:', data.overall_score, 'totalQuestions:', data.totalQuestions, 'total_questions:', data.total_questions, 'passedQuestions:', data.passedQuestions, 'passed_questions:', data.passed_questions, 'status:', data.status)
     // 检测后端返回的预览状态（测评未正式结束，数据为实时计算的预览）
     const isPreview = data.status === 'preview'
 
@@ -514,17 +510,10 @@ Page({
       ctx.fillStyle = bgGrad
       ctx.fillRect(0, 0, W, H)
 
-      // 顶部装饰条（按级别色彩）
-      const levelColors = {
-        0: ['#22c55e', '#16a34a'],  // 绿色
-        1: ['#3B82F6', '#2563EB'],  // 蓝色
-        2: ['#8B5CF6', '#7C3AED'],  // 紫色
-        3: ['#F59E0B', '#D97706']   // 金色
-      }
-      const [gradStart, gradEnd] = levelColors[this._majorLevel] || levelColors[1]
+      // 顶部装饰条
       const topGrad = ctx.createLinearGradient(0, 0, W, 0)
-      topGrad.addColorStop(0, gradStart)
-      topGrad.addColorStop(1, gradEnd)
+      topGrad.addColorStop(0, '#3B82F6')
+      topGrad.addColorStop(1, '#2563EB')
       ctx.fillStyle = topGrad
       ctx.fillRect(0, 0, W, 8)
 
@@ -551,44 +540,35 @@ Page({
       ctx.shadowBlur = 0
       ctx.shadowOffsetY = 0
 
-      // 等级徽章（宽度自适应）
-      const levelColor = this.data.levelColor || '#3B82F6'
-      const levelText = this.data.levelName || '未定级'
-      ctx.font = 'bold 34px sans-serif'
-      const textMetrics = ctx.measureText(levelText)
-      const badgeW = Math.max(200, textMetrics.width + 60)  // 最小200，文字宽+左右padding
-      const badgeH = 64
+      // 等级徽章
+      const badgeW = 200, badgeH = 64
       const badgeX = (W - badgeW) / 2, badgeY = cardY + 40
-      // 徽章渐变背景（按级别色彩）
-      const badgeGrad = ctx.createLinearGradient(badgeX, badgeY, badgeX + badgeW, badgeY)
-      badgeGrad.addColorStop(0, gradStart)
-      badgeGrad.addColorStop(1, gradEnd)
-      ctx.fillStyle = badgeGrad
+      const levelColor = this.data.levelColor || '#3B82F6'
+      ctx.fillStyle = levelColor
       this._roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 32)
       ctx.fill()
       ctx.fillStyle = '#ffffff'
       ctx.font = 'bold 34px sans-serif'
       ctx.textAlign = 'center'
-      ctx.fillText(levelText, W / 2, badgeY + 44)
+      ctx.fillText(this.data.levelName || '未定级', W / 2, badgeY + 44)
 
-      // 等级描述（已移除levelLabel，只保留途正口语X级）
+      // 等级描述
+      ctx.fillStyle = '#5a6577'
+      ctx.font = '26px sans-serif'
+      ctx.fillText(this.data.levelLabel || '', W / 2, badgeY + 100)
 
-      // 分数圆环（使用级别色彩）
+      // 分数圆环
       const ringCX = W / 2, ringCY = badgeY + 240, ringR = 80
       ctx.beginPath()
       ctx.arc(ringCX, ringCY, ringR, 0, Math.PI * 2)
-      ctx.strokeStyle = levelColor + '15'  // 使用级别色+透明度作为背景环
+      ctx.strokeStyle = 'rgba(59,130,246,0.08)'
       ctx.lineWidth = 14
       ctx.stroke()
       const percent = this.data.scorePercent || 0
       const endAngle = -Math.PI / 2 + (percent / 100) * Math.PI * 2
       ctx.beginPath()
       ctx.arc(ringCX, ringCY, ringR, -Math.PI / 2, endAngle)
-      // 圆环渐变色
-      const ringGrad = ctx.createLinearGradient(ringCX - ringR, ringCY, ringCX + ringR, ringCY)
-      ringGrad.addColorStop(0, gradStart)
-      ringGrad.addColorStop(1, gradEnd)
-      ctx.strokeStyle = ringGrad
+      ctx.strokeStyle = levelColor
       ctx.lineWidth = 14
       ctx.lineCap = 'round'
       ctx.stroke()
@@ -600,8 +580,8 @@ Page({
       ctx.font = '22px sans-serif'
       ctx.fillText('分', ringCX, ringCY + 46)
 
-      // 统计数据（增大与圆环的间距，固定在卡片底部）
-      const statsY = cardY + cardH - 90
+      // 统计数据（增大与圆环的间距）
+      const statsY = cardY + cardH - 80
       const stats = [
         { label: '答题数', value: String(this.data.totalQuestions || 0) },
         { label: '通过数', value: String(this.data.passedQuestions || 0) },
@@ -647,7 +627,7 @@ Page({
         ctx.textAlign = 'right'
         ctx.fillText(String(item.value), cardX + cardW, iy)
         const barY = iy + 12, barH = 10, barW = cardW
-        ctx.fillStyle = levelColor + '10'  // 使用级别色作为背景条
+        ctx.fillStyle = 'rgba(59,130,246,0.06)'
         this._roundRect(ctx, cardX, barY, barW, barH, 5)
         ctx.fill()
         ctx.fillStyle = item.color || '#3B82F6'
@@ -670,17 +650,9 @@ Page({
       })
 
       // ===== 底部品牌 =====
-      // 动态计算底部位置：确保在能力评估文字下方有足够间距，不重叠
+      // 动态计算底部位置：确保在能力评估文字下方有足够间距
       const summaryEndY = summaryY + 40 + summaryLines.length * 36
-      const footerY = Math.max(summaryEndY + 80, H - 50)
-      // 底部分割线
-      ctx.strokeStyle = 'rgba(0,0,0,0.06)'
-      ctx.lineWidth = 1
-      ctx.beginPath()
-      ctx.moveTo(cardX, footerY - 30)
-      ctx.lineTo(cardX + cardW, footerY - 30)
-      ctx.stroke()
-      // 品牌文字
+      const footerY = Math.max(summaryEndY + 60, H - 60)
       ctx.fillStyle = '#b0b8c4'
       ctx.font = '22px sans-serif'
       ctx.textAlign = 'center'

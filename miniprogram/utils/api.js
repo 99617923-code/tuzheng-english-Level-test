@@ -127,7 +127,7 @@ function logout() {
     })
 }
 
-// ============ 测评接口（自适应引擎 v2，已对接后端实际字段名） ============
+// ============ 测评接口（自适应引擎 v2） ============
 
 /**
  * 创建测评会话（自适应引擎 v2）
@@ -159,12 +159,6 @@ function startTest(options = {}) {
     if (!data.currentSubLevel && data.current_sub_level) data.currentSubLevel = data.current_sub_level
     if (data.currentMajorLevel === undefined && data.current_major_level !== undefined) data.currentMajorLevel = data.current_major_level
     if (!data.questionIndex && data.question_index) data.questionIndex = data.question_index
-    // 优先使用外教录音teacherAudioUrl
-    if (data.question) {
-      const teacherAudio = data.question.teacherAudioUrl || data.question.teacher_audio_url
-      const baseAudio = data.question.audioUrl || data.question.audio_url
-      data.question.audioUrl = teacherAudio || baseAudio || ''
-    }
     return data
   })
 }
@@ -253,12 +247,6 @@ function evaluateAnswer(params) {
     // 兼容等级名称和描述字段
     if (!result.majorLevelName && result.major_level_name) result.majorLevelName = result.major_level_name
     if (!result.majorLevelLabel && result.major_level_label) result.majorLevelLabel = result.major_level_label
-    // 优先使用外教录音teacherAudioUrl
-    if (result.question) {
-      const teacherAudio = result.question.teacherAudioUrl || result.question.teacher_audio_url
-      const baseAudio = result.question.audioUrl || result.question.audio_url
-      result.question.audioUrl = teacherAudio || baseAudio || ''
-    }
     // finished状态时，从finished result中提取字段
     if (result.result) {
       if (!result.result.majorLevelName && result.result.major_level_name) result.result.majorLevelName = result.result.major_level_name
@@ -529,7 +517,6 @@ function getUserLevelStatus() {
     return data
   })
 }
-
 
 module.exports = {
   sendSmsCode,

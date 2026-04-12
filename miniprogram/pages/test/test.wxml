@@ -114,11 +114,11 @@
       </view>
     </view>
 
-    <!-- 状态：评估中（v3中已不再使用，保留作为降级兼容） -->
+    <!-- 状态：评估中 -->
     <view wx:elif="{{phase === 'evaluating'}}" class="action-area">
       <view class="evaluating-wrap">
         <view class="spinner"></view>
-        <text class="evaluating-text">正在准备下一题...</text>
+        <text class="evaluating-text">正在评估你的回答...</text>
       </view>
     </view>
 
@@ -130,7 +130,7 @@
     <view wx:elif="{{phase === 'loading'}}" class="action-area">
       <view class="evaluating-wrap">
         <view class="spinner"></view>
-        <text class="evaluating-text">{{aiStatusText || '正在准备测评...'}}</text>
+        <text class="evaluating-text">正在准备测评...</text>
       </view>
     </view>
 

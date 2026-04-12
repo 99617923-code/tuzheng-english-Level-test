@@ -9,7 +9,7 @@
  */
 const app = getApp()
 const { checkLogin, getUserInfo } = require('../../utils/util')
-const { getIntroVideo, getUserLevelStatus, getQrcodeByLevel, getQrcodeDisplaySetting, startTest } = require('../../utils/api')
+const { getIntroVideo, getUserLevelStatus, getQrcodeByLevel, getQrcodeDisplaySetting } = require('../../utils/api')
 
 Page({
   data: {

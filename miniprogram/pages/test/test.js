@@ -1,12 +1,35 @@
 /**
- * 途正英语AI分级测评 - 测评主页面（v2 全AI评分模式）
+ * 途正英语AI分级测评 - 测评主页面（自适应引擎 v2）
  * 
  * 核心流程：
  * 1. startTest → 后端返回第一题（从PRE1开始）
- * 2. 自动播放外教真人语音 → 用户按住录音回答
- * 3. evaluateAnswer → 后端AI评分 + 返回下一题（同步）
- * 4. status=continue → 播放下一题（可能升级）
+ * 2. 自动播放外教真人语音 → 用户点击录音回答
+ * 3. evaluate → 后端AI评分 + 自适应升级判断
+ * 4. status=continue → 自动播放下一题（可能升级到更高小级）
  * 5. status=finished → 跳转结果页
+ * 
+ * 前端保底规则：至少答完6题才允许定级结束
+ * 如果后端在6题内返回finished，前端会继续请求新题目
+ * 
+ * 后端新算法（v4）：
+ * - 每个小级2-4题动态出题
+ * - 连续2题≥60分直接升级（快速通道）
+ * - 4题平均分<60判定不通过
+ * - 升级时返回levelUp=true + levelUpMessage字段
+ * 
+ * 关键修复（v3）：
+ * - InnerAudioContext每次播放前销毁重建（解决onEnded不触发的bug）
+ * - 增加播放超时保护（15秒内无onEnded则强制进入answering）
+ * - 新测评题号强制从1开始（不依赖后端totalAnswered）
+ * - 录音上传失败时仍然提交evaluate（让后端处理）
+ *
+ * 稳定性修复（v5 - 第20题后崩溃修复）：
+ * - 录音按钮防抖锁（_isStartingRecord）：防止快速连点导致多次启动录音
+ * - currentQuestion null安全检查：submitAnswer/handleSkip/handleNext中防止"null is not an object"
+ * - 弹窗互斥锁（_showingModal）：防止多个wx.showModal叠加导致UI卡死
+ * - 全局异常恢复（_resetToSafeState）：状态混乱时提供用户可操作的恢复选项
+ * - 跳过失败恢复（_handleSkipFailure）：跳过题目valuate失败时提供重试/继续录音选项
+ * - 后端question:null安全处理：status:continue但question为null时不崩溃，提示用户选择
  */
 const app = getApp()
 const { startTest, evaluateAnswer, uploadAudio, terminateTest, transcribeAudio, textToSpeech, getTeacherConfig } = require('../../utils/api')
@@ -56,7 +79,7 @@ Page({
     navContentHeight: 0,
 
     // 测评状态
-    phase: 'loading', // guide | loading | listening | answering | levelup
+    phase: 'loading', // guide | loading | listening | answering | evaluating | feedback | levelup
 
     // 首次引导
     showGuide: false,
@@ -137,8 +160,6 @@ Page({
   _frontendQuestionCount: 0, // 前端自己维护的答题计数（不依赖后端）
   _pendingLevelUp: false,    // 后端返回的升级标志（缓存到handleNext使用）
   _pendingLevelUpMessage: '', // 后端返回的升级提示文案
-  _audioEndedTimestamp: 0,    // 音频播放结束时间戳
-  _currentResponseDelay: 0,   // 当前题目的响应延迟（ms）
 
   onLoad(options) {
     const navLayout = app.getNavLayout()
@@ -165,7 +186,6 @@ Page({
     this._touchStartTime = 0        // 按住开始时间戳
     this._touchActive = false       // 手指是否正在按住
     this._pendingStop = false       // 录音启动前手指已松开标志
-    this._recorderReallyStarted = false  // 录音器是否已真正启动（onStart回调后才为true）
     this._requestGeneration = 0     // 请求代数，用于忽略旧请求的回调
     this._setupRecorderEvents()
 
@@ -225,8 +245,6 @@ Page({
     // 重置所有锁状态
     this._isSubmitting = false
     this._isStartingRecord = false
-    this._recorderReallyStarted = false
-    this._pendingStop = false
     this._showingModal = false
   },
 
@@ -344,12 +362,8 @@ Page({
       const question = data.question
       // 兼容下划线命名
       if (question) {
-        // 优先使用外教录音teacherAudioUrl
-        const tAudio = question.teacherAudioUrl || question.teacher_audio_url
-        const bAudio = question.audioUrl || question.audio_url
-        question.audioUrl = tAudio || bAudio || ''
+        if (!question.audioUrl && question.audio_url) question.audioUrl = question.audio_url
         if (!question.questionText && question.question_text) question.questionText = question.question_text
-        if (!question.questionText && question.text) question.questionText = question.text
         if (!question.questionId && question.question_id) question.questionId = question.question_id
         if (!question.subLevel && question.sub_level) question.subLevel = question.sub_level
       }
@@ -453,19 +467,19 @@ Page({
     this._frontendQuestionCount = 0
 
     try {
+      // forceNew=true 时强制创建新会话（后端会终止旧会话）
       const data = await startTest(forceNew ? { forceNew: true } : {})
+
+      // 打印后端返回的完整数据，方便调试
 
       const question = data.question
       if (question) {
-        // 优先使用外教录音teacherAudioUrl
-        const teacherAudio = question.teacherAudioUrl || question.teacher_audio_url
-        const baseAudio = question.audioUrl || question.audio_url
-        question.audioUrl = teacherAudio || baseAudio || ''
+        // 兼容下划线命名：后端可能返回 audio_url 而不是 audioUrl
+        if (!question.audioUrl && question.audio_url) {
+          question.audioUrl = question.audio_url
+        }
         if (!question.questionText && question.question_text) {
           question.questionText = question.question_text
-        }
-        if (!question.questionText && question.text) {
-          question.questionText = question.text
         }
         if (!question.questionId && question.question_id) {
           question.questionId = question.question_id
@@ -607,10 +621,8 @@ Page({
     ctx.onPlay(() => {
       this._clearAudioTimeout()
       this.setData({ audioPlaying: true, aiSpeaking: true, aiStatusText: `${this.data.teacherName || '外教'}正在提问...` })
-      // 开始播放后设置超时保护（动态超时：音频时长+5秒缓冲，最少15秒）
-      const duration = ctx.duration || 0
-      const dynamicTimeout = duration > 0 ? Math.max((duration * 1000) + 5000, AUDIO_PLAY_TIMEOUT) : AUDIO_PLAY_TIMEOUT
-      this._setAudioTimeout(dynamicTimeout)
+      // 开始播放后设置超时保护
+      this._setAudioTimeout()
     })
 
     ctx.onEnded(() => {
@@ -638,8 +650,6 @@ Page({
    * 音频播放完成后的统一处理
    */
   _onAudioFinished() {
-    // 记录音频播放结束时间戳（用于计算响应延迟）
-    this._audioEndedTimestamp = Date.now()
     this.setData({
       audioPlaying: false,
       aiSpeaking: false,
@@ -650,21 +660,18 @@ Page({
 
   /**
    * 设置音频播放超时保护
-   * @param {number} timeout - 超时时间（毫秒），默认AUDIO_PLAY_TIMEOUT(15秒)
-   * 动态超时：音频开始播放后，根据实际时长+5秒缓冲计算
-   * 修复“音频已正常播放但仍报timeout”的问题
+   * 如果15秒内没有onEnded/onError触发，强制进入answering阶段
    */
-  _setAudioTimeout(timeout) {
+  _setAudioTimeout() {
     this._clearAudioTimeout()
-    const ms = timeout || AUDIO_PLAY_TIMEOUT
     this._audioPlayTimeout = setTimeout(() => {
-      console.warn(`[Audio] Play timeout after ${ms}ms! Force entering answering phase.`)
+      console.warn('[Audio] Play timeout! Force entering answering phase.')
       // 检查当前是否还在listening阶段
       if (this.data.phase === 'listening') {
         this._destroyAudioContext()
         this._onAudioFinished()
       }
-    }, ms)
+    }, AUDIO_PLAY_TIMEOUT)
   },
 
   /**
@@ -691,7 +698,6 @@ Page({
     }
 
     const audioUrl = currentQuestion.audioUrl
-    console.log('[Audio Debug] _playQuestionAudio audioUrl:', audioUrl, '| questionId:', currentQuestion.questionId)
     if (audioUrl) {
       this.setData({ phase: 'listening', aiStatusText: `${this.data.teacherName || '外教'}正在提问...` })
 
@@ -736,7 +742,6 @@ Page({
    */
   _tryTTSFallback() {
     const { currentQuestion } = this.data
-    console.warn('[Audio Debug] →→→ 进入TTS降级！说明currentQuestion.audioUrl为空，questionId:', currentQuestion?.questionId)
     if (!currentQuestion || !currentQuestion.questionText) {
       console.warn('[TTS] No questionText available, skip to answering')
       this._onAudioFinished()
@@ -822,34 +827,19 @@ Page({
   _setupRecorderEvents() {
     this._recorderManager.onStart(() => {
       this._isStartingRecord = false  // 录音已成功启动，解除防抖锁
-      this._recorderReallyStarted = true  // 标记录音器已真正启动
       if (this._isPageUnloaded) {
         this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
         try { this._recorderManager.stop() } catch (e) {}
         return
       }
 
-      // 检查是否手指已松开（pendingStop）或手指不在按住状态
+      // 检查是否手指已松开（pendingStop）
       if (this._pendingStop || !this._touchActive) {
         this._pendingStop = false
-        // 手指已松开，但录音刚启动成功
-        // 关键修复：先启动计时器，让recordSeconds能正常计数
-        // 然后延迟1200ms再停止，确保录到足够的声音且recordSeconds >= 1
-        this._recordTimer = setInterval(() => {
-          const secs = this.data.recordSeconds + 1
-          const waveBars = Array.from({ length: 24 }, () => Math.floor(Math.random() * 80) + 20)
-          this.setData({
-            recordSeconds: secs,
-            recordTimeDisplay: `${secs}"`,
-            recordCountdown: 0,
-            recordWaveBars: waveBars
-          })
-        }, 1000)
-        setTimeout(() => {
-          if (this._recorderReallyStarted) {
-            try { this._recorderManager.stop() } catch (e) {}
-          }
-        }, 1200)
+        // 手指已经松开，直接停止录音
+        this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
+        try { this._recorderManager.stop() } catch (e) {}
+        showToast('说话时间太短，请按住说话')
         return
       }
 
@@ -878,8 +868,6 @@ Page({
 
     this._recorderManager.onStop((res) => {
       this._isStartingRecord = false  // 确保录音停止后解除防抖锁
-      this._recorderReallyStarted = false  // 录音器已停止
-      this._pendingStop = false
       if (this._recordTimer) {
         clearInterval(this._recordTimer)
         this._recordTimer = null
@@ -895,17 +883,11 @@ Page({
         try { plugin.voiceRecognizer.stop() } catch (e) {}
       }
 
-      // 关键修复：用微信返回的实际录音时长(res.duration)而不是计时器recordSeconds
-      // 因为计时器是每秒+1，录音可能实际录了1.2秒但recordSeconds还是0
-      const actualDurationMs = res.duration || 0  // 微信返回的实际录音时长（毫秒）
-      const holdDuration = Date.now() - (this._touchStartTime || 0)  // 用户按住时长
-      console.log('[Recorder] onStop: actualDuration=', actualDurationMs, 'ms, holdDuration=', holdDuration, 'ms, recordSeconds=', this.data.recordSeconds)
-      
-      // 只要微信返回的实际录音时长 >= 500ms，或用户按住 >= 1秒，就认为有效录音
-      if (this._recordFilePath && (actualDurationMs >= 500 || holdDuration >= 1000 || this.data.recordSeconds >= 1)) {
+      if (this._recordFilePath && this.data.recordSeconds >= 1) {
+        // 至少录了1秒才提交
         this.submitAnswer()
-      } else if (this._recordFilePath) {
-        showToast('录音时间太短，请长按说话')
+      } else if (this._recordFilePath && this.data.recordSeconds < 1) {
+        showToast('录音时间太短，请重新录制')
         this._recordFilePath = ''
       }
     })
@@ -913,8 +895,6 @@ Page({
     this._recorderManager.onError((err) => {
       console.error('[Recorder] Error:', err)
       this._isStartingRecord = false  // 录音失败，解除防抖锁
-      this._recorderReallyStarted = false
-      this._pendingStop = false
       if (this._recordTimer) {
         clearInterval(this._recordTimer)
         this._recordTimer = null
@@ -924,8 +904,7 @@ Page({
         return
       }
       this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
-      // 不弹showError，避免打断用户，只toast提示
-      showToast('录音异常，请重新按住说话')
+      showError('录音失败，请重试')
     })
   },
 
@@ -945,17 +924,11 @@ Page({
       return
     }
     // 已在录音中，不重复启动
-    if (this.data.isRecording || this._recorderReallyStarted) return
+    if (this.data.isRecording) return
 
     // 记录按下时间戳，用于松开时判断是否太短
     this._touchStartTime = Date.now()
     this._touchActive = true  // 标记手指正在按住
-    // 计算响应延迟（音频播放结束到用户开始录音的时间间隔）
-    if (this._audioEndedTimestamp > 0) {
-      this._currentResponseDelay = Date.now() - this._audioEndedTimestamp
-    } else {
-      this._currentResponseDelay = 0
-    }
 
     // 立即显示录音遮罩（不等onStart回调，消除视觉延迟）
     const waveBars = Array.from({ length: 24 }, () => Math.floor(Math.random() * 80) + 20)
@@ -974,29 +947,24 @@ Page({
   onRecordTouchEnd(e) {
     this._touchActive = false  // 手指已松开
 
-    // 如果录音器还没真正启动（onStart回调还没触发）
-    if (this._isStartingRecord && !this._recorderReallyStarted) {
-      // 设置pendingStop，让onStart回调中延迟500ms停止（而不是立即放弃）
+    // 如果录音还没启动成功（onStart还没触发），延迟停止
+    if (this._isStartingRecord && !this.data.isRecording) {
+      // 录音正在启动中，等待onStart后再停止
       this._pendingStop = true
       return
     }
 
-    // 录音器没在录音，直接返回
-    if (!this._recorderReallyStarted) {
-      this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
-      return
-    }
+    if (!this.data.isRecording) return
 
-    // 录音器已启动，检查实际录音时长
+    // 检查按住时长，太短则取消
     const holdDuration = Date.now() - (this._touchStartTime || 0)
-    if (holdDuration < 800) {
-      // 按住不到800ms（包含启动延迟），延迟停止以确保至少录到一点声音
-      const remaining = Math.max(800 - holdDuration, 300)
-      setTimeout(() => {
-        if (this._recorderReallyStarted) {
-          try { this._recorderManager.stop() } catch (e) {}
-        }
-      }, remaining)
+    if (holdDuration < 500) {
+      // 按住不到500ms，视为误触，取消录音
+      this._recorderManager.stop()
+      // 不提交，只提示
+      this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
+      showToast('说话时间太短，请按住说话')
+      this._recordFilePath = ''
       return
     }
 
@@ -1039,16 +1007,7 @@ Page({
   /** 实际启动录音 */
   _doStartRecording() {
     this.setData({ realtimeText: '', userTranscription: '', evaluationFeedback: '' })
-    this._recorderReallyStarted = false
-    this._pendingStop = false
 
-    if (this._isPageUnloaded) {
-      this._isStartingRecord = false
-      this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
-      return
-    }
-
-    // 直接启动录音，不做stop+延迟（微信底层会自动处理残留状态）
     try {
       this._recorderManager.start({
         duration: 60000,
@@ -1061,17 +1020,16 @@ Page({
       // 注意：_isStartingRecord 在 onStart 回调中解锁
     } catch (e) {
       console.error('[Recorder] Start exception:', e)
-      this._isStartingRecord = false
-      this._recorderReallyStarted = false
+      this._isStartingRecord = false  // 异常时解锁
       this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
-      showToast('录音启动失败，请重新按住说话')
+      showError('录音启动失败，请重试')
     }
   },
 
   /** 停止录音 */
   stopRecording() {
-    if (!this._recorderReallyStarted && !this.data.isRecording) return
-    try { this._recorderManager.stop() } catch (e) {}
+    if (!this.data.isRecording) return
+    this._recorderManager.stop()
     // 清除录音遮罩状态
     this.setData({ recordCountdown: 0, recordWaveBars: [] })
   },
@@ -1115,7 +1073,7 @@ Page({
     }
   },
 
-  // ============ 提交评估（v2 全AI评分模式） ============
+  // ============ 提交评估（v2 自适应引擎） ============
 
   async submitAnswer() {
     const { sessionId, currentQuestion, userTranscription, recordSeconds } = this.data
@@ -1128,7 +1086,7 @@ Page({
     // 安全检查：currentQuestion为null时不提交（防止"null is not an object"报错）
     if (!currentQuestion || !currentQuestion.questionId) {
       console.error('[Submit] currentQuestion is null or missing questionId, resetting to safe state')
-      this._resetToSafeState('题目数据异常，请点击"跳过此题"或等待下一题')
+      this._resetToSafeState('题目数据异常，请点击“跳过此题”或等待下一题')
       return
     }
 
@@ -1146,16 +1104,13 @@ Page({
     // 提前检查Token有效性，快过期时主动刷新（避免上传/评估过程中遇到401）
     await ensureTokenValid()
 
-    // 进入评估等待阶段
     this.setData({
-      phase: 'loading',
-      aiStatusText: '正在评估中...'
+      phase: 'evaluating',
+      aiStatusText: '正在评估你的回答...'
     })
 
     try {
-      let finalTranscription = userTranscription || ''
-
-      // 先上传录音，获取audioUrl
+      // 第一步：上传录音到OSS
       let audioUrl = ''
       try {
         const uploadRes = await uploadAudio(
@@ -1166,31 +1121,46 @@ Page({
         audioUrl = uploadRes.audioUrl || uploadRes.audio_url || uploadRes.url || ''
       } catch (e) {
         console.warn('[Upload] Failed:', e.message)
+        // 上传失败不阻断流程，继续提交evaluate
       }
 
-      // v2: 调用evaluate接口（同步AI评分）
-      const submitParams = {
+      // 第二步：跳过单独的Whisper转写调用，直接把audioUrl传给evaluate
+      // 速度优化：让后端在evaluate内部并行处理转写+评分，节省3-5秒
+      let finalTranscription = userTranscription || ''
+      if (!finalTranscription && audioUrl) {
+      }
+
+      // 第三步：调用v2 evaluate接口（带重试机制）
+      // 即使audioUrl和recognizedText都为空，也要提交（让后端判断）
+      const evalParams = {
         sessionId,
         questionId: currentQuestion.questionId,
+        // 传递questionText给后端，确保LLM评分使用正确的题目上下文
         questionText: currentQuestion.questionText || '',
-        audioUrl,
         recognizedText: finalTranscription || '',
         duration: recordSeconds * 1000
       }
+      // 始终传递audioUrl（后端需要用它做转写+评分）
+      if (audioUrl) {
+        evalParams.audioUrl = audioUrl
+      }
 
-      // 网络失败自动重试（最多3次）
-      const MAX_RETRIES = 3
+
+      // evaluate网络失败自动重试（最多3次）
+      // 避免网络中断导致跳过评分，造成前后端题目状态不同步
+      const MAX_EVALUATE_RETRIES = 3
       let evalRes = null
       let lastError = null
-      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      for (let attempt = 1; attempt <= MAX_EVALUATE_RETRIES; attempt++) {
         try {
-          evalRes = await evaluateAnswer(submitParams)
+          evalRes = await evaluateAnswer(evalParams)
           break // 成功则跳出重试循环
         } catch (retryErr) {
           lastError = retryErr
-          console.warn(`[Submit] Attempt ${attempt} failed:`, retryErr.message)
-          if (attempt < MAX_RETRIES) {
-            this.setData({ aiStatusText: `网络异常，正在重试(${attempt}/${MAX_RETRIES})...` })
+          console.warn(`[Evaluate] Attempt ${attempt} failed:`, retryErr.message)
+          if (attempt < MAX_EVALUATE_RETRIES) {
+            // 等待1.5秒后重试
+            this.setData({ aiStatusText: `网络异常，正在重试(${attempt}/${MAX_EVALUATE_RETRIES})...` })
             await delay(1500)
           }
         }
@@ -1198,7 +1168,8 @@ Page({
 
       // 3次重试都失败 → 不跳下一题，提示用户重新提交
       if (!evalRes) {
-        console.error('[Submit] All retries failed:', lastError?.message)
+        console.error('[Evaluate] All retries failed:', lastError?.message)
+        // 使用弹窗互斥锁防止叠加
         if (this._showingModal) {
           this.setData({ phase: 'answering', aiStatusText: '请重新录音回答' })
           return
@@ -1206,15 +1177,17 @@ Page({
         this._showingModal = true
         wx.showModal({
           title: '网络异常',
-          content: '提交失败，请检查网络后点击"重新提交"',
+          content: '评估请求失败，请检查网络后点击“重新提交”',
           confirmText: '重新提交',
           cancelText: '跳过此题',
           success: (res) => {
             this._showingModal = false
             if (res.confirm) {
+              // 用户点“重新提交”→ 重新调用submitAnswer
               this._isSubmitting = false
               this.submitAnswer()
             } else {
+              // 用户点“跳过此题”→ 回到answering状态，不跳下一题
               this.setData({ phase: 'answering', aiStatusText: '请重新录音回答' })
             }
           },
@@ -1223,24 +1196,22 @@ Page({
             this.setData({ phase: 'answering', aiStatusText: '请重新录音回答' })
           }
         })
-        return
+        return // 不继续执行后续逻辑
       }
 
       // 缓存完整响应
       this._lastEvalResponse = evalRes
 
-      // 兼容下划线命名：返回的下一题question
+      // 兼容下划线命名：evaluate返回的下一题question
       if (evalRes.question) {
         const q = evalRes.question
-        // 优先使用外教录音teacherAudioUrl
-        const tA = q.teacherAudioUrl || q.teacher_audio_url
-        const bA = q.audioUrl || q.audio_url
-        q.audioUrl = tA || bA || ''
+        if (!q.audioUrl && q.audio_url) q.audioUrl = q.audio_url
         if (!q.questionText && q.question_text) q.questionText = q.question_text
-        if (!q.questionText && q.text) q.questionText = q.text
         if (!q.questionId && q.question_id) q.questionId = q.question_id
         if (!q.subLevel && q.sub_level) q.subLevel = q.sub_level
       }
+
+      // 第四步：处理评估结果（v0.1.7精简版：去掉逐题反馈，答完直接下一题）
 
       // 检查请求代数：如果用户已退出重进，旧请求的回调应被忽略
       if (myGeneration !== (this._requestGeneration || 0)) {
@@ -1248,26 +1219,25 @@ Page({
         return
       }
 
-      // 更新答题计数
-      // 前端自己维护显示题号（严格顺序1/2/3/4），不受后端跳级影响
+      // 更新答题计数（前端自己维护 + 后端返回的取较大值）
       this._frontendQuestionCount += 1
       const backendTotal = evalRes.totalAnswered || evalRes.total_answered || this._frontendQuestionCount
-      // 题号显示始终用前端计数器，后端totalAnswered用于结束判断
-      const displayCount = this._frontendQuestionCount
+      const newTotalAnswered = Math.max(this._frontendQuestionCount, backendTotal)
 
       const isFinished = evalRes.status === 'finished'
-      const shouldForceContinue = isFinished && displayCount < MIN_QUESTIONS_BEFORE_FINISH
+      const shouldForceContinue = isFinished && newTotalAnswered < MIN_QUESTIONS_BEFORE_FINISH
 
-      // 缓存后端返回的升级信息
+      // 缓存后端返回的升级信息（handleNext中使用）
       this._pendingLevelUp = evalRes.levelUp || false
       this._pendingLevelUpMessage = evalRes.levelUpMessage || ''
 
-      // 更新计数显示（用前端顺序计数器）
+      // 更新计数显示
       this.setData({
-        totalAnswered: backendTotal,
-        questionCountDisplay: `第 ${displayCount} 题`
+        totalAnswered: newTotalAnswered,
+        questionCountDisplay: `第 ${newTotalAnswered} 题`
       })
 
+      // 精简版：不再显示逐题反馈，直接进入下一题或结果页
       this._lastEvalResponse = evalRes
 
       if (isFinished && !shouldForceContinue) {
@@ -1284,11 +1254,11 @@ Page({
       }
 
       // 继续下一题（包括强制继续的情况）
-      this._autoNextQuestion(evalRes, backendTotal, shouldForceContinue)
+      this._autoNextQuestion(evalRes, newTotalAnswered, shouldForceContinue)
 
     } catch (err) {
-      console.error('[Submit] Error:', err)
-      showError(err.message || '提交失败')
+      console.error('[Evaluate] Error:', err)
+      showError(err.message || '评估失败')
       this.setData({ phase: 'answering', aiStatusText: '请重新回答' })
     } finally {
       this._isSubmitting = false
@@ -1351,46 +1321,32 @@ Page({
           // 跳过时停止倒计时
           this.stopTimer()
           this.setData({
-            phase: 'loading',
-            aiStatusText: '正在准备下一题...'
+            phase: 'evaluating',
+            aiStatusText: '正在处理...'
           })
 
           try {
-            // v2: 跳过也使用evaluate接口
-            const skipParams = {
+            const evalRes = await evaluateAnswer({
               sessionId: this.data.sessionId,
               questionId: this.data.currentQuestion.questionId,
               recognizedText: '',
               duration: 0
-            }
-            const evalRes = await evaluateAnswer(skipParams)
+            })
 
-            // 兼容下划线命名
-            if (evalRes.question) {
-              const q = evalRes.question
-              // 优先使用外教录音teacherAudioUrl
-              const tA2 = q.teacherAudioUrl || q.teacher_audio_url
-              const bA2 = q.audioUrl || q.audio_url
-              q.audioUrl = tA2 || bA2 || ''
-              if (!q.questionText && q.question_text) q.questionText = q.question_text
-              if (!q.questionText && q.text) q.questionText = q.text
-              if (!q.questionId && q.question_id) q.questionId = q.question_id
-              if (!q.subLevel && q.sub_level) q.subLevel = q.sub_level
-            }
             this._lastEvalResponse = evalRes
 
             // 跳过也算答了一题
             this._frontendQuestionCount += 1
-            const backendTotal = evalRes.totalAnswered || evalRes.total_answered || this._frontendQuestionCount
-            const skipDisplayCount = this._frontendQuestionCount
+            const backendTotal = evalRes.totalAnswered || this._frontendQuestionCount
+            const newTotalAnswered = Math.max(this._frontendQuestionCount, backendTotal)
 
             const isFinished = evalRes.status === 'finished'
-            const shouldForceContinue = isFinished && skipDisplayCount < MIN_QUESTIONS_BEFORE_FINISH
+            const shouldForceContinue = isFinished && newTotalAnswered < MIN_QUESTIONS_BEFORE_FINISH
 
-            // 更新计数（用前端顺序计数器）
+            // 更新计数
             this.setData({
-              totalAnswered: backendTotal,
-              questionCountDisplay: `第 ${skipDisplayCount} 题`
+              totalAnswered: newTotalAnswered,
+              questionCountDisplay: `第 ${newTotalAnswered} 题`
             })
 
             // 精简版：跳过后也直接进入下一题或结果页
@@ -1407,7 +1363,7 @@ Page({
             }
 
             // 继续下一题
-            this._autoNextQuestion(evalRes, backendTotal, shouldForceContinue)
+            this._autoNextQuestion(evalRes, newTotalAnswered, shouldForceContinue)
 
           } catch (err) {
             console.error('[Skip] evaluate failed:', err)
@@ -1449,7 +1405,7 @@ Page({
   },
 
   /**
-   * 答完后自动进入下一题
+   * 精简版：答完后自动进入下一题（不再显示反馈）
    * 抽取公共逻辑，供submitAnswer和handleSkip复用
    */
   async _autoNextQuestion(evalRes, totalAnswered, shouldForceContinue) {
@@ -1461,12 +1417,8 @@ Page({
         const data = await startTest({ forceNew: true })
         const question = data.question
         if (question) {
-          // 优先使用外教录音teacherAudioUrl
-          const tA3 = question.teacherAudioUrl || question.teacher_audio_url
-          const bA3 = question.audioUrl || question.audio_url
-          question.audioUrl = tA3 || bA3 || ''
+          if (!question.audioUrl && question.audio_url) question.audioUrl = question.audio_url
           if (!question.questionText && question.question_text) question.questionText = question.question_text
-          if (!question.questionText && question.text) question.questionText = question.text
           if (!question.questionId && question.question_id) question.questionId = question.question_id
           if (!question.subLevel && question.sub_level) question.subLevel = question.sub_level
         }
@@ -1483,7 +1435,7 @@ Page({
           questionIndex: data.questionIndex || 1,
           subLevelDisplay: subLevel,
           majorLevelDisplay: MAJOR_LEVEL_NAMES[majorLevel] || '零级 · 预备',
-          questionCountDisplay: `第 ${this._frontendQuestionCount + 1} 题`,
+          questionCountDisplay: `第 ${totalAnswered + 1} 题`,
           progressPercent: Math.min((totalAnswered / 34) * 100, 95),
           phase: 'listening',
           aiStatusText: '请听题目',
@@ -1500,7 +1452,7 @@ Page({
         this._saveTestSession()
 
         this.startTimer()
-        await delay(300)  // 缩短过渡时间
+        await delay(500)
         this._destroyAudioContext()  // 播放新题前先销毁旧音频
         this._playQuestionAudio()
         return
@@ -1521,12 +1473,8 @@ Page({
     // status === 'continue' → 加载下一题
     const nextQuestion = evalRes.question
     if (nextQuestion) {
-      // 优先使用外教录音teacherAudioUrl
-      const tA4 = nextQuestion.teacherAudioUrl || nextQuestion.teacher_audio_url
-      const bA4 = nextQuestion.audioUrl || nextQuestion.audio_url
-      nextQuestion.audioUrl = tA4 || bA4 || ''
+      if (!nextQuestion.audioUrl && nextQuestion.audio_url) nextQuestion.audioUrl = nextQuestion.audio_url
       if (!nextQuestion.questionText && nextQuestion.question_text) nextQuestion.questionText = nextQuestion.question_text
-      if (!nextQuestion.questionText && nextQuestion.text) nextQuestion.questionText = nextQuestion.text
       if (!nextQuestion.questionId && nextQuestion.question_id) nextQuestion.questionId = nextQuestion.question_id
       if (!nextQuestion.subLevel && nextQuestion.sub_level) nextQuestion.subLevel = nextQuestion.sub_level
     }
@@ -1585,7 +1533,7 @@ Page({
       currentMajorLevel: newMajorLevel,
       subLevelDisplay: newSubLevel,
       majorLevelDisplay: MAJOR_LEVEL_NAMES[newMajorLevel] || '零级 · 预备',
-      questionCountDisplay: `第 ${this._frontendQuestionCount + 1} 题`,
+      questionCountDisplay: `第 ${totalAnswered + 1} 题`,
       progressPercent: progress,
       phase: 'listening',
       aiStatusText: '请听题目',
@@ -1605,8 +1553,8 @@ Page({
     // 重启每题倒计时
     this.startTimer()
 
-    // 自动播放下一题语音（缩短过渡时间，提升流畅度）
-    await delay(300)
+    // 自动播放下一题语音
+    await delay(500)
     this._destroyAudioContext()  // 播放新题前先销毁旧音频
     this._playQuestionAudio()
   },
@@ -1622,13 +1570,13 @@ Page({
     // 释放录音资源
     this._isSubmitting = false
     this._isStartingRecord = false
-    this._recorderReallyStarted = false
-    this._pendingStop = false
     if (this._recordTimer) {
       clearInterval(this._recordTimer)
       this._recordTimer = null
     }
-    try { this._recorderManager.stop() } catch (e) {}
+    if (this.data.isRecording) {
+      try { this._recorderManager.stop() } catch (e) {}
+    }
     
     // 如果currentQuestion有效，回到answering状态
     if (this.data.currentQuestion && this.data.currentQuestion.questionId) {

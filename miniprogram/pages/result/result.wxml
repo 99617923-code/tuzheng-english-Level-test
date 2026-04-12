@@ -32,14 +32,13 @@
         <view class="loading-ring ring-2"></view>
         <view class="loading-ring ring-3"></view>
       </view>
-      <text class="loading-title">正在加载测评报告</text>
-      <text class="loading-desc">请稍候...</text>
+      <text class="loading-title">正在生成测评报告</text>
+      <text class="loading-desc">正在分析你的表现...</text>
     </view>
   </view>
 
-
   <!-- 结果内容 -->
-  <scroll-view wx:if="{{!loading}}" scroll-y class="scroll-area" style="top: {{navBarHeight}}px;" enhanced show-scrollbar="{{false}}">
+  <scroll-view wx:else scroll-y class="scroll-area" style="top: {{navBarHeight}}px;" enhanced show-scrollbar="{{false}}">
 
     <!-- 预览状态提示条（测评未正式结束） -->
     <view wx:if="{{isPreview && !confirmed}}" class="confirm-banner animate-fade-in" style="background: linear-gradient(135deg, #fff3e0, #fff8e1); border-color: #ffb74d;">
@@ -73,7 +72,7 @@
         <view class="hero-badge" style="background: {{levelColor}}; box-shadow: 0 8rpx 32rpx {{levelShadow}};">
           <text class="hero-badge-text">{{levelName}}</text>
         </view>
-        <!-- levelLabel已移除，只保留途正口语X级 -->
+        <text class="hero-label">{{levelLabel}}</text>
         <text wx:if="{{highestSubLevel}}" class="hero-sublevel">最高通过：{{highestSubLevel}}</text>
 
         <!-- 综合得分 - 圆环 -->

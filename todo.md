@@ -300,8 +300,8 @@
 - [x] 后端需配合：当recognizedText为空但audioUrl存在时，后端应自己用audioUrl转写再评分
 
 ## Bug修复（第六轮）- 第一道题播放时Error: timeout
-- [x] 排查playQuestionAudio中的超时保护逻辑：原因是固定15秒超时对较长音频不够
-- [x] 修复timeout错误：改为动态超时（音频时长+5秒缓冲，最少15秒），onPlay回调中根据ctx.duration动态计算
+- [ ] 排查playQuestionAudio中的超时保护逻辑，定位timeout错误来源
+- [ ] 修复timeout错误（音频已正常播放但仍报timeout）
 
 ## Bug修复（第六轮）- Token过期导致upload失败→evaluate 0分
 - [x] upload-audio遇到30时，token刷新后自动重试上传（不能直接跳过）
@@ -366,8 +366,8 @@
 - [x] home.js: “重新开始”选项传forceNew:true，“继续测评”保持resume=1
 
 ## 性能优化（第十二轮）
-- [x] 分析evaluate返回后到下一题展示的延迟环节（录音上传+submitLite+delay+播放）
-- [x] 优化前端处理流程：录音上传与submitLite并行执行（200ms快速上传竞赛），delay从500ms缩短到300ms
+- [ ] 分析evaluate返回后到下一题展示的延迟环节
+- [ ] 优化前端处理流程，减少不必要的等待时间
 
 ## 适配后端preview状态（第十三轮）
 - [x] result.js: 处理后端返回的status:"preview"状态，设置isPreview字段
@@ -434,9 +434,9 @@
 
 ## 第二十四轮优化
 - [x] 竖屏视频宽度改为80%，高度按 9:16 比例自适应
-- [x] 海报布局修复：圆圈与通过数间距太近（statsY从-80改为-90，增大间距）
-- [x] 海报布局修复：底部"途正英语·智能分级测评"与能力评估文字不再重叠（动态计算footerY+增加分割线）
-- [x] 海报和结果页按级别（0/1/2/3）展示不同色彩（级别越高越好看）
+- [ ] 海报布局修复：圆圈与通过数间距太近
+- [ ] 海报布局修复：底部"途正英语·AI智能分级测评"与能力评估文字重叠
+- [ ] 海报和结果页按级别（0/1/2/3）展示不同色彩（级别越高越好看）
 
 ## 第二十五轮修复
 - [x] 首页“发现未完成的测评”弹窗改为自定义弹窗（带X关闭按钮），替换wx.showModal原生弹窗
@@ -513,7 +513,7 @@
 - [x] history页面：level-badge-sm添加max-width:200rpx+字号缩小+文字截断
 - [x] test页面：level-info-level字号缩小+flex自适应+文字截断，progress不缩
 - [x] result页面：逐题分析音频播放按钮改为绿底白三角形图标（纯CSS实现，替换原来看不清的白色SVG）
-- [x] 海报绘制中等级名称文字宽度自适应（徽章宽度根据measureText动态计算）
+- [ ] 海报绘制中等级名称文字宽度自适应（待后续处理）
 
 ## 第四十轮 - 测评页级别信息+录音交互全面优化
 - [x] test.wxml: 级别信息条改为"途正口语X级"格式，去掉PRE1/学前水平
@@ -532,92 +532,3 @@
 - [x] 添加requestGeneration请求代数机制，evaluate返回后检查代数不匹配则忽略旧回调
 - [x] 按住说话时立即显示录音遮罩动画（touchstart时立即setData，不等onStart回调）
 - [x] 所有异常路径（onStop/onError/权限拒绝/pendingStop）都清除录音遮罩状态
-
-## 第四十二轮 - 极致速度优化（智能预判+异步精评+保守定级）
-- [x] 后端配合文档：编写完整的后端改造技术文档（submit-lite接口规范+预判算法+异步评分+保守定级系数）
-- [x] 前端api.js：新增submitLite接口 + 报告轮询接口
-- [x] 首页预加载：用户登录后立即后台调用startTest预加载第一题数据，存入全局缓存
-- [x] 首页预加载：测评页进入时优先读取缓存，无需等待网络请求
-- [x] 测评页test.js：对接submit-lite接口，做题过程零等待
-- [x] 测评页test.js：记录响应延迟（音频播放结束到开始录音的时间间隔）
-- [x] 测评页test.js：去掉evaluating等待阶段，录音结束后立即出下一题
-- [x] 结果页result.js：轮询等待后端异步评分完成
-- [x] 结果页result.js：显示"正在生成报告"加载动画，评分完成后展示完整报告
-- [x] 后端技术文档：补充修改背景、目的和整体规划说明
-
-## 第四十三轮 - v3前后端联调（后端已完成部署）
-- [x] 查看后端API文档，了解submit-lite/report-status/report-retry实际接口格式
-- [x] 对比前端已写的接口定义与后端实际接口，修复差异
-- [x] 确认submit-lite请求参数和响应格式与前端代码一致（recognizedText→answerText, duration→audioDuration）
-- [x] 确认report-status/report-retry请求参数和响应格式与前端代码一致（reportStatus→status, 增加pending状态处理）
-- [x] 全部6处question字段兼容点增加text→questionText映射
-- [x] result.js轮询进度显示优化（利用aiScoredCount/totalQuestions显示“正在评分第X/Y题”）
-- [ ] 端到端测试验证完整流程（预加载→零等待做题→轮询出报告）—— 待真机联调验证
-- [x] 确认IELTS7/8/9扩展级别在前端的展示兼容（后端majorLevel仍为0-3，前端getLevelConfig增加安全降级：>3映射到最高级）
-
-## 第四十四轮 - 联调BUG修复
-- [x] 修复第二题开始用TTS而不是外教录音：全部9处音频URL读取点增加teacherAudioUrl优先读取（api.js 3处 + test.js 6处）
-- [x] 第一题慢的原因：后端submit-lite之前500报错导致预加载失败，后端已修复，预加载应恢复正常
-
-## 第四十五轮 - 录音器启动失败BUG修复
-- [x] 分析录音器报错：operateRecorder:fail recorder not start
-- [x] 分析录音器状态冲突：operateRecorder:fail is recording or paused
-- [x] 修复录音器状态管理和启动逻辑
-- [x] 新增_recorderReallyStarted标志位，区分“UI显示录音中”和“录音器真正在录音”
-- [x] _doStartRecording启动前先强制stop清理残留状态，延迟50ms再启start
-- [x] onRecordTouchEnd用_recorderReallyStarted判断是否可以stop，避免对未启动的录音器调stop
-- [x] onError回调改为showToast而非showError，避免弹窗打断用户
-- [x] 所有状态重置点（cleanup/_resetToSafeState/onStop/onError）统一重置_recorderReallyStarted和_pendingStop
-
-## 第四十六轮 - 替换后端同学修改的小程序代码
-- [x] 备份现有miniprogram目录（项目内+外部双重备份）
-- [x] 解压后端同学的代码包并检查结构（文件结构一致，仅test.js有166行差异）
-- [x] 用后端同学的代码替换miniprogram目录（diff -r验证完全一致）
-- [x] 对比关键差异：录音启动去掉stop+延迟、短按500ms→800ms、pendingStop不清UI、题号统一用前端计数器
-- [x] 保存checkpoint并同步到GitHub
-
-## 第四十七轮 - 登录页和测评记录页UI优化
-- [x] 登录页：外教头像换成途正英语LOGO（brand-avatar→brand-logo，用logoUrl替代aiAvatarUrl）
-- [x] 登录页：微信手机号快捷登录按钮去掉前面的微信图标，只保留文字
-- [x] 测评记录页：总测评和已完成数字区域缩小（flex:0.7，字号36rpx）
-- [x] 测评记录页：途正口语X级区域放大（flex:1.6，字号48rpx）
-
-## 第四十八轮 - 修复后端同学代码中的变量未定义和录音器bug
-- [x] 定位test.js中2处newTotalAnswered残留引用（第1323行和第1458行）
-- [x] 修复newTotalAnswered→backendTotal（对应各自作用域内已定义的变量）
-- [x] 分析recorder not start根因：pendingStop时序竞争，但不是崩溃主因，主因是newTotalAnswered未定义导致submitAnswer崩溃
-
-## 第四十九轮 - 修复第2题开始外教录音未使用的问题
-- [ ] 排查第2题开始teacherAudioUrl未被使用的根因
-- [ ] 检查_autoNextQuestion中外教录音字段提取逻辑
-- [ ] 检查_playQuestionAudio中音频URL选择逻辑
-- [ ] 修复确保所有题目优先使用外教录音
-
-## 第五十轮 - 测评报告页去掉学前水平 + 外教录音时有时无分析- [x] 测评报告页（预览页）去掉“学前水平”标签（result.wxml和result.js分享海报）"
-- [x] 分析外教录音时有时无的原因：前端逻辑正确，后端部分题目未返回teacherAudioUrl
-- [x] 在api.js两个接口和test.js关键路径添加调试日志，方便定位具体哪些题目缺失外教录音
-
-## 第五十一轮 - 彻底修复submit-lite返回数据不完整 + 录音问题
-- [x] 查看后端submit-lite接口：确认是后端未返回teacherAudioUrl字段，已写接口对接说明文档
-- [x] 后端问题已记录在docs/submit-lite-bug-report.md，需后端同学修复
-- [x] 修复录音太短误报：改用微信返回的res.duration判断（>=500ms），不再依赖计时器recordSeconds
-- [x] 修夏recorder not start：_doStartRecording前先stop清理+50ms延迟再启动
-- [x] 修复pendingStop路径不启动计时器的bug：先启动计时器再延迟1200ms停止
-
-## 第五十二轮 - 修复录音一按就闪掉（recorder not start）
-- [x] 去掉_doStartRecording中的stop+50ms延迟，改回直接start（后端同学原始方案）
-- [x] onStop中的res.duration判断逻辑保留（>=500ms即有效）
-
-## 第五十三轮 - 修复结果页显示0分0通过的问题
-- [x] 排查结果页分数数据来源：report-status→report接口链路
-- [x] 定位0分0通过根因：后端v3异步评分未完成时report接口返回0值，或report-status接口404降级直接调report
-- [x] 添加调试日志：report-status返回、report原始数据、_processResultData入参全部打印
-
-## 第五十四轮 - 方案B：前端彻底回到v2模式（evaluate接口）
-- [ ] test.js: submitAnswer中submitLite改为直接调用evaluateAnswer，去掉降级逻辑
-- [ ] test.js: handleSkip中submitLite改为evaluateAnswer
-- [ ] test.js: 去掉v3预判引擎相关逻辑（prediction、predictionScore、pendingStop等）
-- [ ] test.js: 去掉submitLite的import引用
-- [ ] api.js: 清理submitLite调试日志，保留evaluateAnswer
-- [ ] 清理result.js中的调试日志
-- [ ] 验证改动完整性：grep确认无submitLite残留调用

@@ -21,7 +21,7 @@ App({
     safeAreaBottom: 0,
     // 品牌资源
     logoUrl: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/tuzheng-logo-transparent_4a301562.png',
-    aiAvatarUrl: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/male-teacher-avatar-T5xrDtUUzwee9GXzJpVr28.webp',
+    aiAvatarUrl: 'https://tz-education.oss-cn-guangzhou.aliyuncs.com/teacher-avatars/1776050487985_ngx4ky.png',
     shareCoverUrl: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/share-cover_103ee497.png',
     // 等级配置（仅保留UI相关配置如颜色、星级等，名称和描述优先使用后端返回的majorLevelName、majorLevelLabel字段）
     levelConfig: {
@@ -149,16 +149,16 @@ App({
         if (data.avatarUrl) {
           this.globalData.aiAvatarUrl = data.avatarUrl
         }
-        this.globalData.teacherName = data.name || 'Kristyan'
-        this.globalData.teacherTitle = data.title || '外教Kristyan老师'
+        this.globalData.teacherName = data.name || 'Kris'
+        this.globalData.teacherTitle = data.title || '外教Kris老师'
         this.globalData.teacherIntroAudioUrl = data.introAudioUrl || ''
         console.log('[App] Teacher config loaded:', data.name, data.title)
       }
     }).catch(err => {
       console.warn('[App] Load teacher config failed, using defaults:', err)
       // 失败时使用默认值
-      this.globalData.teacherName = this.globalData.teacherName || 'Kristyan'
-      this.globalData.teacherTitle = this.globalData.teacherTitle || '外教Kristyan老师'
+      this.globalData.teacherName = this.globalData.teacherName || 'Kris'
+      this.globalData.teacherTitle = this.globalData.teacherTitle || '外教Kris老师'
     })
   }
 })

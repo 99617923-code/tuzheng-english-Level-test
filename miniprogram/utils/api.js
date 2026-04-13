@@ -344,8 +344,8 @@ function textToSpeech(text, voice = 'en-US-female', speed = 0.85) {
  * 用于小程序端展示外教形象
  * 
  * Response: {
- *   name: "Kristyan",
- *   title: "外教Kristyan老师",
+ *   name: "Kris",
+ *   title: "外教Kris老师",
  *   avatarUrl: "https://...",
  *   introAudioUrl: "https://..."
  * }
@@ -362,8 +362,8 @@ function getTeacherConfig() {
     console.warn('[API] getTeacherConfig failed:', err)
     // 降级返回默认值
     return {
-      name: 'Kristyan',
-      title: '外教Kristyan老师',
+      name: 'Kris',
+      title: '外教Kris老师',
       avatarUrl: '',
       introAudioUrl: ''
     }

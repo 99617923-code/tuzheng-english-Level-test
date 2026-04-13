@@ -532,3 +532,7 @@
 - [x] 添加requestGeneration请求代数机制，evaluate返回后检查代数不匹配则忽略旧回调
 - [x] 按住说话时立即显示录音遮罩动画（touchstart时立即setData，不等onStart回调）
 - [x] 所有异常路径（onStop/onError/权限拒绝/pendingStop）都清除录音遮罩状态
+
+## 更新外教配置默认值
+- [x] api.js: 降级默认值从Kristyan改为Kris
+- [x] app.js: 全局默认值从Kristyan改为Kris，更新默认头像URL

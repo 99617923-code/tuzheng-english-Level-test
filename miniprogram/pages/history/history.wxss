@@ -178,9 +178,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10rpx 20rpx;
+  padding: 8rpx 16rpx;
   border-radius: var(--radius-sm);
   min-width: 96rpx;
+  max-width: 200rpx;
+  box-sizing: border-box;
 }
 
 .level-badge-sm.incomplete {
@@ -188,10 +190,12 @@
 }
 
 .level-badge-text {
-  font-size: 24rpx;
+  font-size: 22rpx;
   font-weight: 700;
   color: #ffffff;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .level-badge-sm.incomplete .level-badge-text {

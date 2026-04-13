@@ -651,13 +651,18 @@
 .confirmed-level-pill {
   display: inline-flex;
   align-items: center;
-  padding: 10rpx 36rpx;
+  padding: 10rpx 32rpx;
   border-radius: 100rpx;
   border: 3rpx solid;
-  font-size: 30rpx;
+  font-size: 28rpx;
   font-weight: 600;
   margin-bottom: 16rpx;
   background: rgba(255,255,255,0.8);
+  max-width: 85%;
+  box-sizing: border-box;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .confirmed-hint {

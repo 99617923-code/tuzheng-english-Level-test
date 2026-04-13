@@ -340,6 +340,67 @@ function textToSpeech(text, voice = 'en-US-female', speed = 0.85) {
 }
 
 /**
+ * 获取外教信息配置（公开接口，无需认证）
+ * 用于小程序端展示外教形象
+ * 
+ * Response: {
+ *   name: "Kristyan",
+ *   title: "外教Kristyan老师",
+ *   avatarUrl: "https://...",
+ *   introAudioUrl: "https://..."
+ * }
+ */
+function getTeacherConfig() {
+  return request('/api/v1/test/teacher-config', { noAuth: true }).then(res => {
+    if (res.code !== 200 && res.code !== 0) throw new Error(res.msg || '获取外教配置失败')
+    const data = res.data || {}
+    // 兼容下划线命名
+    if (!data.avatarUrl && data.avatar_url) data.avatarUrl = data.avatar_url
+    if (!data.introAudioUrl && data.intro_audio_url) data.introAudioUrl = data.intro_audio_url
+    return data
+  }).catch(err => {
+    console.warn('[API] getTeacherConfig failed:', err)
+    // 降级返回默认值
+    return {
+      name: 'Kristyan',
+      title: '外教Kristyan老师',
+      avatarUrl: '',
+      introAudioUrl: ''
+    }
+  })
+}
+
+/**
+ * 获取测评报告（需认证）
+ * evaluate精简后，详细报告通过此接口获取
+ * 
+ * @param {string} sessionId - 测评会话ID
+ * 
+ * Response: {
+ *   majorLevel, majorLevelName, highestSubLevel, overallScore,
+ *   totalQuestions, passedQuestions, totalDuration,
+ *   report: { pronunciation, grammar, vocabulary, fluency, summary, strengths, weaknesses, recommendation },
+ *   groupQrcode: { groupName, qrcodeUrl }
+ * }
+ */
+function getTestReport(sessionId) {
+  return request(`/api/v1/test/report/${sessionId}`).then(res => {
+    if (res.code !== 200 && res.code !== 0) throw new Error(res.msg || '获取测评报告失败')
+    const data = res.data
+    // 兼容下划线命名
+    if (!data.majorLevelName && data.major_level_name) data.majorLevelName = data.major_level_name
+    if (!data.majorLevelLabel && data.major_level_label) data.majorLevelLabel = data.major_level_label
+    if (!data.highestSubLevel && data.highest_sub_level) data.highestSubLevel = data.highest_sub_level
+    if (!data.overallScore && data.overall_score !== undefined) data.overallScore = data.overall_score
+    if (!data.totalQuestions && data.total_questions !== undefined) data.totalQuestions = data.total_questions
+    if (!data.passedQuestions && data.passed_questions !== undefined) data.passedQuestions = data.passed_questions
+    if (!data.totalDuration && data.total_duration !== undefined) data.totalDuration = data.total_duration
+    if (!data.groupQrcode && data.group_qrcode) data.groupQrcode = data.group_qrcode
+    return data
+  })
+}
+
+/**
  * 查询二维码展示开关（公开接口，无需认证）
  * 后台可随时开关群二维码的显示功能
  * 
@@ -421,8 +482,10 @@ function confirmLevel(sessionId, majorLevel, majorLevelName) {
  * 
  * Response (已确认): {
  *   confirmed: true,
- *   majorLevel, majorLevelName, confirmedAt, sessionId,
- *   qrcodeUrl, groupName
+ *   level, levelName, levelLabel,
+ *   gradeTier, gradeTierLabel,
+ *   overallScore, sessionId, confirmedAt,
+ *   qrcodeUrl
  * }
  * 
  * Response (未确认): {
@@ -442,6 +505,11 @@ function getUserLevelStatus() {
     if (!data.majorLevelName && data.major_level_name) data.majorLevelName = data.major_level_name
     if (!data.majorLevelName && data.level_name) data.majorLevelName = data.level_name
     if (!data.majorLevelName && data.levelName) data.majorLevelName = data.levelName
+    // 兼容v0.1.7新字段
+    if (!data.levelLabel && data.level_label) data.levelLabel = data.level_label
+    if (!data.gradeTier && data.grade_tier) data.gradeTier = data.grade_tier
+    if (!data.gradeTierLabel && data.grade_tier_label) data.gradeTierLabel = data.grade_tier_label
+    if (data.overallScore === undefined && data.overall_score !== undefined) data.overallScore = data.overall_score
     if (!data.confirmedAt && data.confirmed_at) data.confirmedAt = data.confirmed_at
     if (!data.sessionId && data.session_id) data.sessionId = data.session_id
     if (!data.qrcodeUrl && data.qrcode_url) data.qrcodeUrl = data.qrcode_url
@@ -468,5 +536,7 @@ module.exports = {
   getIntroVideo,
   confirmLevel,
   getUserLevelStatus,
-  getQrcodeDisplaySetting
+  getQrcodeDisplaySetting,
+  getTeacherConfig,
+  getTestReport
 }

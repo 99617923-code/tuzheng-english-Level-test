@@ -8,6 +8,7 @@ const { checkLogin } = require('../../utils/util')
 Page({
   data: {
     aiAvatarUrl: '',
+    teacherName: '',
     // 导航布局
     navBarHeight: 0,
     navContentTop: 0,
@@ -20,9 +21,9 @@ Page({
       tips: false
     },
     steps: [
-      { title: '听题', desc: '听外教的英语提问，理解题目内容', color: '#3B82F6', bgColor: 'rgba(59,130,246,0.10)', icon: 'headphones-blue' },
+      { title: '听题', desc: '听外教英语提问，理解题目内容', color: '#3B82F6', bgColor: 'rgba(59,130,246,0.10)', icon: 'headphones-blue' },
       { title: '录音作答', desc: '按住麦克风按钮，用英语回答问题', color: '#22c55e', bgColor: 'rgba(34,197,94,0.10)', icon: 'mic-green' },
-      { title: 'AI实时评估', desc: 'AI分析你的回答，判断是否过关', color: '#8B5CF6', bgColor: 'rgba(139,92,246,0.10)', icon: 'zap-blue' },
+      { title: '智能实时评估', desc: '分析你的回答，判断是否过关', color: '#8B5CF6', bgColor: 'rgba(139,92,246,0.10)', icon: 'zap-blue' },
       { title: '过关自动升级', desc: '通过后自动出更难的题，继续挑战', color: '#e67e22', bgColor: 'rgba(230,126,34,0.10)', icon: 'trending-up-orange', isLoop: true },
       { title: '生成等级报告', desc: '无法继续升级时，确定你的英语等级', color: '#4a8a30', bgColor: 'rgba(74,138,48,0.10)', icon: 'award-green' }
     ],
@@ -39,6 +40,7 @@ Page({
     const navLayout = app.getNavLayout()
     this.setData({
       aiAvatarUrl: app.globalData.aiAvatarUrl,
+      teacherName: app.globalData.teacherName || '外教',
       navBarHeight: navLayout.navBarHeight,
       navContentTop: navLayout.navContentTop,
       navContentHeight: navLayout.navContentHeight

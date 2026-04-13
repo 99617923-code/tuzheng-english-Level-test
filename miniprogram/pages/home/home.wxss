@@ -755,3 +755,226 @@
   color: #7a8a9a;
   font-size: 26rpx;
 }
+
+/* ============ 模式选择弹窗（v1.3.0 AI智能跳级） ============ */
+.mode-modal-card {
+  position: relative;
+  width: 90%;
+  max-width: 650rpx;
+  background: #ffffff;
+  border-radius: 28rpx;
+  padding: 48rpx 36rpx 36rpx;
+  box-shadow: 0 24rpx 80rpx rgba(0,0,0,0.18);
+  animation: resumeModalIn 0.3s ease;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.mode-modal-header {
+  text-align: center;
+  margin-bottom: 32rpx;
+}
+
+.mode-modal-title {
+  display: block;
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1a2332;
+  margin-bottom: 8rpx;
+}
+
+.mode-modal-subtitle {
+  display: block;
+  font-size: 24rpx;
+  color: #7a8a9a;
+}
+
+/* 加载中 */
+.mode-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60rpx 0;
+  gap: 16rpx;
+}
+
+.mode-loading .spinner {
+  width: 48rpx;
+  height: 48rpx;
+  border: 4rpx solid rgba(59,130,246,0.15);
+  border-top-color: #3B82F6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.mode-loading-text {
+  font-size: 26rpx;
+  color: #7a8a9a;
+}
+
+/* 模式列表 */
+.mode-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+/* 模式卡片 */
+.mode-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 20rpx;
+  padding: 28rpx 24rpx;
+  border-radius: 20rpx;
+  border: 3rpx solid rgba(0,0,0,0.06);
+  background: #fafbfc;
+  transition: all 0.2s ease;
+}
+
+.mode-card:active {
+  transform: scale(0.98);
+}
+
+.mode-card-selected {
+  border-color: #3B82F6;
+  background: rgba(59,130,246,0.04);
+  box-shadow: 0 4rpx 16rpx rgba(59,130,246,0.12);
+}
+
+.mode-card-ai.mode-card-selected {
+  border-color: #8B5CF6;
+  background: rgba(139,92,246,0.04);
+  box-shadow: 0 4rpx 16rpx rgba(139,92,246,0.12);
+}
+
+/* 单选按钮 */
+.mode-radio {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  border: 3rpx solid #c4cdd5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 4rpx;
+  transition: all 0.2s ease;
+}
+
+.mode-radio-checked {
+  border-color: #3B82F6;
+  background: #3B82F6;
+}
+
+.mode-card-ai .mode-radio-checked {
+  border-color: #8B5CF6;
+  background: #8B5CF6;
+}
+
+.mode-radio-dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+/* 卡片内容 */
+.mode-card-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.mode-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 8rpx;
+  flex-wrap: wrap;
+}
+
+.mode-card-name {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1a2332;
+}
+
+.mode-card-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4rpx 14rpx;
+  border-radius: 100rpx;
+  background: linear-gradient(135deg, rgba(139,92,246,0.12), rgba(139,92,246,0.06));
+  color: #8B5CF6;
+  font-size: 20rpx;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.mode-card-desc {
+  display: block;
+  font-size: 24rpx;
+  color: #5a6577;
+  line-height: 1.6;
+  margin-bottom: 12rpx;
+}
+
+/* 提示列表 */
+.mode-tips-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.mode-tip-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8rpx;
+}
+
+.mode-tip-dot {
+  font-size: 24rpx;
+  color: #9ca3af;
+  line-height: 1.6;
+  flex-shrink: 0;
+}
+
+.mode-tip-text {
+  font-size: 22rpx;
+  color: #7a8a9a;
+  line-height: 1.6;
+}
+
+/* 确认按钮 */
+.mode-modal-actions {
+  margin-top: 28rpx;
+}
+
+.mode-confirm-btn {
+  width: 100%;
+  height: 92rpx;
+  border-radius: 46rpx;
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+  color: #ffffff;
+  font-size: 32rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+  border: none;
+  box-shadow: 0 8rpx 28rpx rgba(59,130,246,0.30);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.mode-confirm-btn::after {
+  border: none;
+}
+
+.mode-confirm-btn:active {
+  transform: scale(0.97);
+  box-shadow: 0 4rpx 16rpx rgba(59,130,246,0.25);
+}

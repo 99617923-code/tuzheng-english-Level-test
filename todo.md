@@ -536,3 +536,14 @@
 ## 更新外教配置默认值
 - [x] api.js: 降级默认值从Kristyan改为Kris
 - [x] app.js: 全局默认值从Kristyan改为Kris，更新默认头像URL
+
+## AI智能跳级模式 v1.3.0
+- [x] api.js: 新增getEvaluateModes接口（GET /api/v1/test/evaluate-modes）
+- [x] api.js: 修改startTest传参支持evaluateMode字段
+- [x] 新增模式选择页面/弹窗（用户选择逐级测评/AI智能跳级）
+- [x] test.js: 接收evaluateMode参数并传给startTest
+- [x] test.js: 处理evaluate响应中的aiSmartJump跳级展示
+- [x] test.js: 答题页顶部显示当前模式标签（AI分析中/AI智能跳级→G7/精准定级中）
+- [x] test.wxml/wxss: 跳级动画/提示UI
+- [x] test.wxml/wxss: 模式标签样式
+- [x] 保存对接文档到docs目录

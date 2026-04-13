@@ -127,18 +127,60 @@ function logout() {
     })
 }
 
-// ============ 测评接口（自适应引擎 v2） ============
+// ============ 测评接口（自适应引擎 v2 + AI跳级 v1.3.0） ============
 
 /**
- * 创建测评会话（自适应引擎 v2）
+ * 获取测评模式列表（v1.3.0 新增）
+ * 无需 Authorization，只需 X-App-Key
+ * 返回可用的测评模式（standard / ai_smart）及其描述
+ * 可在前端做本地缓存
+ * 
+ * Response: {
+ *   modes: [
+ *     { mode, name, description, tips: string[], isDefault: boolean }
+ *   ]
+ * }
+ */
+function getEvaluateModes() {
+  return request('/api/v1/test/evaluate-modes', { noAuth: true }).then(res => {
+    if (res.code !== 200 && res.code !== 0) throw new Error(res.msg || '获取测评模式失败')
+    return res.data
+  }).catch(err => {
+    console.warn('[API] getEvaluateModes failed:', err)
+    // 降级返回默认模式列表
+    return {
+      modes: [
+        {
+          mode: 'standard',
+          name: '逐级测评模式',
+          description: '从基础级别开始，逐级测评，直到找到您的真实水平。',
+          tips: ['适合所有水平的用户', '测评结果更稳定准确'],
+          isDefault: true
+        },
+        {
+          mode: 'ai_smart',
+          name: 'AI智能跳级模式',
+          description: 'AI根据回答质量智能判断水平，高水平用户可快速跳级。',
+          tips: ['请按最高水平回答', '回答可以丰富些'],
+          isDefault: false
+        }
+      ]
+    }
+  })
+}
+
+/**
+ * 创建测评会话（自适应引擎 v2 + AI跳级 v1.3.0）
  * 后端自动从PRE1开始，返回第一道题
  * 
  * @param {object} [options] - 可选参数
  * @param {boolean} [options.forceNew=false] - 是否强制创建新会话（终止旧会话）
+ * @param {string} [options.evaluateMode='standard'] - 测评模式：standard（逐级）或 ai_smart（AI跳级）
  * 
  * Response: {
  *   sessionId, currentSubLevel, currentMajorLevel,
  *   questionIndex, totalAnswered, resumed,
+ *   evaluateMode,  // 当前会话使用的模式
  *   question: { questionId, audioUrl, questionText, subLevel }
  * }
  */
@@ -146,6 +188,11 @@ function startTest(options = {}) {
   const data = {}
   if (options.forceNew) {
     data.forceNew = true
+  }
+  // v1.3.0: 传递测评模式
+  if (options.evaluateMode) {
+    data.evaluateMode = options.evaluateMode
+    data.evaluate_mode = options.evaluateMode
   }
   return request('/api/v1/test/start', {
     method: 'POST',
@@ -159,6 +206,8 @@ function startTest(options = {}) {
     if (!data.currentSubLevel && data.current_sub_level) data.currentSubLevel = data.current_sub_level
     if (data.currentMajorLevel === undefined && data.current_major_level !== undefined) data.currentMajorLevel = data.current_major_level
     if (!data.questionIndex && data.question_index) data.questionIndex = data.question_index
+    // v1.3.0: 兼容evaluateMode字段
+    if (!data.evaluateMode && data.evaluate_mode) data.evaluateMode = data.evaluate_mode
     return data
   })
 }
@@ -247,6 +296,11 @@ function evaluateAnswer(params) {
     // 兼容等级名称和描述字段
     if (!result.majorLevelName && result.major_level_name) result.majorLevelName = result.major_level_name
     if (!result.majorLevelLabel && result.major_level_label) result.majorLevelLabel = result.major_level_label
+    // v1.3.0: 兼容AI跳级字段
+    if (result.aiSmartJump === undefined && result.ai_smart_jump) result.aiSmartJump = result.ai_smart_jump
+    if (result.aiSmartJump && result.aiSmartJump.estimation === undefined && result.aiSmartJump.jump_target) {
+      result.aiSmartJump.jumpTarget = result.aiSmartJump.jump_target
+    }
     // finished状态时，从finished result中提取字段
     if (result.result) {
       if (!result.result.majorLevelName && result.result.major_level_name) result.result.majorLevelName = result.result.major_level_name
@@ -524,6 +578,7 @@ module.exports = {
   wxPhoneLogin,
   getMe,
   logout,
+  getEvaluateModes,
   startTest,
   evaluateAnswer,
   getTestResult,

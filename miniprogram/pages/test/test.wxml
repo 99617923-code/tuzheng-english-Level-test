@@ -1,6 +1,6 @@
 <!--
-  途正英语AI分级测评 - 测评主页面（自适应引擎 v2）
-  核心交互：自动播放外教语音 → 点击录音回答 → AI评分 → 自适应升级 → 下一题/出结果
+  途正英语AI分级测评 - 测评主页面（自适应引擎 v2 + AI智能跳级 v1.3.0）
+  核心交互：自动播放外教语音 → 点击录音回答 → AI评分 → 自适应升级/跳级 → 下一题/出结果
   小程序原生适配：全局导航布局
 -->
 <view class="page">
@@ -27,6 +27,8 @@
       <view class="level-info-left">
         <text class="level-info-level">途正口语{{currentMajorLevel}}级</text>
         <text class="level-info-progress">{{questionCountDisplay}}</text>
+        <!-- AI智能跳级模式标签 v1.3.0 -->
+        <text wx:if="{{modeLabel}}" class="mode-label {{hasJumped ? 'mode-label-jumped' : 'mode-label-analyzing'}}">{{modeLabel}}</text>
       </view>
       <view class="level-info-timer">
         <image class="timer-icon" src="/assets/icons/clock.svg" mode="aspectFit" />
@@ -48,7 +50,7 @@
       </view>
 
       <!-- AI语音播放条（外教真人录音） - 点击可重播 -->
-      <view wx:if="{{phase !== 'guide' && phase !== 'loading' && currentQuestion}}" class="audio-bar" bindtap="playAudio">
+      <view wx:if="{{phase !== 'guide' && phase !== 'loading' && phase !== 'jumping' && currentQuestion}}" class="audio-bar" bindtap="playAudio">
         <view class="audio-play-btn">
           <image wx:if="{{!audioPlaying}}" class="audio-play-icon" src="/assets/icons/play.svg" mode="aspectFit" />
           <image wx:else class="audio-play-icon" src="/assets/icons/pause.svg" mode="aspectFit" />
@@ -68,6 +70,31 @@
     </view>
 
     <!-- 升级通关动画已按客户要求去掉 -->
+  </view>
+
+  <!-- AI智能跳级动画弹窗 v1.3.0 -->
+  <view wx:if="{{showJumpAnimation}}" class="jump-overlay">
+    <view class="jump-card animate-jump-in">
+      <view class="jump-icon-wrap">
+        <text class="jump-icon">⚡</text>
+      </view>
+      <text class="jump-title">AI智能跳级</text>
+      <view class="jump-levels">
+        <text class="jump-from">{{jumpFrom}}</text>
+        <view class="jump-arrow-wrap">
+          <view class="jump-arrow-line"></view>
+          <text class="jump-arrow-text">跳过{{jumpSkippedLevels}}个级别</text>
+          <view class="jump-arrow-line"></view>
+        </view>
+        <text class="jump-to">{{jumpTo}}</text>
+      </view>
+      <text class="jump-reasoning">{{jumpReasoning}}</text>
+      <view class="jump-loading-dots">
+        <view class="jump-loading-dot"></view>
+        <view class="jump-loading-dot"></view>
+        <view class="jump-loading-dot"></view>
+      </view>
+    </view>
   </view>
 
   <!-- 音量提醒浮层 -->
@@ -122,9 +149,15 @@
       </view>
     </view>
 
-    <!-- feedback phase已移除，evaluate后自动进入下一题 -->
+    <!-- 状态：AI跳级动画中 v1.3.0 -->
+    <view wx:elif="{{phase === 'jumping'}}" class="action-area">
+      <view class="evaluating-wrap">
+        <view class="spinner"></view>
+        <text class="evaluating-text">AI正在调整测评级别...</text>
+      </view>
+    </view>
 
-    <!-- 升级动画已去掉，不再需要levelup phase -->
+    <!-- feedback phase已移除，evaluate后自动进入下一题 -->
 
     <!-- 状态：加载中 -->
     <view wx:elif="{{phase === 'loading'}}" class="action-area">

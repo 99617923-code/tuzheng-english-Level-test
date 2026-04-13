@@ -153,6 +153,61 @@
     </view>
   </view>
 
+  <!-- 模式选择弹窗（v1.3.0 AI智能跳级） -->
+  <view wx:if="{{showModeModal}}" class="resume-modal-mask" bindtap="handleCloseModeModal">
+    <view class="mode-modal-card" catchtap="preventClose">
+      <!-- 关闭按钮 -->
+      <view class="resume-modal-close" bindtap="handleCloseModeModal">
+        <text class="resume-modal-close-icon">✕</text>
+      </view>
+      <!-- 标题 -->
+      <view class="mode-modal-header">
+        <text class="mode-modal-title">选择测评模式</text>
+        <text class="mode-modal-subtitle">请根据你的英语基础选择合适的模式</text>
+      </view>
+
+      <!-- 加载中 -->
+      <view wx:if="{{loadingModes}}" class="mode-loading">
+        <view class="spinner"></view>
+        <text class="mode-loading-text">加载中...</text>
+      </view>
+
+      <!-- 模式卡片列表 -->
+      <view wx:else class="mode-list">
+        <view
+          wx:for="{{evaluateModes}}"
+          wx:key="mode"
+          class="mode-card {{selectedMode === item.mode ? 'mode-card-selected' : ''}} {{item.mode === 'ai_smart' ? 'mode-card-ai' : ''}}"
+          data-mode="{{item.mode}}"
+          bindtap="handleSelectMode"
+        >
+          <!-- 选中指示器 -->
+          <view class="mode-radio {{selectedMode === item.mode ? 'mode-radio-checked' : ''}}">
+            <view wx:if="{{selectedMode === item.mode}}" class="mode-radio-dot"></view>
+          </view>
+          <view class="mode-card-content">
+            <view class="mode-card-title-row">
+              <text class="mode-card-name">{{item.name}}</text>
+              <text wx:if="{{item.mode === 'ai_smart'}}" class="mode-card-badge">推荐有基础的同学</text>
+            </view>
+            <text class="mode-card-desc">{{item.description}}</text>
+            <view class="mode-tips-list">
+              <view wx:for="{{item.tips}}" wx:for-item="tip" wx:key="*this" class="mode-tip-item">
+                <text class="mode-tip-dot">•</text>
+                <text class="mode-tip-text">{{tip}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 确认按钮 -->
+      <view wx:if="{{!loadingModes}}" class="mode-modal-actions">
+        <button class="mode-confirm-btn" bindtap="handleConfirmMode">开始测评</button>
+      </view>
+    </view>
+  </view>
+
   <!-- 视频播放弹窗 -->
   <view wx:if="{{showVideo}}" class="video-modal" bindtap="closeVideo">
     <view class="video-modal-content {{isVerticalVideo ? 'video-vertical' : 'video-horizontal'}}" catchtap="preventClose">

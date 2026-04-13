@@ -9,7 +9,7 @@
  */
 const app = getApp()
 const { checkLogin, getUserInfo } = require('../../utils/util')
-const { getIntroVideo, getUserLevelStatus, getQrcodeByLevel, getQrcodeDisplaySetting } = require('../../utils/api')
+const { getIntroVideo, getUserLevelStatus, getQrcodeByLevel, getQrcodeDisplaySetting, getEvaluateModes } = require('../../utils/api')
 
 Page({
   data: {
@@ -48,7 +48,12 @@ Page({
     showConfirmedQrModal: false,
     // 二维码显示开关（后台控制）
     qrcodeEnabled: true,
-    checkingLevelStatus: false
+    checkingLevelStatus: false,
+    // 模式选择弹窗（v1.3.0 AI智能跳级）
+    showModeModal: false,
+    evaluateModes: [],
+    selectedMode: 'standard',
+    loadingModes: false
   },
 
   _resumeChecked: false,
@@ -369,7 +374,7 @@ Page({
     this.setData({ showResumeModal: false })
   },
 
-  /** 开始测评 — 直接进入测评页（跳过说明页） */
+  /** 开始测评 — 弹出模式选择弹窗（v1.3.0） */
   async handleStart() {
     if (!checkLogin()) {
       wx.navigateTo({ url: '/pages/login/login' })
@@ -398,8 +403,50 @@ Page({
       return
     }
 
-    // 直接进入测评页
-    wx.navigateTo({ url: '/pages/test/test' })
+    // 弹出模式选择弹窗
+    this._showModeSelection()
+  },
+
+  /** 显示模式选择弹窗 */
+  async _showModeSelection() {
+    this.setData({ showModeModal: true, loadingModes: true })
+
+    try {
+      const result = await getEvaluateModes()
+      const modes = result.modes || []
+      // 找到默认选中的模式
+      const defaultMode = modes.find(m => m.isDefault) || modes[0]
+      this.setData({
+        evaluateModes: modes,
+        selectedMode: defaultMode ? defaultMode.mode : 'standard',
+        loadingModes: false
+      })
+    } catch (err) {
+      console.warn('[Home] Load evaluate modes failed:', err)
+      // 降级：直接进入测评页（standard模式）
+      this.setData({ showModeModal: false, loadingModes: false })
+      wx.navigateTo({ url: '/pages/test/test' })
+    }
+  },
+
+  /** 选择模式 */
+  handleSelectMode(e) {
+    const mode = e.currentTarget.dataset.mode
+    if (mode) {
+      this.setData({ selectedMode: mode })
+    }
+  },
+
+  /** 确认模式，开始测评 */
+  handleConfirmMode() {
+    const { selectedMode } = this.data
+    this.setData({ showModeModal: false })
+    wx.navigateTo({ url: `/pages/test/test?evaluateMode=${selectedMode}` })
+  },
+
+  /** 关闭模式选择弹窗 */
+  handleCloseModeModal() {
+    this.setData({ showModeModal: false })
   },
 
   /** 继续未完成的测评（从banner点击） */

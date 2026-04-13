@@ -140,7 +140,17 @@ Page({
     questionTextDisplay: '',
 
     // 音量提醒
-    showVolumeReminder: false
+    showVolumeReminder: false,
+
+    // AI智能跳级模式（v1.3.0）
+    evaluateMode: 'standard',    // standard | ai_smart
+    modeLabel: '',               // 模式标签显示文字
+    showJumpAnimation: false,    // 是否显示跳级动画
+    jumpFrom: '',                // 跳级前级别
+    jumpTo: '',                  // 跳级后级别
+    jumpReasoning: '',           // AI分析理由
+    jumpSkippedLevels: 0,        // 跳过的级别数
+    hasJumped: false             // 本次测评是否已经跳过级
   },
 
   // 内部状态
@@ -165,6 +175,10 @@ Page({
     const navLayout = app.getNavLayout()
     const audioWaves = Array.from({ length: 60 }, () => Math.floor(Math.random() * 32) + 8)
 
+    // 接收模式参数（从首页模式选择弹窗传入）
+    const evaluateMode = (options && options.evaluateMode) || 'standard'
+    const modeLabel = evaluateMode === 'ai_smart' ? 'AI分析中...' : ''
+
     this.setData({
       aiAvatarUrl: app.globalData.aiAvatarUrl,
       teacherName: app.globalData.teacherName || '外教',
@@ -172,7 +186,9 @@ Page({
       navBarHeight: navLayout.navBarHeight,
       navContentTop: navLayout.navContentTop,
       navContentHeight: navLayout.navContentHeight,
-      audioWaves
+      audioWaves,
+      evaluateMode,
+      modeLabel
     })
 
     this._recorderManager = wx.getRecorderManager()
@@ -358,7 +374,10 @@ Page({
     }
 
     try {
-      const data = await startTest()
+      // v1.3.0: 恢复时也传递evaluateMode
+      const resumeParams = {}
+      if (this.data.evaluateMode) resumeParams.evaluateMode = this.data.evaluateMode
+      const data = await startTest(resumeParams)
       const question = data.question
       // 兼容下划线命名
       if (question) {
@@ -468,7 +487,11 @@ Page({
 
     try {
       // forceNew=true 时强制创建新会话（后端会终止旧会话）
-      const data = await startTest(forceNew ? { forceNew: true } : {})
+      // v1.3.0: 传递evaluateMode参数（standard/ai_smart）
+      const startParams = {}
+      if (forceNew) startParams.forceNew = true
+      if (this.data.evaluateMode) startParams.evaluateMode = this.data.evaluateMode
+      const data = await startTest(startParams)
 
       // 打印后端返回的完整数据，方便调试
 
@@ -1237,6 +1260,54 @@ Page({
         questionCountDisplay: `第 ${newTotalAnswered} 题`
       })
 
+      // v1.3.0: 检查AI智能跳级
+      const aiJump = evalRes.aiSmartJump || evalRes.ai_smart_jump
+      if (aiJump && aiJump.jumped) {
+        const estimation = aiJump.estimation || {}
+        const jumpTarget = aiJump.jumpTarget || aiJump.jump_target || ''
+        console.log('[AI跳级] 触发跳级！从', this.data.currentSubLevel, '→', jumpTarget)
+        
+        // 显示跳级动画
+        this.setData({
+          showJumpAnimation: true,
+          jumpFrom: this.data.currentSubLevel,
+          jumpTo: jumpTarget,
+          jumpReasoning: estimation.reasoning || 'AI检测到你的水平较高，已智能跳级',
+          jumpSkippedLevels: estimation.skippedLevels || estimation.skipped_levels || 0,
+          hasJumped: true,
+          modeLabel: `AI智能跳级 → ${jumpTarget}`,
+          phase: 'jumping'  // 新增跳级动画阶段
+        })
+
+        // 跳级动画显示2.5秒后自动继续
+        this._lastEvalResponse = evalRes
+        await delay(2500)
+        this.setData({ showJumpAnimation: false })
+
+        if (isFinished && !shouldForceContinue) {
+          if (this._isNavigating) return
+          this._isNavigating = true
+          this._clearTestSession()
+          this.cleanup()
+          wx.redirectTo({
+            url: `/pages/result/result?sessionId=${this.data.sessionId}`,
+            fail: () => { this._isNavigating = false }
+          })
+          return
+        }
+        this._autoNextQuestion(evalRes, newTotalAnswered, shouldForceContinue)
+        return
+      }
+
+      // 非AI跳级模式下，更新模式标签
+      if (this.data.evaluateMode === 'ai_smart' && !this.data.hasJumped) {
+        // 探测阶段：前几题AI还在分析
+        this.setData({ modeLabel: 'AI分析中...' })
+      } else if (this.data.evaluateMode === 'ai_smart' && this.data.hasJumped) {
+        // 跳级后：精准定级阶段
+        this.setData({ modeLabel: '精准定级中' })
+      }
+
       // 精简版：不再显示逐题反馈，直接进入下一题或结果页
       this._lastEvalResponse = evalRes
 
@@ -1414,7 +1485,10 @@ Page({
       this.setData({ phase: 'loading', aiStatusText: '继续测评中...' })
 
       try {
-        const data = await startTest({ forceNew: true })
+        // v1.3.0: 强制继续时也传递evaluateMode
+        const forceParams = { forceNew: true }
+        if (this.data.evaluateMode) forceParams.evaluateMode = this.data.evaluateMode
+        const data = await startTest(forceParams)
         const question = data.question
         if (question) {
           if (!question.audioUrl && question.audio_url) question.audioUrl = question.audio_url

@@ -147,14 +147,17 @@
           <image class="action-btn-icon" src="/assets/icons/users-white.svg" mode="aspectFit" />
           <text>加入{{levelName}}学习群</text>
         </button>
-        <button class="share-btn" open-type="share">
-          <image class="share-btn-icon" src="/assets/icons/share-blue.svg" mode="aspectFit" />
-          <text>分享测评结果给好友</text>
-        </button>
-        <button class="save-poster-btn" bindtap="savePoster" disabled="{{posterSaving}}">
-          <image class="save-poster-icon" src="/assets/icons/download-green.svg" mode="aspectFit" />
-          <text>{{posterSaving ? '正在生成...' : '保存测评海报'}}</text>
-        </button>
+        <view class="action-row-three">
+          <button class="action-btn-third share-btn-mini" open-type="share">
+            <text>分享</text>
+          </button>
+          <button class="action-btn-third poster-btn-mini" bindtap="savePoster" disabled="{{posterSaving}}">
+            <text>{{posterSaving ? '生成中...' : '保存海报'}}</text>
+          </button>
+          <button class="action-btn-third home-btn-mini" bindtap="goHome">
+            <text>回首页</text>
+          </button>
+        </view>
       </view>
     </view>
 

@@ -104,7 +104,20 @@ Page({
     try {
       const status = await getUserLevelStatus()
       if (status && status.confirmed) {
+        // 检查当前会话是否是最终定级的会话
+        const confirmedSessionId = status.sessionId || status.session_id || ''
+        const isThisSessionConfirmed = confirmedSessionId && confirmedSessionId === this._sessionId
+        console.log('[Result] Confirmed check:', { confirmedSessionId, currentSessionId: this._sessionId, isThisSessionConfirmed })
+        
+        // 所有已定级用户的记录都显示confirmed状态（不可再测）
         this.setData({ confirmed: true })
+        
+        // 但只有最终定级的那个会话才显示群二维码
+        if (!isThisSessionConfirmed) {
+          this.setData({ qrcodeEnabled: false })
+          console.log('[Result] 非定级会话，隐藏群二维码')
+        }
+        
         // 同步保存到本地缓存
         this._saveConfirmedLocal()
         return

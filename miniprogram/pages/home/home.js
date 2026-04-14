@@ -443,9 +443,9 @@ Page({
       })
     } catch (err) {
       console.warn('[Home] Load evaluate modes failed:', err)
-      // 降级：直接进入测评页（standard模式）
+      // 降级：直接进入测评页（v4.0默认AI智能模式）
       this.setData({ showModeModal: false, loadingModes: false })
-      wx.navigateTo({ url: '/pages/test/test' })
+      wx.navigateTo({ url: '/pages/test/test?evaluateMode=ai_smart' })
     }
   },
 

@@ -211,7 +211,7 @@ Page({
       wx.showToast({ title: '你已确认分级，无法再次测评', icon: 'none' })
       return
     }
-    wx.navigateTo({ url: '/pages/test/test' })
+    wx.navigateTo({ url: '/pages/test/test?evaluateMode=ai_smart' })
   },
 
   /** 返回 */

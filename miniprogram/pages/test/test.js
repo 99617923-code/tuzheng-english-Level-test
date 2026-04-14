@@ -581,6 +581,7 @@ Page({
       const startParams = {}
       if (forceNew) startParams.forceNew = true
       if (this.data.evaluateMode) startParams.evaluateMode = this.data.evaluateMode
+      console.log('[Test] startTest params:', JSON.stringify(startParams), 'data.evaluateMode:', this.data.evaluateMode)
       const data = await startTest(startParams)
 
       // 打印后端返回的完整数据，方便调试
@@ -612,9 +613,12 @@ Page({
       const subLevel = data.currentSubLevel || data.current_sub_level || (question && question.subLevel) || 'PRE1'
       const majorLevel = data.currentMajorLevel !== undefined ? data.currentMajorLevel : (data.current_major_level !== undefined ? data.current_major_level : (SUB_LEVEL_MAJOR[subLevel] || 0))
       const aiSmartPhase = data.aiSmartPhase || data.ai_smart_phase || ''
+      const totalAnswered = data.totalAnswered || data.total_answered || 0
 
-      // v4.0: AI智能模式下，进入自我介绍阶段而非直接出题
-      if (this.data.evaluateMode === 'ai_smart' && (aiSmartPhase === 'intro' || !question)) {
+      // v4.0: AI智能模式下，强制进入自我介绍阶段
+      // 条件：ai_smart模式 + （后端返回intro阶段 或 question为null 或 新测评尚未答题）
+      console.log('[Test] AI smart check:', { evaluateMode: this.data.evaluateMode, aiSmartPhase, hasQuestion: !!question, totalAnswered })
+      if (this.data.evaluateMode === 'ai_smart' && (aiSmartPhase === 'intro' || !question || totalAnswered === 0)) {
         // 缓存start返回的question作为兜底（跳过自我介绍时可用，v4.0后可能为null）
         this._startQuestion = question
         this._startSubLevel = subLevel

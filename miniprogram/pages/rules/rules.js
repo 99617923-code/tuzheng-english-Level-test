@@ -172,7 +172,7 @@ Page({
       return
     }
 
-    wx.navigateTo({ url: '/pages/test/test' })
+    wx.navigateTo({ url: '/pages/test/test?evaluateMode=ai_smart' })
   },
 
   /** 返回上一页 */

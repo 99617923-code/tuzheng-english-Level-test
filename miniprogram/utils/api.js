@@ -194,6 +194,7 @@ function startTest(options = {}) {
     data.evaluateMode = options.evaluateMode
     data.evaluate_mode = options.evaluateMode
   }
+  console.log('[API] startTest sending data:', JSON.stringify(data))
   return request('/api/v1/test/start', {
     method: 'POST',
     data

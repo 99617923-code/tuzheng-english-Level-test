@@ -653,3 +653,9 @@
 - [x] home.wxml：模式选择弹窗UI保留但不再触发（代码保留以备后续回滚）
 - [x] test.js：默认evaluateMode为ai_smart
 - [x] 重新开始时也直接以ai_smart模式进入，不弹模式选择
+
+## 第六十四轮 - 修复AI智能模式未进入自我介绍直接做题的问题
+- [x] 排查initTest中selfIntro判断逻辑
+- [x] 修复：加强totalAnswered===0条件，确保AI智能模式新测评强制进入selfIntro
+- [x] 修复：所有跳转入口统一带evaluateMode=ai_smart参数（home.js/history.js/rules.js共5处）
+- [x] 添加调试日志：startTest调用前打印实际传递的evaluateMode参数

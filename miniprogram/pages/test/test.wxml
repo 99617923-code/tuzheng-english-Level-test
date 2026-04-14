@@ -223,7 +223,7 @@
   </view>
 
   <!-- 录音中全屏遮罩（微信风格） - 放在页面最外层确保覆盖全屏 -->
-  <view wx:if="{{isRecording}}" class="recording-overlay" catchtouchmove="preventTouchMove">
+  <view wx:if="{{isRecording}}" class="recording-overlay" catchtouchmove="preventTouchMove" bindtouchend="onRecordTouchEnd" bindtouchcancel="onRecordTouchEnd" bindtap="onOverlayTap">
     <view class="recording-overlay-bg"></view>
     <view class="recording-indicator">
       <view class="recording-wave-box">

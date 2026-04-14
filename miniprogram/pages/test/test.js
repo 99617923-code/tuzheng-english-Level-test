@@ -165,6 +165,7 @@ Page({
   _isSubmitting: false,
   _isStartingRecord: false,  // 录音启动防抖锁（防止快速连点）
   _showingModal: false,      // 弹窗互斥锁（防止多个wx.showModal叠加）
+  _recordSafetyTimer: null,  // 录音安全定时器（touchend丢失兑底保护）
   _initRetryCount: 0,
   _audioPlayTimeout: null,   // 音频播放超时定时器
   _frontendQuestionCount: 0, // 前端自己维护的答题计数（不依赖后端）
@@ -250,6 +251,11 @@ Page({
     }
     this._clearAudioTimeout()
     this._destroyAudioContext()
+    // 清除录音安全定时器
+    if (this._recordSafetyTimer) {
+      clearTimeout(this._recordSafetyTimer)
+      this._recordSafetyTimer = null
+    }
     if (this._recorderManager) {
       try { this._recorderManager.stop() } catch (e) {}
     }
@@ -891,6 +897,11 @@ Page({
 
     this._recorderManager.onStop((res) => {
       this._isStartingRecord = false  // 确保录音停止后解除防抖锁
+      // 清除安全定时器
+      if (this._recordSafetyTimer) {
+        clearTimeout(this._recordSafetyTimer)
+        this._recordSafetyTimer = null
+      }
       if (this._recordTimer) {
         clearInterval(this._recordTimer)
         this._recordTimer = null
@@ -952,6 +963,7 @@ Page({
     // 记录按下时间戳，用于松开时判断是否太短
     this._touchStartTime = Date.now()
     this._touchActive = true  // 标记手指正在按住
+    this._pendingStop = false // 重置延迟停止标志
 
     // 立即显示录音遮罩（不等onStart回调，消除视觉延迟）
     const waveBars = Array.from({ length: 24 }, () => Math.floor(Math.random() * 80) + 20)
@@ -963,26 +975,48 @@ Page({
       recordWaveBars: waveBars
     })
 
+    // 安全定时器：如果65秒后touchend仍未触发，强制停止录音（兑底保护）
+    if (this._recordSafetyTimer) clearTimeout(this._recordSafetyTimer)
+    this._recordSafetyTimer = setTimeout(() => {
+      console.warn('[Recording] Safety timer fired! Force stopping recording after 65s')
+      if (this.data.isRecording) {
+        this._touchActive = false
+        this.stopRecording()
+      }
+    }, 65000)
+
     this.startRecording()
   },
 
   /** 松开结束录音（微信风格：纯长按模式） */
   onRecordTouchEnd(e) {
+    console.log('[Recording] touchend/touchcancel triggered, isRecording:', this.data.isRecording, '_touchActive:', this._touchActive)
     this._touchActive = false  // 手指已松开
 
+    // 清除安全定时器（已正常触发touchend）
+    if (this._recordSafetyTimer) {
+      clearTimeout(this._recordSafetyTimer)
+      this._recordSafetyTimer = null
+    }
+
     // 如果录音还没启动成功（onStart还没触发），延迟停止
-    if (this._isStartingRecord && !this.data.isRecording) {
+    if (this._isStartingRecord) {
       // 录音正在启动中，等待onStart后再停止
       this._pendingStop = true
+      console.log('[Recording] Set pendingStop=true (recorder still starting)')
       return
     }
 
-    if (!this.data.isRecording) return
+    if (!this.data.isRecording) {
+      console.log('[Recording] touchend but not recording, ignore')
+      return
+    }
 
     // 检查按住时长，太短则取消
     const holdDuration = Date.now() - (this._touchStartTime || 0)
     if (holdDuration < 500) {
       // 按住不到500ms，视为误触，取消录音
+      console.log('[Recording] Hold too short:', holdDuration, 'ms, cancelling')
       this._recorderManager.stop()
       // 不提交，只提示
       this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
@@ -991,7 +1025,17 @@ Page({
       return
     }
 
+    console.log('[Recording] Stopping recording after', holdDuration, 'ms hold')
     this.stopRecording()
+  },
+
+  /** 录音遮罩层点击事件（兑底保护：点击遮罩层任何位置也停止录音） */
+  onOverlayTap(e) {
+    console.log('[Recording] Overlay tapped, forcing stop recording')
+    if (this.data.isRecording) {
+      this._touchActive = false
+      this.stopRecording()
+    }
   },
 
   /** 开始录音 */
@@ -1052,6 +1096,11 @@ Page({
   /** 停止录音 */
   stopRecording() {
     if (!this.data.isRecording) return
+    // 清除安全定时器
+    if (this._recordSafetyTimer) {
+      clearTimeout(this._recordSafetyTimer)
+      this._recordSafetyTimer = null
+    }
     this._recorderManager.stop()
     // 清除录音遮罩状态
     this.setData({ recordCountdown: 0, recordWaveBars: [] })

@@ -614,6 +614,19 @@ function selfIntroEstimate(sessionId, audioUrl) {
       if (!el.upperBound && el.upper_bound) el.upperBound = el.upper_bound
       if (!el.upperBoundName && el.upper_bound_name) el.upperBoundName = el.upper_bound_name
     }
+    // 兼容v4.1新增字段（多维度能力分析）
+    if (!data.abilityRadar && data.ability_radar) data.abilityRadar = data.ability_radar
+    if (!data.levelRange && data.level_range) data.levelRange = data.level_range
+    if (!data.levelRangeNames && data.level_range_names) data.levelRangeNames = data.level_range_names
+    if (!data.guidanceText && data.guidance_text) data.guidanceText = data.guidance_text
+    if (!data.overallComment && data.overall_comment) data.overallComment = data.overall_comment
+    // abilityRadar内部字段兼容
+    if (data.abilityRadar && Array.isArray(data.abilityRadar)) {
+      data.abilityRadar = data.abilityRadar.map(dim => {
+        if (!dim.dimensionName && dim.dimension_name) dim.dimensionName = dim.dimension_name
+        return dim
+      })
+    }
     // 兼容question字段
     if (data.question) {
       const q = data.question

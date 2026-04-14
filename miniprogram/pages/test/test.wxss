@@ -1396,6 +1396,52 @@
   text-align: center;
 }
 
+/* 综合能力总评卡片 */
+.estimate-comment-card {
+  padding: 32rpx 36rpx;
+}
+
+.estimate-comment-header {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  margin-bottom: 16rpx;
+}
+
+.estimate-comment-icon {
+  width: 36rpx;
+  height: 36rpx;
+  opacity: 0.7;
+}
+
+.estimate-comment-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.estimate-comment-text {
+  display: block;
+  font-size: 26rpx;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  white-space: pre-line;
+}
+
+/* 维度评语行 */
+.estimate-dim-comment-row {
+  width: 100%;
+  padding-left: 24rpx;
+  margin-top: 4rpx;
+  margin-bottom: 8rpx;
+}
+
+.estimate-dim-comment {
+  font-size: 22rpx;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
 .estimate-guide-icon-wrap {
   margin-bottom: 12rpx;
 }

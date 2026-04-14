@@ -106,6 +106,15 @@
           </view>
         </view>
 
+        <!-- 综合能力总评 -->
+        <view wx:if="{{estimateOverallComment}}" class="estimate-comment-card glass-card-strong">
+          <view class="estimate-comment-header">
+            <image class="estimate-comment-icon" src="/assets/icons/message-circle.svg" mode="aspectFit" />
+            <text class="estimate-comment-title">AI 综合评价</text>
+          </view>
+          <text class="estimate-comment-text">{{estimateOverallComment}}</text>
+        </view>
+
         <!-- 多维度能力雷达图 -->
         <view class="estimate-radar-card glass-card-strong">
           <view class="estimate-radar-title-row">
@@ -114,7 +123,7 @@
           <view class="estimate-radar-wrap">
             <canvas type="2d" id="radarCanvas" class="radar-canvas"></canvas>
           </view>
-          <!-- 维度得分列表 -->
+          <!-- 维度得分列表（带评语） -->
           <view class="estimate-dims-list">
             <view wx:for="{{estimateDimensions}}" wx:key="name" class="estimate-dim-item">
               <view class="estimate-dim-left">
@@ -127,6 +136,9 @@
                 </view>
                 <text class="estimate-dim-score">{{item.score}}</text>
               </view>
+              <view wx:if="{{item.comment}}" class="estimate-dim-comment-row">
+                <text class="estimate-dim-comment">{{item.comment}}</text>
+              </view>
             </view>
           </view>
         </view>
@@ -136,7 +148,7 @@
           <view class="estimate-guide-icon-wrap">
             <text class="estimate-guide-icon">🎯</text>
           </view>
-          <text class="estimate-guide-text">为了更准确定级，请继续完成接下来的外教问答</text>
+          <text class="estimate-guide-text">{{estimateGuidanceText || '为了更准确定级，请继续完成接下来的外教问答'}}</text>
           <text class="estimate-guide-sub">AI将根据你的实际对话表现，精准评估你的英语口语水平</text>
         </view>
       </view>

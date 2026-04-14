@@ -159,6 +159,8 @@ Page({
     estimateLevelRange: '',      // 预估级别范围（如 G10-G12）
     estimateLevelDesc: '',       // 预估级别描述
     estimateDimensions: [],      // 多维度能力分析数据
+    estimateOverallComment: '',  // 综合能力总评
+    estimateGuidanceText: '',    // 引导说明文案
 
     // v4.0 分析进度条
     analysisSteps: [],           // 分析步骤数组
@@ -2184,37 +2186,53 @@ Page({
     const upperName = el.upperBoundName || el.upperBound || ''
     const startLevelName = estimateData.startSubLevelName || estimateData.startSubLevel || 'PRE1'
 
-    // 级别范围文案（如 G10 - G12）
-    let levelRange = startLevelName
-    if (upperName && lowerName !== upperName) {
-      levelRange = `${lowerName} - ${upperName}`
-    } else if (lowerName) {
-      levelRange = lowerName
+    // 级别范围文案：优先用后端 levelRange，否则前端拼接
+    let levelRange = estimateData.levelRange || ''
+    if (!levelRange) {
+      if (upperName && lowerName !== upperName) {
+        levelRange = `${lowerName} - ${upperName}`
+      } else {
+        levelRange = lowerName || startLevelName
+      }
     }
 
-    // 级别描述
+    // 级别描述：优先用后端 levelRangeNames，否则前端映射
     const majorLevel = SUB_LEVEL_MAJOR[startLevelName] !== undefined ? SUB_LEVEL_MAJOR[startLevelName] : 0
-    const levelDescMap = {
-      0: '学前水平 · 基础入门阶段',
-      1: '小学水平 · 日常交流阶段',
-      2: '中学水平 · 流利表达阶段',
-      3: '雅思水平 · 高级运用阶段'
+    let levelDesc = estimateData.levelRangeNames || ''
+    if (!levelDesc) {
+      const levelDescMap = {
+        0: '学前水平 · 基础入门阶段',
+        1: '小学水平 · 日常交流阶段',
+        2: '中学水平 · 流利表达阶段',
+        3: '雅思水平 · 高级运用阶段'
+      }
+      levelDesc = levelDescMap[majorLevel] || '英语口语水平评估'
     }
-    const levelDesc = levelDescMap[majorLevel] || '英语口语水平评估'
 
-    // 多维度能力数据（优先用后端返回，否则根据级别生成默认值）
-    const dims = estimateData.dimensions || el.dimensions || null
+    // 引导文案：优先用后端 guidanceText
+    const guidanceText = estimateData.guidanceText || '为了更准确定级，请继续完成接下来的外教问答'
+
+    // 综合能力总评：后端 overallComment
+    const overallComment = estimateData.overallComment || ''
+
+    // 多维度能力数据：优先用后端 abilityRadar，其次 dimensions，最后生成默认值
+    const radar = estimateData.abilityRadar || estimateData.dimensions || el.dimensions || null
     const dimensionColors = ['#3B82F6', '#8B5CF6', '#F59E0B', '#10B981', '#EF4444']
-    const dimensionLabels = ['发音准确度', '语法规范性', '词汇丰富度', '流利度', '表达逻辑']
+    const defaultLabels = ['语法复杂度', '词汇丰富度', '表达连贯性', '流利度', '内容深度']
     let estimateDimensions = []
-    if (dims && Array.isArray(dims) && dims.length >= 5) {
+    if (radar && Array.isArray(radar) && radar.length >= 5) {
       // 后端返回了维度数据
-      estimateDimensions = dims.map((d, i) => ({
-        name: d.name || dimensionLabels[i],
-        label: d.label || d.name || dimensionLabels[i],
-        score: Math.round(d.score || 0),
-        color: dimensionColors[i % dimensionColors.length]
-      }))
+      estimateDimensions = radar.map((d, i) => {
+        // 兼容后端字段名：dimensionName / name / label
+        const label = d.dimensionName || d.label || d.name || defaultLabels[i]
+        return {
+          name: d.name || label,
+          label: label,
+          score: Math.round(d.score || 0),
+          comment: d.comment || '',
+          color: dimensionColors[i % dimensionColors.length]
+        }
+      })
     } else {
       // 后端未返回维度数据，根据级别生成合理默认值
       const baseScores = {
@@ -2224,14 +2242,14 @@ Page({
         3: [85, 80, 78, 82, 75]
       }
       const scores = baseScores[majorLevel] || baseScores[0]
-      estimateDimensions = dimensionLabels.map((label, i) => {
-        // 加入少量随机波动（±5）让数据更自然
+      estimateDimensions = defaultLabels.map((label, i) => {
         const jitter = Math.floor(Math.random() * 11) - 5
         const score = Math.max(5, Math.min(100, scores[i] + jitter))
         return {
           name: label,
           label: label,
           score: score,
+          comment: '',
           color: dimensionColors[i]
         }
       })
@@ -2249,6 +2267,11 @@ Page({
     this._estimateSubLevel = estimateData.startSubLevel || this._startSubLevel || 'PRE1'
     this._estimateMajorLevel = SUB_LEVEL_MAJOR[this._estimateSubLevel] !== undefined ? SUB_LEVEL_MAJOR[this._estimateSubLevel] : 0
 
+    console.log('[EstimateResult] levelRange:', levelRange, 'levelDesc:', levelDesc)
+    console.log('[EstimateResult] guidanceText:', guidanceText)
+    console.log('[EstimateResult] overallComment:', overallComment)
+    console.log('[EstimateResult] dimensions:', estimateDimensions.length, 'items')
+
     this.setData({
       estimatedLevel: el,
       showEstimateResult: true,
@@ -2256,6 +2279,8 @@ Page({
       estimateLevelRange: levelRange,
       estimateLevelDesc: levelDesc,
       estimateDimensions: estimateDimensions,
+      estimateOverallComment: overallComment,
+      estimateGuidanceText: guidanceText,
       selfIntroUploading: false,
       currentQuestion: this._estimateQuestion,
       currentSubLevel: this._estimateSubLevel,
@@ -2391,7 +2416,9 @@ Page({
       showEstimateResult: false,
       estimateLevelRange: '',
       estimateLevelDesc: '',
-      estimateDimensions: []
+      estimateDimensions: [],
+      estimateOverallComment: '',
+      estimateGuidanceText: ''
     })
     this._enterTestingPhase(question)
   },
@@ -2408,6 +2435,8 @@ Page({
       estimateLevelRange: '',
       estimateLevelDesc: '',
       estimateDimensions: [],
+      estimateOverallComment: '',
+      estimateGuidanceText: '',
       selfIntroRecording: false,
       selfIntroRecordSeconds: 0,
       selfIntroRecordTimeDisplay: '0"',

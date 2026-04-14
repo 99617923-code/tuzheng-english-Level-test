@@ -665,3 +665,11 @@
 - [x] 引导文案“为了更准确定级，请继续完成接下来的外教问答”
 - [x] 底部按钮UI专业化重新设计（开始外教问答+重新录制自我介绍）
 - [x] 梳理selfIntroEstimate API所需返回的多维度数据结构文档
+
+## 第六十五轮 - 对接后端selfIntroEstimate新增字段
+- [x] api.js：兼容后端新增字段（abilityRadar、levelRange、levelRangeNames、guidanceText、overallComment）
+- [x] test.js：_showEstimateResult使用后端abilityRadar替代前端默认维度数据
+- [x] test.js：使用后端levelRange/levelRangeNames替代前端拼接的级别范围
+- [x] test.js：使用后端guidanceText替代前端硬编码的引导文案
+- [x] test.wxml：新增overallComment综合能力总评展示区域
+- [x] test.wxss：overallComment展示样式

@@ -2149,8 +2149,10 @@ Page({
       introAnalysisStatus: '正在上传录音...'
     })
 
-    // 启动五维度分析进度模拟动画
-    this._startIntroAnalysisProgress(introAnalysisDims)
+    // 延迟启动五维度分析进度模拟动画，避免与录音停止回调的setData冲突
+    setTimeout(() => {
+      this._startIntroAnalysisProgress(introAnalysisDims)
+    }, 500)
 
     try {
       // 第一步：上传录音到OSS
@@ -2319,16 +2321,16 @@ Page({
     console.log('[EstimateResult] overallComment:', overallComment)
     console.log('[EstimateResult] dimensions:', estimateDimensions.length, 'items')
 
+    // 分两步setData，避免一次性传输大量数据导致卡顿
     this.setData({
-      estimatedLevel: el,
+      selfIntroUploading: false,
       showEstimateResult: true,
+      estimatedLevel: el,
       estimateResultText: resultText,
       estimateLevelRange: levelRange,
       estimateLevelDesc: levelDesc,
-      estimateDimensions: estimateDimensions,
-      estimateOverallComment: overallComment,
       estimateGuidanceText: guidanceText,
-      selfIntroUploading: false,
+      estimateOverallComment: overallComment,
       currentQuestion: this._estimateQuestion,
       currentSubLevel: this._estimateSubLevel,
       currentMajorLevel: this._estimateMajorLevel,
@@ -2336,6 +2338,10 @@ Page({
       majorLevelDisplay: MAJOR_LEVEL_NAMES[this._estimateMajorLevel] || '途正口语0级',
       aiStatusText: '分析完成！'
     })
+    // 延迟设置维度数据，避免与上面的setData拢在一起
+    setTimeout(() => {
+      this.setData({ estimateDimensions: estimateDimensions })
+    }, 50)
 
     // 绘制雷达图
     setTimeout(() => {
@@ -2613,11 +2619,11 @@ Page({
 
     // 每个维度的模拟参数：延迟启动、最大速度、当前目标上限
     const dimConfigs = [
-      { delay: 0,    speed: 1.8, maxPct: 88 },    // 语法复杂度
-      { delay: 600,  speed: 2.0, maxPct: 85 },    // 词汇丰富度
-      { delay: 1200, speed: 1.6, maxPct: 82 },    // 表达连贯性
-      { delay: 1800, speed: 2.2, maxPct: 90 },    // 流利度
-      { delay: 2400, speed: 1.4, maxPct: 80 }     // 内容深度
+      { delay: 0,    speed: 1.2, maxPct: 88 },    // 语法复杂度
+      { delay: 800,  speed: 1.3, maxPct: 85 },    // 词汇丰富度
+      { delay: 1600, speed: 1.1, maxPct: 82 },    // 表达连贯性
+      { delay: 2400, speed: 1.4, maxPct: 90 },    // 流利度
+      { delay: 3200, speed: 1.0, maxPct: 80 }     // 内容深度
     ]
 
     const statusTexts = [
@@ -2630,46 +2636,49 @@ Page({
 
     const startTime = Date.now()
     let lastStatusIdx = -1
-    const INTERVAL = 100
+    // 降低到300ms间隔，避免高频setData导致开发者工具卡死
+    const INTERVAL = 300
 
     this._introAnalysisTimer = setInterval(() => {
       const elapsed = Date.now() - startTime
-      const updatedDims = [...this.data.introAnalysisDims]
+      // 使用路径式更新（key-path）减少setData数据量
+      const updateData = {}
       let totalPct = 0
-      let activeIdx = 0
+      let hasChange = false
 
-      for (let i = 0; i < updatedDims.length; i++) {
+      for (let i = 0; i < 5; i++) {
         const cfg = dimConfigs[i]
-        if (elapsed < cfg.delay) {
-          // 还未开始
-          updatedDims[i].percentage = 0
-          updatedDims[i].pctDisplay = '0'
-        } else {
+        const oldPct = this.data.introAnalysisDims[i] ? this.data.introAnalysisDims[i].percentage : 0
+        let newPct = 0
+        if (elapsed >= cfg.delay) {
           const dimElapsed = elapsed - cfg.delay
-          // 非线性增长：开始快，接近上限时减速
           const rawPct = cfg.speed * Math.sqrt(dimElapsed / 100)
-          const pct = Math.min(rawPct, cfg.maxPct)
-          updatedDims[i].percentage = Math.round(pct)
-          updatedDims[i].pctDisplay = Math.round(pct).toString()
-          if (pct > 0) activeIdx = i
+          newPct = Math.min(Math.round(rawPct), cfg.maxPct)
         }
-        totalPct += updatedDims[i].percentage
+        totalPct += newPct
+        // 只更新变化的维度，减少setData负载
+        if (newPct !== oldPct) {
+          updateData[`introAnalysisDims[${i}].percentage`] = newPct
+          updateData[`introAnalysisDims[${i}].pctDisplay`] = newPct.toString()
+          hasChange = true
+        }
       }
 
-      const overallPct = Math.round(totalPct / updatedDims.length)
+      if (!hasChange) return  // 无变化时不调用setData
+
+      const overallPct = Math.round(totalPct / 5)
+      updateData.introAnalysisOverallPct = overallPct
 
       // 更新状态文案
       let statusIdx = 0
-      for (let i = updatedDims.length - 1; i >= 0; i--) {
-        if (updatedDims[i].percentage > 0 && updatedDims[i].percentage < dimConfigs[i].maxPct) {
+      for (let i = 4; i >= 0; i--) {
+        const dimPct = this.data.introAnalysisDims[i] ? this.data.introAnalysisDims[i].percentage : 0
+        const curPct = updateData[`introAnalysisDims[${i}].percentage`] !== undefined
+          ? updateData[`introAnalysisDims[${i}].percentage`] : dimPct
+        if (curPct > 0 && curPct < dimConfigs[i].maxPct) {
           statusIdx = i
           break
         }
-      }
-
-      const updateData = {
-        introAnalysisDims: updatedDims,
-        introAnalysisOverallPct: overallPct
       }
 
       if (statusIdx !== lastStatusIdx) {
@@ -2690,26 +2699,33 @@ Page({
       this._introAnalysisTimer = null
     }
 
-    const dims = [...this.data.introAnalysisDims]
-    const STEP_DELAY = 180  // 每个维度间隔180ms完成
+    const dimCount = this.data.introAnalysisDims.length
+    const STEP_DELAY = 200  // 每个维度间隔200ms完成
 
-    dims.forEach((dim, idx) => {
+    for (let idx = 0; idx < dimCount; idx++) {
       setTimeout(() => {
-        dims[idx].percentage = 100
-        dims[idx].pctDisplay = '100'
-        dims[idx].color = '#10B981'  // 完成时统一渐变为绿色
-
-        const totalPct = dims.reduce((sum, d) => sum + d.percentage, 0)
-        const overallPct = Math.round(totalPct / dims.length)
+        // 使用路径式setData，只更新单个维度，避免传输整个数组
+        const completedCount = idx + 1
+        // 计算已完成维度的总进度
+        let totalPct = completedCount * 100
+        // 加上未完成维度的当前进度
+        for (let j = completedCount; j < dimCount; j++) {
+          const dimData = this.data.introAnalysisDims[j]
+          totalPct += dimData ? dimData.percentage : 0
+        }
+        const overallPct = Math.round(totalPct / dimCount)
+        const dimName = this.data.introAnalysisDims[idx] ? this.data.introAnalysisDims[idx].name : ''
 
         this.setData({
-          introAnalysisDims: [...dims],
+          [`introAnalysisDims[${idx}].percentage`]: 100,
+          [`introAnalysisDims[${idx}].pctDisplay`]: '100',
+          [`introAnalysisDims[${idx}].color`]: '#10B981',
           introAnalysisOverallPct: overallPct,
-          introAnalysisStatus: idx === dims.length - 1 ? '分析完成！' : `正在完成${dims[idx].name}分析...`
+          introAnalysisStatus: idx === dimCount - 1 ? '分析完成！' : `正在完成${dimName}分析...`
         })
 
         // 最后一个维度完成后，展示勾选动画
-        if (idx === dims.length - 1) {
+        if (idx === dimCount - 1) {
           setTimeout(() => {
             this.setData({
               introAnalysisComplete: true,
@@ -2723,7 +2739,7 @@ Page({
           }, 300)
         }
       }, idx * STEP_DELAY)
-    })
+    }
   },
 
   // ============ v4.0 分析进度条动画 ============

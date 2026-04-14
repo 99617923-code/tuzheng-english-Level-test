@@ -1215,29 +1215,148 @@
   color: var(--text-muted);
 }
 
-/* 自我介绍分析中卡片 */
+/* 自我介绍分析中卡片：五维度分析进度 */
 .intro-analyzing-card {
-  padding: 60rpx 36rpx;
+  padding: 36rpx;
   margin-top: 20rpx;
-  text-align: center;
 }
 
-.intro-analyzing-content {
+.intro-analysis-header {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 24rpx;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
 }
 
-.intro-analyzing-text {
-  font-size: 32rpx;
-  font-weight: 600;
+.intro-analysis-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.intro-analysis-pulse {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  background: var(--brand-blue, #1B3F91);
+  animation: introAnalysisPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes introAnalysisPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
+}
+
+.intro-analysis-title {
+  font-size: 28rpx;
+  font-weight: 700;
   color: var(--text-primary);
 }
 
-.intro-analyzing-hint {
+.intro-analysis-overall-pct {
+  font-size: 36rpx;
+  font-weight: 800;
+  color: var(--brand-blue, #1B3F91);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 总体进度条 */
+.intro-analysis-total-bar {
+  width: 100%;
+  height: 12rpx;
+  border-radius: 12rpx;
+  background: rgba(27, 63, 145, 0.08);
+  overflow: hidden;
+  margin-bottom: 28rpx;
+}
+
+.intro-analysis-total-fill {
+  height: 100%;
+  border-radius: 12rpx;
+  background: linear-gradient(90deg, var(--brand-blue, #1B3F91), var(--brand-green, #83BA12));
+  transition: width 0.15s ease;
+  min-width: 0;
+}
+
+/* 五维度分析进度列表 */
+.intro-analysis-dims {
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+}
+
+.intro-analysis-dim-item {
+  opacity: 0.35;
+  transition: opacity 0.4s ease;
+}
+
+.intro-analysis-dim-item.active {
+  opacity: 1;
+}
+
+.intro-analysis-dim-item.completed {
+  opacity: 0.75;
+}
+
+.intro-analysis-dim-info {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
+.intro-analysis-dim-dot {
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  margin-right: 10rpx;
+  flex-shrink: 0;
+}
+
+.intro-analysis-dim-name {
+  font-size: 24rpx;
+  font-weight: 500;
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.intro-analysis-dim-pct {
+  font-size: 24rpx;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  min-width: 70rpx;
+  text-align: right;
+}
+
+.intro-analysis-dim-bar {
+  width: 100%;
+  height: 8rpx;
+  border-radius: 8rpx;
+  background: rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.intro-analysis-dim-fill {
+  height: 100%;
+  border-radius: 8rpx;
+  transition: width 0.15s ease;
+  min-width: 0;
+}
+
+/* 底部状态 */
+.intro-analysis-footer {
+  margin-top: 24rpx;
+  text-align: center;
+}
+
+.intro-analysis-status {
   font-size: 24rpx;
   color: var(--text-muted);
+  animation: introStatusFade 2s ease-in-out infinite;
+}
+
+@keyframes introStatusFade {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 /* ========== 预估结果：多维度能力分析 ========== */

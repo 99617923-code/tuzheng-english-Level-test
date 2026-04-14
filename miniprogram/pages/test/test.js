@@ -162,6 +162,11 @@ Page({
     estimateOverallComment: '',  // 综合能力总评
     estimateGuidanceText: '',    // 引导说明文案
 
+    // 自我介绍分析维度进度
+    introAnalysisDims: [],       // 五维度分析进度数据
+    introAnalysisOverallPct: 0,  // 总体进度百分比
+    introAnalysisStatus: '',     // 当前分析状态文案
+
     // v4.0 分析进度条
     analysisSteps: [],           // 分析步骤数组
     showAnalysisProgress: false, // 是否显示分析进度
@@ -301,6 +306,11 @@ Page({
     if (this._analysisProgressTimer) {
       clearInterval(this._analysisProgressTimer)
       this._analysisProgressTimer = null
+    }
+    // 清除自我介绍五维度分析进度定时器
+    if (this._introAnalysisTimer) {
+      clearInterval(this._introAnalysisTimer)
+      this._introAnalysisTimer = null
     }
     // 标记页面已卸载，防止全局录音回调继续弹窗
     this._isPageUnloaded = true
@@ -2119,18 +2129,34 @@ Page({
 
     this._selfIntroRecordFilePath = filePath
 
+    // 初始化五维度分析进度
+    const dimColors = ['#3B82F6', '#8B5CF6', '#F59E0B', '#10B981', '#EF4444']
+    const dimNames = ['语法复杂度', '词汇丰富度', '表达连贯性', '流利度', '内容深度']
+    const introAnalysisDims = dimNames.map((name, i) => ({
+      name,
+      color: dimColors[i],
+      percentage: 0,
+      pctDisplay: '0'
+    }))
+
     // 开始上传+预估流程
     this.setData({
       selfIntroUploading: true,
-      aiStatusText: '正在分析你的英语水平...'
+      aiStatusText: '正在上传录音...',
+      introAnalysisDims: introAnalysisDims,
+      introAnalysisOverallPct: 0,
+      introAnalysisStatus: '正在上传录音...'
     })
+
+    // 启动五维度分析进度模拟动画
+    this._startIntroAnalysisProgress(introAnalysisDims)
 
     try {
       // 第一步：上传录音到OSS
       const uploadRes = await uploadAudio(
         filePath,
         this.data.sessionId,
-        'self-intro'  // questionId传self-intro
+        'self-intro'
       )
       const audioUrl = uploadRes.audioUrl || uploadRes.audio_url || uploadRes.url || ''
 
@@ -2138,17 +2164,36 @@ Page({
         throw new Error('录音上传失败，请重试')
       }
 
+      // 上传完成，更新状态
+      this.setData({
+        aiStatusText: 'AI正在分析你的英语水平...',
+        introAnalysisStatus: 'AI正在深度分析...'
+      })
+
       // 第二步：调用selfIntroEstimate接口
       const estimateData = await selfIntroEstimate(this.data.sessionId, audioUrl)
 
-      // 展示预估结果
-      this._selfIntroProcessing = false
-      this._showEstimateResult(estimateData)
+      // 完成分析进度动画
+      this._completeIntroAnalysisProgress(() => {
+        // 动画完成后展示预估结果
+        this._selfIntroProcessing = false
+        this._showEstimateResult(estimateData)
+      })
 
     } catch (err) {
       console.error('[SelfIntro] Estimate failed:', err)
       this._selfIntroProcessing = false
-      this.setData({ selfIntroUploading: false })
+      // 清理分析进度定时器
+      if (this._introAnalysisTimer) {
+        clearInterval(this._introAnalysisTimer)
+        this._introAnalysisTimer = null
+      }
+      this.setData({
+        selfIntroUploading: false,
+        introAnalysisDims: [],
+        introAnalysisOverallPct: 0,
+        introAnalysisStatus: ''
+      })
       
       if (this._showingModal || this._isPageUnloaded) return
       this._showingModal = true
@@ -2418,7 +2463,10 @@ Page({
       estimateLevelDesc: '',
       estimateDimensions: [],
       estimateOverallComment: '',
-      estimateGuidanceText: ''
+      estimateGuidanceText: '',
+      introAnalysisDims: [],
+      introAnalysisOverallPct: 0,
+      introAnalysisStatus: ''
     })
     this._enterTestingPhase(question)
   },
@@ -2437,6 +2485,9 @@ Page({
       estimateDimensions: [],
       estimateOverallComment: '',
       estimateGuidanceText: '',
+      introAnalysisDims: [],
+      introAnalysisOverallPct: 0,
+      introAnalysisStatus: '',
       selfIntroRecording: false,
       selfIntroRecordSeconds: 0,
       selfIntroRecordTimeDisplay: '0"',
@@ -2542,6 +2593,124 @@ Page({
       this._destroyAudioContext()
       this._playQuestionAudio()
     }, 500)
+  },
+
+  // ============ 自我介绍五维度分析进度动画 ============
+
+  /**
+   * 启动自我介绍五维度分析进度模拟
+   * 每个维度依次进入分析，并行推进到不同速度
+   */
+  _startIntroAnalysisProgress(dims) {
+    if (this._introAnalysisTimer) {
+      clearInterval(this._introAnalysisTimer)
+      this._introAnalysisTimer = null
+    }
+
+    // 每个维度的模拟参数：延迟启动、最大速度、当前目标上限
+    const dimConfigs = [
+      { delay: 0,    speed: 1.8, maxPct: 88 },    // 语法复杂度
+      { delay: 600,  speed: 2.0, maxPct: 85 },    // 词汇丰富度
+      { delay: 1200, speed: 1.6, maxPct: 82 },    // 表达连贯性
+      { delay: 1800, speed: 2.2, maxPct: 90 },    // 流利度
+      { delay: 2400, speed: 1.4, maxPct: 80 }     // 内容深度
+    ]
+
+    const statusTexts = [
+      '正在分析语法复杂度...',
+      '正在分析词汇丰富度...',
+      '正在分析表达连贯性...',
+      '正在分析流利度...',
+      '正在分析内容深度...'
+    ]
+
+    const startTime = Date.now()
+    let lastStatusIdx = -1
+    const INTERVAL = 100
+
+    this._introAnalysisTimer = setInterval(() => {
+      const elapsed = Date.now() - startTime
+      const updatedDims = [...this.data.introAnalysisDims]
+      let totalPct = 0
+      let activeIdx = 0
+
+      for (let i = 0; i < updatedDims.length; i++) {
+        const cfg = dimConfigs[i]
+        if (elapsed < cfg.delay) {
+          // 还未开始
+          updatedDims[i].percentage = 0
+          updatedDims[i].pctDisplay = '0'
+        } else {
+          const dimElapsed = elapsed - cfg.delay
+          // 非线性增长：开始快，接近上限时减速
+          const rawPct = cfg.speed * Math.sqrt(dimElapsed / 100)
+          const pct = Math.min(rawPct, cfg.maxPct)
+          updatedDims[i].percentage = Math.round(pct)
+          updatedDims[i].pctDisplay = Math.round(pct).toString()
+          if (pct > 0) activeIdx = i
+        }
+        totalPct += updatedDims[i].percentage
+      }
+
+      const overallPct = Math.round(totalPct / updatedDims.length)
+
+      // 更新状态文案
+      let statusIdx = 0
+      for (let i = updatedDims.length - 1; i >= 0; i--) {
+        if (updatedDims[i].percentage > 0 && updatedDims[i].percentage < dimConfigs[i].maxPct) {
+          statusIdx = i
+          break
+        }
+      }
+
+      const updateData = {
+        introAnalysisDims: updatedDims,
+        introAnalysisOverallPct: overallPct
+      }
+
+      if (statusIdx !== lastStatusIdx) {
+        updateData.introAnalysisStatus = statusTexts[statusIdx]
+        lastStatusIdx = statusIdx
+      }
+
+      this.setData(updateData)
+    }, INTERVAL)
+  },
+
+  /**
+   * 完成自我介绍分析进度：将所有维度快速填充到100%
+   */
+  _completeIntroAnalysisProgress(callback) {
+    if (this._introAnalysisTimer) {
+      clearInterval(this._introAnalysisTimer)
+      this._introAnalysisTimer = null
+    }
+
+    const dims = [...this.data.introAnalysisDims]
+    const STEP_DELAY = 200  // 每个维度间隔200ms完成
+
+    dims.forEach((dim, idx) => {
+      setTimeout(() => {
+        dims[idx].percentage = 100
+        dims[idx].pctDisplay = '100'
+
+        const totalPct = dims.reduce((sum, d) => sum + d.percentage, 0)
+        const overallPct = Math.round(totalPct / dims.length)
+
+        this.setData({
+          introAnalysisDims: [...dims],
+          introAnalysisOverallPct: overallPct,
+          introAnalysisStatus: idx === dims.length - 1 ? '分析完成！' : `正在完成${dims[idx].name}分析...`
+        })
+
+        // 最后一个维度完成后触发回调
+        if (idx === dims.length - 1) {
+          setTimeout(() => {
+            if (callback) callback()
+          }, 400)
+        }
+      }, idx * STEP_DELAY)
+    })
   },
 
   // ============ v4.0 分析进度条动画 ============

@@ -82,12 +82,41 @@
         <text class="intro-recording-hint">松开按钮结束录音</text>
       </view>
 
-      <!-- 正在分析中状态 -->
+      <!-- 正在分析中状态：五维度分析进度 -->
       <view wx:if="{{selfIntroUploading}}" class="intro-analyzing-card glass-card-strong animate-fade-in">
-        <view class="intro-analyzing-content">
-          <view class="spinner"></view>
-          <text class="intro-analyzing-text">AI正在分析你的英语水平...</text>
-          <text class="intro-analyzing-hint">这可能需要几秒钟</text>
+        <!-- 顶部标题和总体进度 -->
+        <view class="intro-analysis-header">
+          <view class="intro-analysis-title-row">
+            <view class="intro-analysis-pulse"></view>
+            <text class="intro-analysis-title">AI 正在分析你的英语水平</text>
+          </view>
+          <view class="intro-analysis-overall">
+            <text class="intro-analysis-overall-pct">{{introAnalysisOverallPct}}%</text>
+          </view>
+        </view>
+
+        <!-- 总体进度条 -->
+        <view class="intro-analysis-total-bar">
+          <view class="intro-analysis-total-fill" style="width: {{introAnalysisOverallPct}}%;"></view>
+        </view>
+
+        <!-- 五维度分析进度列表 -->
+        <view class="intro-analysis-dims">
+          <view wx:for="{{introAnalysisDims}}" wx:key="name" class="intro-analysis-dim-item {{item.percentage > 0 ? 'active' : ''}} {{item.percentage >= 100 ? 'completed' : ''}}">
+            <view class="intro-analysis-dim-info">
+              <view class="intro-analysis-dim-dot" style="background: {{item.color}};"></view>
+              <text class="intro-analysis-dim-name">{{item.name}}</text>
+              <text class="intro-analysis-dim-pct" style="color: {{item.color}};">{{item.pctDisplay}}%</text>
+            </view>
+            <view class="intro-analysis-dim-bar">
+              <view class="intro-analysis-dim-fill" style="width: {{item.percentage}}%; background: {{item.color}};"></view>
+            </view>
+          </view>
+        </view>
+
+        <!-- 底部状态文案 -->
+        <view class="intro-analysis-footer">
+          <text class="intro-analysis-status">{{introAnalysisStatus}}</text>
         </view>
       </view>
 

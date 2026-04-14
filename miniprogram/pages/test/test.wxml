@@ -91,11 +91,54 @@
         </view>
       </view>
 
-      <!-- 预估结果展示 -->
-      <view wx:if="{{showEstimateResult}}" class="intro-result-card glass-card-strong animate-fade-in">
-        <view class="intro-result-icon">✨</view>
-        <text class="intro-result-text">{{estimateResultText}}</text>
-        <text class="intro-result-hint">请选择开始做题或重新录制</text>
+      <!-- 预估结果展示（多维度能力分析） -->
+      <view wx:if="{{showEstimateResult}}" class="estimate-result-section animate-fade-in">
+        <!-- 预估级别范围卡片 -->
+        <view class="estimate-level-card glass-card-strong">
+          <view class="estimate-level-header">
+            <text class="estimate-level-label">AI 预估口语水平</text>
+          </view>
+          <view class="estimate-level-range">
+            <text class="estimate-level-value">{{estimateLevelRange}}</text>
+          </view>
+          <view class="estimate-level-desc">
+            <text class="estimate-level-desc-text">{{estimateLevelDesc}}</text>
+          </view>
+        </view>
+
+        <!-- 多维度能力雷达图 -->
+        <view class="estimate-radar-card glass-card-strong">
+          <view class="estimate-radar-title-row">
+            <text class="estimate-radar-title">能力维度分析</text>
+          </view>
+          <view class="estimate-radar-wrap">
+            <canvas type="2d" id="radarCanvas" class="radar-canvas"></canvas>
+          </view>
+          <!-- 维度得分列表 -->
+          <view class="estimate-dims-list">
+            <view wx:for="{{estimateDimensions}}" wx:key="name" class="estimate-dim-item">
+              <view class="estimate-dim-left">
+                <view class="estimate-dim-dot" style="background: {{item.color}};"></view>
+                <text class="estimate-dim-name">{{item.label}}</text>
+              </view>
+              <view class="estimate-dim-right">
+                <view class="estimate-dim-bar-bg">
+                  <view class="estimate-dim-bar-fill" style="width: {{item.score}}%; background: {{item.color}};"></view>
+                </view>
+                <text class="estimate-dim-score">{{item.score}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <!-- 引导文案 -->
+        <view class="estimate-guide-card glass-card-strong">
+          <view class="estimate-guide-icon-wrap">
+            <text class="estimate-guide-icon">🎯</text>
+          </view>
+          <text class="estimate-guide-text">为了更准确定级，请继续完成接下来的外教问答</text>
+          <text class="estimate-guide-sub">AI将根据你的实际对话表现，精准评估你的英语口语水平</text>
+        </view>
       </view>
     </view>
 
@@ -213,10 +256,15 @@
     </view>
 
     <!-- 预估结果展示 - 用户手动选择 -->
-    <view wx:elif="{{showEstimateResult}}" class="action-area">
-      <button class="intro-record-btn" bindtap="handleStartTestFromEstimate">开始做题</button>
-      <view class="intro-skip-row">
-        <text class="intro-skip-btn" bindtap="handleReRecordIntro">对录音不满意？重新录制</text>
+    <view wx:elif="{{showEstimateResult}}" class="action-area estimate-action-area">
+      <view class="estimate-btn-group">
+        <button class="estimate-btn-primary" bindtap="handleStartTestFromEstimate">
+          <text class="estimate-btn-primary-text">开始外教问答</text>
+          <text class="estimate-btn-primary-arrow">→</text>
+        </button>
+        <button class="estimate-btn-secondary" bindtap="handleReRecordIntro">
+          <text class="estimate-btn-secondary-text">重新录制自我介绍</text>
+        </button>
       </view>
     </view>
 

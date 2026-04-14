@@ -659,3 +659,9 @@
 - [x] 修复：加强totalAnswered===0条件，确保AI智能模式新测评强制进入selfIntro
 - [x] 修复：所有跳转入口统一带evaluateMode=ai_smart参数（home.js/history.js/rules.js共5处）
 - [x] 添加调试日志：startTest调用前打印实际传递的evaluateMode参数
+## 自我介绍 AI分析结果页全面升级
+- [x] 多维度能力分析模型图（雷达图/能力图）展示
+- [x] 预估级别范围展示（如G10-G12格式）
+- [x] 引导文案“为了更准确定级，请继续完成接下来的外教问答”
+- [x] 底部按钮UI专业化重新设计（开始外教问答+重新录制自我介绍）
+- [x] 梳理selfIntroEstimate API所需返回的多维度数据结构文档

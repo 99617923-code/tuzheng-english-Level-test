@@ -1359,6 +1359,100 @@
   50% { opacity: 0.5; }
 }
 
+/* 分析完成勾选动画 */
+.intro-analysis-done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32rpx 0 16rpx;
+  animation: introDoneFadeIn 0.5s ease-out;
+}
+
+@keyframes introDoneFadeIn {
+  from { opacity: 0; transform: translateY(10rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.intro-done-circle {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10B981, #059669);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20rpx;
+  box-shadow: 0 8rpx 32rpx rgba(16, 185, 129, 0.35);
+  animation: introDoneCirclePop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes introDoneCirclePop {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.intro-done-check {
+  width: 40rpx;
+  height: 24rpx;
+  position: relative;
+}
+
+.intro-done-check-stem {
+  position: absolute;
+  width: 6rpx;
+  height: 24rpx;
+  background: #fff;
+  border-radius: 3rpx;
+  right: 0;
+  top: 0;
+  transform: rotate(0deg);
+  transform-origin: bottom right;
+  animation: introDoneCheckStem 0.3s ease-out 0.3s both;
+}
+
+@keyframes introDoneCheckStem {
+  from { height: 0; }
+  to { height: 24rpx; }
+}
+
+.intro-done-check-kick {
+  position: absolute;
+  width: 6rpx;
+  height: 14rpx;
+  background: #fff;
+  border-radius: 3rpx;
+  left: 6rpx;
+  bottom: 0;
+  transform: rotate(90deg);
+  transform-origin: bottom left;
+  animation: introDoneCheckKick 0.25s ease-out 0.55s both;
+}
+
+@keyframes introDoneCheckKick {
+  from { height: 0; }
+  to { height: 14rpx; }
+}
+
+.intro-done-text {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #10B981;
+  margin-bottom: 8rpx;
+  animation: introDoneTextFade 0.4s ease-out 0.6s both;
+}
+
+.intro-done-sub {
+  font-size: 24rpx;
+  color: var(--text-muted);
+  animation: introDoneTextFade 0.4s ease-out 0.8s both;
+}
+
+@keyframes introDoneTextFade {
+  from { opacity: 0; transform: translateY(8rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* ========== 预估结果：多维度能力分析 ========== */
 .estimate-result-section {
   display: flex;

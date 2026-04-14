@@ -166,6 +166,7 @@ Page({
     introAnalysisDims: [],       // 五维度分析进度数据
     introAnalysisOverallPct: 0,  // 总体进度百分比
     introAnalysisStatus: '',     // 当前分析状态文案
+    introAnalysisComplete: false, // 分析完成勾选动画状态
 
     // v4.0 分析进度条
     analysisSteps: [],           // 分析步骤数组
@@ -2192,7 +2193,8 @@ Page({
         selfIntroUploading: false,
         introAnalysisDims: [],
         introAnalysisOverallPct: 0,
-        introAnalysisStatus: ''
+        introAnalysisStatus: '',
+        introAnalysisComplete: false
       })
       
       if (this._showingModal || this._isPageUnloaded) return
@@ -2466,7 +2468,8 @@ Page({
       estimateGuidanceText: '',
       introAnalysisDims: [],
       introAnalysisOverallPct: 0,
-      introAnalysisStatus: ''
+      introAnalysisStatus: '',
+      introAnalysisComplete: false
     })
     this._enterTestingPhase(question)
   },
@@ -2488,6 +2491,7 @@ Page({
       introAnalysisDims: [],
       introAnalysisOverallPct: 0,
       introAnalysisStatus: '',
+      introAnalysisComplete: false,
       selfIntroRecording: false,
       selfIntroRecordSeconds: 0,
       selfIntroRecordTimeDisplay: '0"',
@@ -2678,7 +2682,7 @@ Page({
   },
 
   /**
-   * 完成自我介绍分析进度：将所有维度快速填充到100%
+   * 完成自我介绍分析进度：将所有维度快速填充到100%，然后展示勾选动画，再过渡到结果页
    */
   _completeIntroAnalysisProgress(callback) {
     if (this._introAnalysisTimer) {
@@ -2687,7 +2691,7 @@ Page({
     }
 
     const dims = [...this.data.introAnalysisDims]
-    const STEP_DELAY = 200  // 每个维度间隔200ms完成
+    const STEP_DELAY = 180  // 每个维度间隔180ms完成
 
     dims.forEach((dim, idx) => {
       setTimeout(() => {
@@ -2703,11 +2707,19 @@ Page({
           introAnalysisStatus: idx === dims.length - 1 ? '分析完成！' : `正在完成${dims[idx].name}分析...`
         })
 
-        // 最后一个维度完成后触发回调
+        // 最后一个维度完成后，展示勾选动画
         if (idx === dims.length - 1) {
           setTimeout(() => {
-            if (callback) callback()
-          }, 400)
+            this.setData({
+              introAnalysisComplete: true,
+              introAnalysisStatus: '分析完成'
+            })
+            // 勾选动画展示1.2秒后过渡到结果页
+            setTimeout(() => {
+              this.setData({ introAnalysisComplete: false })
+              if (callback) callback()
+            }, 1200)
+          }, 300)
         }
       }, idx * STEP_DELAY)
     })

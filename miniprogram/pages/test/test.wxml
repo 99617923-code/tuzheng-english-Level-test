@@ -116,7 +116,19 @@
 
         <!-- 底部状态文案 -->
         <view class="intro-analysis-footer">
-          <text class="intro-analysis-status">{{introAnalysisStatus}}</text>
+          <text wx:if="{{!introAnalysisComplete}}" class="intro-analysis-status">{{introAnalysisStatus}}</text>
+        </view>
+
+        <!-- 分析完成勾选动画 -->
+        <view wx:if="{{introAnalysisComplete}}" class="intro-analysis-done">
+          <view class="intro-done-circle">
+            <view class="intro-done-check">
+              <view class="intro-done-check-stem"></view>
+              <view class="intro-done-check-kick"></view>
+            </view>
+          </view>
+          <text class="intro-done-text">分析完成</text>
+          <text class="intro-done-sub">正在生成能力报告...</text>
         </view>
       </view>
 

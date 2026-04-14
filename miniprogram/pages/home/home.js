@@ -59,7 +59,7 @@ Page({
   _resumeChecked: false,
   _loadingVideo: false,
 
-  onLoad() {
+  onLoad(options) {
     const navLayout = app.getNavLayout()
     this.setData({
       logoUrl: app.globalData.logoUrl,
@@ -72,6 +72,11 @@ Page({
     // 预检查录音权限状态（不弹窗）
     this._checkRecordAuth()
     // 视频在onShow中统一加载，避免onLoad+onShow重复调用
+
+    // 从重新测评跳转过来，自动弹出模式选择弹窗
+    if (options && options.autoStartTest === '1') {
+      this._pendingAutoStart = true
+    }
   },
 
   onShow() {
@@ -96,6 +101,15 @@ Page({
     this._checkRecordAuth()
     // 每次显示页面时刷新视频配置（后台可能随时添加/更换视频）
     this._loadIntroVideo()
+
+    // 从重新测评跳转过来，自动弹出模式选择弹窗
+    if (this._pendingAutoStart) {
+      this._pendingAutoStart = false
+      // 等待页面渲染完成后再弹出
+      setTimeout(() => {
+        this._showModeSelection()
+      }, 300)
+    }
   },
 
   /** 从后台动态加载讲解视频（带防重复锁） */

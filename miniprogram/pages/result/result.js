@@ -529,21 +529,22 @@ Page({
   /** 重新测评（仅未确认时可用） */
   handleRetake() {
     if (this.data.confirmed) {
-      wx.showToast({ title: '你已确认分级，无法再次测评', icon: 'none' })
+      wx.showToast({ title: '\u4f60\u5df2\u786e\u8ba4\u5206\u7ea7\uff0c\u65e0\u6cd5\u518d\u6b21\u6d4b\u8bc4', icon: 'none' })
       return
     }
 
     wx.showModal({
-      title: '重新测评',
-      content: '将开始一次全新的测评，当前结果不会保留。确定要重新测评吗？',
-      confirmText: '重新测评',
+      title: '\u91cd\u65b0\u6d4b\u8bc4',
+      content: '\u5c06\u5f00\u59cb\u4e00\u6b21\u5168\u65b0\u7684\u6d4b\u8bc4\uff0c\u5f53\u524d\u7ed3\u679c\u4e0d\u4f1a\u4fdd\u7559\u3002\u786e\u5b9a\u8981\u91cd\u65b0\u6d4b\u8bc4\u5417\uff1f',
+      confirmText: '\u91cd\u65b0\u6d4b\u8bc4',
       confirmColor: '#22c55e',
-      cancelText: '取消',
+      cancelText: '\u53d6\u6d88',
       success: (res) => {
         if (res.confirm) {
-          // 清除中断恢复缓存
+          // \u6e05\u9664\u4e2d\u65ad\u6062\u590d\u7f13\u5b58
           try { wx.removeStorageSync('tz_test_session') } catch (e) {}
-          wx.redirectTo({ url: '/pages/test/test?forceNew=1' })
+          // \u8df3\u56de\u9996\u9875\u5e76\u81ea\u52a8\u5f39\u51fa\u6a21\u5f0f\u9009\u62e9\u5f39\u7a97
+          wx.redirectTo({ url: '/pages/home/home?autoStartTest=1' })
         }
       }
     })

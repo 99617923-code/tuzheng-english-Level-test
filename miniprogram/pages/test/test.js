@@ -2126,33 +2126,61 @@ Page({
 
     let resultText = ''
     if (upperName && lowerName !== upperName) {
-      resultText = `根据你的自我介绍，AI预估你的水平约在 ${lowerName} - ${upperName} 范围\n将从 ${startLevelName} 级别开始测评`
+      resultText = `AI预估你的水平约在 ${lowerName} - ${upperName} 范围\n将从 ${startLevelName} 级别开始测评`
     } else {
       resultText = `分析完成，将从 ${startLevelName} 级别开始测评`
     }
 
-    // 更新题目为预估返回的第1题
-    const question = estimateData.question || this._startQuestion
-    const subLevel = estimateData.startSubLevel || this._startSubLevel || 'PRE1'
-    const majorLevel = SUB_LEVEL_MAJOR[subLevel] !== undefined ? SUB_LEVEL_MAJOR[subLevel] : 0
+    // 缓存预估返回的题目和级别，用户点击“开始做题”时再进入
+    this._estimateQuestion = estimateData.question || this._startQuestion
+    this._estimateSubLevel = estimateData.startSubLevel || this._startSubLevel || 'PRE1'
+    this._estimateMajorLevel = SUB_LEVEL_MAJOR[this._estimateSubLevel] !== undefined ? SUB_LEVEL_MAJOR[this._estimateSubLevel] : 0
 
     this.setData({
       estimatedLevel: el,
       showEstimateResult: true,
       estimateResultText: resultText,
       selfIntroUploading: false,
-      currentQuestion: question,
-      currentSubLevel: subLevel,
-      currentMajorLevel: majorLevel,
-      subLevelDisplay: subLevel,
-      majorLevelDisplay: MAJOR_LEVEL_NAMES[majorLevel] || '途正口语0级',
+      currentQuestion: this._estimateQuestion,
+      currentSubLevel: this._estimateSubLevel,
+      currentMajorLevel: this._estimateMajorLevel,
+      subLevelDisplay: this._estimateSubLevel,
+      majorLevelDisplay: MAJOR_LEVEL_NAMES[this._estimateMajorLevel] || '途正口语0级',
       aiStatusText: '分析完成！'
     })
 
-    // 2秒后自动进入做题
-    setTimeout(() => {
-      this._enterTestingPhase(question)
-    }, 2500)
+    // 不再自动进入做题，等待用户手动点击“开始做题”或“重新录制”
+  },
+
+  /**
+   * 用户点击“开始做题”按钮（预估结果页）
+   */
+  handleStartTestFromEstimate() {
+    const question = this._estimateQuestion || this._startQuestion
+    if (!question) {
+      showError('题目加载失败，请重试')
+      return
+    }
+    this._enterTestingPhase(question)
+  },
+
+  /**
+   * 用户点击“重新录制”按钮（预估结果页）
+   */
+  handleReRecordIntro() {
+    this._selfIntroProcessing = false
+    this.setData({
+      showEstimateResult: false,
+      estimateResultText: '',
+      estimatedLevel: null,
+      selfIntroRecording: false,
+      selfIntroRecordSeconds: 0,
+      selfIntroRecordTimeDisplay: '0"',
+      selfIntroCountdown: 120,
+      selfIntroUploading: false,
+      phase: 'selfIntro',
+      aiStatusText: '请重新录制英文自我介绍'
+    })
   },
 
   /**

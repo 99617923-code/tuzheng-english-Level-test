@@ -95,12 +95,7 @@
       <view wx:if="{{showEstimateResult}}" class="intro-result-card glass-card-strong animate-fade-in">
         <view class="intro-result-icon">✨</view>
         <text class="intro-result-text">{{estimateResultText}}</text>
-        <text class="intro-result-hint">即将开始测评...</text>
-        <view class="intro-result-dots">
-          <view class="listening-dot"></view>
-          <view class="listening-dot"></view>
-          <view class="listening-dot"></view>
-        </view>
+        <text class="intro-result-hint">请选择开始做题或重新录制</text>
       </view>
     </view>
 
@@ -209,11 +204,19 @@
       </view>
     </view>
 
-    <!-- 自我介绍分析中 / 预估结果展示中 - 不可操作 -->
-    <view wx:elif="{{selfIntroUploading || showEstimateResult}}" class="action-area">
+    <!-- 自我介绍分析中 - 不可操作 -->
+    <view wx:elif="{{selfIntroUploading && !showEstimateResult}}" class="action-area">
       <view class="evaluating-wrap">
-        <view wx:if="{{selfIntroUploading}}" class="spinner"></view>
-        <text class="evaluating-text">{{selfIntroUploading ? 'AI正在分析中...' : '即将开始测评...'}}</text>
+        <view class="spinner"></view>
+        <text class="evaluating-text">AI正在分析中...</text>
+      </view>
+    </view>
+
+    <!-- 预估结果展示 - 用户手动选择 -->
+    <view wx:elif="{{showEstimateResult}}" class="action-area">
+      <button class="intro-record-btn" bindtap="handleStartTestFromEstimate">开始做题</button>
+      <view class="intro-skip-row">
+        <text class="intro-skip-btn" bindtap="handleReRecordIntro">对录音不满意？重新录制</text>
       </view>
     </view>
 

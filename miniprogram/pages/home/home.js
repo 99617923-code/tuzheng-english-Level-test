@@ -376,11 +376,13 @@ Page({
     wx.navigateTo({ url: '/pages/test/test?resume=1' })
   },
 
-  /** 恢复弹窗 - 重新开始 */
+  /** 恢复弹窗 - 重新开始（弹出模式选择） */
   handleResumeModalRestart() {
     this.setData({ showResumeModal: false, hasUnfinishedTest: false })
     try { wx.removeStorageSync('tz_test_session') } catch (e) {}
-    wx.navigateTo({ url: '/pages/test/test?forceNew=1' })
+    // 重新开始时弹出模式选择弹窗，让用户选择AI智能/标准模式
+    this._forceNewAfterModeSelect = true
+    this._showModeSelection()
   },
 
   /** 恢复弹窗 - 关闭（不做任何操作） */
@@ -461,7 +463,10 @@ Page({
   handleConfirmMode() {
     const { selectedMode } = this.data
     this.setData({ showModeModal: false })
-    wx.navigateTo({ url: `/pages/test/test?evaluateMode=${selectedMode}` })
+    // 如果是从“重新开始”进入的，需要带forceNew参数
+    const forceNew = this._forceNewAfterModeSelect ? '&forceNew=1' : ''
+    this._forceNewAfterModeSelect = false
+    wx.navigateTo({ url: `/pages/test/test?evaluateMode=${selectedMode}${forceNew}` })
   },
 
   /** 关闭模式选择弹窗 */

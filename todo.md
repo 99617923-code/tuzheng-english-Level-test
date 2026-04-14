@@ -647,3 +647,9 @@
 - [x] initTest适配start返回question:null时直接进入自我介绍引导页
 - [x] _handleSkipIntro适配skip-intro返回question字段，直接使用
 - [x] 适配aiSmartPhase:"intro"字段判断当前阶段
+
+## 第六十三轮 - 去掉双模式选择，直接进入AI智能定级
+- [x] home.js：去掉模式选择弹窗，开始测评直接以ai_smart模式跳转test页
+- [x] home.wxml：模式选择弹窗UI保留但不再触发（代码保留以备后续回滚）
+- [x] test.js：默认evaluateMode为ai_smart
+- [x] 重新开始时也直接以ai_smart模式进入，不弹模式选择

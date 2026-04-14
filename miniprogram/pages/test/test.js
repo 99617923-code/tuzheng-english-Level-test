@@ -143,7 +143,7 @@ Page({
     showVolumeReminder: false,
 
     // AI智能定级模式（v4.0）
-    evaluateMode: 'standard',    // standard | ai_smart
+    evaluateMode: 'ai_smart',    // v4.0: 默认AI智能定级模式
     modeLabel: '',               // 模式标签显示文字
 
     // v4.0 自我介绍阶段
@@ -196,7 +196,7 @@ Page({
     const audioWaves = Array.from({ length: 60 }, () => Math.floor(Math.random() * 32) + 8)
 
     // 接收模式参数（从首页模式选择弹窗传入）
-    const evaluateMode = (options && options.evaluateMode) || 'standard'
+    const evaluateMode = (options && options.evaluateMode) || 'ai_smart'  // v4.0: 默认AI智能定级
     const modeLabel = evaluateMode === 'ai_smart' ? 'AI分析中...' : ''
 
     this.setData({

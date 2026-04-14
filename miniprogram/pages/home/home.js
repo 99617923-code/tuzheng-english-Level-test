@@ -102,12 +102,11 @@ Page({
     // 每次显示页面时刷新视频配置（后台可能随时添加/更换视频）
     this._loadIntroVideo()
 
-    // 从重新测评跳转过来，自动弹出模式选择弹窗
+    // 从重新测评跳转过来，v4.0直接以AI智能模式进入
     if (this._pendingAutoStart) {
       this._pendingAutoStart = false
-      // 等待页面渲染完成后再弹出
       setTimeout(() => {
-        this._showModeSelection()
+        wx.navigateTo({ url: '/pages/test/test?evaluateMode=ai_smart&forceNew=1' })
       }, 300)
     }
   },
@@ -376,13 +375,12 @@ Page({
     wx.navigateTo({ url: '/pages/test/test?resume=1' })
   },
 
-  /** 恢复弹窗 - 重新开始（弹出模式选择） */
+  /** 恢复弹窗 - 重新开始（直接以AI智能模式进入） */
   handleResumeModalRestart() {
     this.setData({ showResumeModal: false, hasUnfinishedTest: false })
     try { wx.removeStorageSync('tz_test_session') } catch (e) {}
-    // 重新开始时弹出模式选择弹窗，让用户选择AI智能/标准模式
-    this._forceNewAfterModeSelect = true
-    this._showModeSelection()
+    // v4.0: 直接以AI智能定级模式重新开始
+    wx.navigateTo({ url: '/pages/test/test?evaluateMode=ai_smart&forceNew=1' })
   },
 
   /** 恢复弹窗 - 关闭（不做任何操作） */
@@ -390,7 +388,7 @@ Page({
     this.setData({ showResumeModal: false })
   },
 
-  /** 开始测评 — 弹出模式选择弹窗（v1.3.0） */
+  /** 开始测评 — 直接进入AI智能定级模式（v4.0简化） */
   async handleStart() {
     if (!checkLogin()) {
       wx.navigateTo({ url: '/pages/login/login' })
@@ -419,8 +417,8 @@ Page({
       return
     }
 
-    // 弹出模式选择弹窗
-    this._showModeSelection()
+    // v4.0: 直接以AI智能定级模式进入测评，无需模式选择
+    wx.navigateTo({ url: '/pages/test/test?evaluateMode=ai_smart' })
   },
 
   /** 显示模式选择弹窗 */

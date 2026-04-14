@@ -1328,9 +1328,9 @@ Page({
           phase: 'jumping'  // 新增跳级动画阶段
         })
 
-        // 跳级动画显示2.5秒后自动继续
+        // 跳级动画显示4秒后自动继续
         this._lastEvalResponse = evalRes
-        await delay(2500)
+        await delay(4000)
         this.setData({ showJumpAnimation: false })
 
         if (isFinished && !shouldForceContinue) {

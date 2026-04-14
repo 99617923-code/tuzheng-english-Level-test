@@ -78,17 +78,13 @@
       <view class="jump-icon-wrap">
         <text class="jump-icon">⚡</text>
       </view>
-      <text class="jump-title">AI智能跳级</text>
+      <text class="jump-title">智能跳级</text>
       <view class="jump-levels">
         <text class="jump-from">{{jumpFrom}}</text>
-        <view class="jump-arrow-wrap">
-          <view class="jump-arrow-line"></view>
-          <text class="jump-arrow-text">跳过{{jumpSkippedLevels}}个级别</text>
-          <view class="jump-arrow-line"></view>
-        </view>
+        <text class="jump-arrow">→</text>
         <text class="jump-to">{{jumpTo}}</text>
       </view>
-      <text class="jump-reasoning">{{jumpReasoning}}</text>
+      <text class="jump-hint">跳过{{jumpSkippedLevels}}个级别，继续测评</text>
       <view class="jump-loading-dots">
         <view class="jump-loading-dot"></view>
         <view class="jump-loading-dot"></view>

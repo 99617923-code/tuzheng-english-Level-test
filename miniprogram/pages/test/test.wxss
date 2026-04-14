@@ -1113,10 +1113,10 @@
 }
 
 .jump-title {
-  font-size: 36rpx;
+  font-size: 48rpx;
   font-weight: 700;
   color: #1F2937;
-  margin-bottom: 32rpx;
+  margin-bottom: 40rpx;
 }
 
 .jump-levels {
@@ -1129,50 +1129,34 @@
 }
 
 .jump-from {
-  font-size: 28rpx;
+  font-size: 36rpx;
   font-weight: 600;
   color: #6B7280;
   background: #F3F4F6;
-  padding: 12rpx 24rpx;
-  border-radius: 12rpx;
+  padding: 16rpx 32rpx;
+  border-radius: 16rpx;
 }
 
-.jump-arrow-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6rpx;
-  flex: 1;
-}
-
-.jump-arrow-line {
-  width: 100%;
-  height: 3rpx;
-  background: linear-gradient(90deg, #3B82F6, #8B5CF6);
-}
-
-.jump-arrow-text {
-  font-size: 20rpx;
+.jump-arrow {
+  font-size: 48rpx;
   color: #8B5CF6;
-  font-weight: 500;
-  white-space: nowrap;
+  font-weight: 700;
 }
 
 .jump-to {
-  font-size: 28rpx;
+  font-size: 36rpx;
   font-weight: 700;
   color: #fff;
   background: linear-gradient(135deg, #3B82F6, #8B5CF6);
-  padding: 12rpx 24rpx;
-  border-radius: 12rpx;
+  padding: 16rpx 32rpx;
+  border-radius: 16rpx;
 }
 
-.jump-reasoning {
-  font-size: 24rpx;
+.jump-hint {
+  font-size: 30rpx;
   color: #6B7280;
   text-align: center;
-  line-height: 1.6;
-  margin-bottom: 24rpx;
+  margin-bottom: 28rpx;
 }
 
 /* 跳级动画加载点 */

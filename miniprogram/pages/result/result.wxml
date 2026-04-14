@@ -72,7 +72,6 @@
         <view class="hero-badge" style="background: {{levelColor}}; box-shadow: 0 8rpx 32rpx {{levelShadow}};">
           <text class="hero-badge-text">{{levelName}}</text>
         </view>
-        <text class="hero-label">{{levelLabel}}</text>
         <text wx:if="{{highestSubLevel}}" class="hero-sublevel">最高通过：{{highestSubLevel}}</text>
 
         <!-- 综合得分 - 圆环 -->
@@ -167,42 +166,95 @@
 
       <view wx:if="{{showQuestionDetails}}" class="detail-content">
         <view class="question-detail-list">
-          <view class="question-detail-item" wx:for="{{questionDetails}}" wx:key="index">
-            <!-- 题号 + 得分 -->
-            <view class="qd-header">
+          <view class="question-detail-item" wx:for="{{questionDetails}}" wx:key="index" wx:for-index="qIdx">
+            <!-- 题号头部（可点击展开） -->
+            <view class="qd-header" data-idx="{{qIdx}}" bindtap="toggleQuestionExpand">
               <view class="qd-index-wrap">
                 <text class="qd-index">第{{item.index}}题</text>
+                <text wx:if="{{item.subLevelName}}" class="qd-sublevel">{{item.subLevelName}}</text>
                 <text class="qd-passed {{item.passed ? 'passed' : 'failed'}}">{{item.passedText}}</text>
               </view>
-              <text class="qd-score" style="color: {{item.scoreColor}};">{{item.score}}分</text>
+              <view class="qd-score-wrap">
+                <text class="qd-score" style="color: {{item.scoreColor}};">{{item.score}}分</text>
+                <view class="qd-expand-arrow {{item.expanded ? 'expanded' : ''}}">
+                  <image class="qd-expand-icon" src="/assets/icons/chevron-down-dark.svg" mode="aspectFit" />
+                </view>
+              </view>
             </view>
-            <!-- 题目内容 -->
+
+            <!-- 题目内容（始终显示） -->
             <view wx:if="{{item.questionText}}" class="qd-question">
-              <text class="qd-label">题目：</text>
+              <text class="qd-label">🎙️ 题目：</text>
               <text class="qd-text">{{item.questionText}}</text>
-              <!-- 播放题目录音 -->
-              <view wx:if="{{item.audioUrl}}" class="qd-play-btn" data-url="{{item.audioUrl}}" bindtap="playQuestionAudio">
-                <view class="qd-play-icon"></view>
+              <view wx:if="{{item.audioUrl}}" class="qd-audio-btn" data-url="{{item.audioUrl}}" bindtap="playQuestionAudio">
+                <text class="qd-audio-text">▶ 听题</text>
               </view>
             </view>
-            <!-- 用户回答 -->
+
+            <!-- 用户回答 + 录音回放（始终显示） -->
             <view class="qd-answer">
-              <text class="qd-label">你的回答：</text>
+              <text class="qd-label">💬 你的回答：</text>
               <text class="qd-text {{item.userAnswer === '（未作答）' ? 'qd-no-answer' : ''}}">{{item.userAnswer}}</text>
-              <!-- 播放用户录音 -->
-              <view wx:if="{{item.userAudioUrl}}" class="qd-play-btn" data-url="{{item.userAudioUrl}}" bindtap="playQuestionAudio">
-                <view class="qd-play-icon"></view>
+              <view wx:if="{{item.userAudioUrl}}" class="qd-audio-btn {{playingAudioUrl === item.userAudioUrl ? 'playing' : ''}}" data-url="{{item.userAudioUrl}}" bindtap="playUserAudio">
+                <text class="qd-audio-text">{{playingAudioUrl === item.userAudioUrl ? '■ 停止' : '▶ 回放录音'}}</text>
               </view>
             </view>
-            <!-- 评分分析 -->
-            <view wx:if="{{item.feedback}}" class="qd-feedback">
-              <text class="qd-label">评分分析：</text>
-              <text class="qd-text">{{item.feedback}}</text>
-            </view>
-            <!-- 建议 -->
-            <view wx:if="{{item.suggestion}}" class="qd-suggestion">
-              <text class="qd-label">改进建议：</text>
-              <text class="qd-text">{{item.suggestion}}</text>
+
+            <!-- 展开详情：四维度评分 + AI解析 -->
+            <view wx:if="{{item.expanded}}" class="qd-detail-expand">
+              <!-- 四维度评分 -->
+              <view wx:if="{{item.hasScoreDetail}}" class="qd-score-detail">
+                <text class="qd-detail-title">📊 分项评分</text>
+                <view class="qd-score-bars">
+                  <view wx:if="{{item.scoreDetail.pronunciation !== null}}" class="qd-bar-item">
+                    <text class="qd-bar-label">发音</text>
+                    <view class="qd-bar-track">
+                      <view class="qd-bar-fill" style="width: {{item.scoreDetail.pronunciation}}%; background: #3b82f6;"></view>
+                    </view>
+                    <text class="qd-bar-value">{{item.scoreDetail.pronunciation}}</text>
+                  </view>
+                  <view wx:if="{{item.scoreDetail.grammar !== null}}" class="qd-bar-item">
+                    <text class="qd-bar-label">语法</text>
+                    <view class="qd-bar-track">
+                      <view class="qd-bar-fill" style="width: {{item.scoreDetail.grammar}}%; background: #22c55e;"></view>
+                    </view>
+                    <text class="qd-bar-value">{{item.scoreDetail.grammar}}</text>
+                  </view>
+                  <view wx:if="{{item.scoreDetail.vocabulary !== null}}" class="qd-bar-item">
+                    <text class="qd-bar-label">词汇</text>
+                    <view class="qd-bar-track">
+                      <view class="qd-bar-fill" style="width: {{item.scoreDetail.vocabulary}}%; background: #f59e0b;"></view>
+                    </view>
+                    <text class="qd-bar-value">{{item.scoreDetail.vocabulary}}</text>
+                  </view>
+                  <view wx:if="{{item.scoreDetail.fluency !== null}}" class="qd-bar-item">
+                    <text class="qd-bar-label">流利</text>
+                    <view class="qd-bar-track">
+                      <view class="qd-bar-fill" style="width: {{item.scoreDetail.fluency}}%; background: #8b5cf6;"></view>
+                    </view>
+                    <text class="qd-bar-value">{{item.scoreDetail.fluency}}</text>
+                  </view>
+                  <view wx:if="{{item.scoreDetail.relevance !== null}}" class="qd-bar-item">
+                    <text class="qd-bar-label">相关性</text>
+                    <view class="qd-bar-track">
+                      <view class="qd-bar-fill" style="width: {{item.scoreDetail.relevance}}%; background: #ec4899;"></view>
+                    </view>
+                    <text class="qd-bar-value">{{item.scoreDetail.relevance}}</text>
+                  </view>
+                </view>
+              </view>
+
+              <!-- AI解析 -->
+              <view wx:if="{{item.feedback}}" class="qd-ai-analysis">
+                <text class="qd-detail-title">🤖 AI解析</text>
+                <text class="qd-analysis-text">{{item.feedback}}</text>
+              </view>
+
+              <!-- 改进建议 -->
+              <view wx:if="{{item.suggestion}}" class="qd-suggestion-box">
+                <text class="qd-detail-title">💡 改进建议</text>
+                <text class="qd-suggestion-text">{{item.suggestion}}</text>
+              </view>
             </view>
           </view>
         </view>

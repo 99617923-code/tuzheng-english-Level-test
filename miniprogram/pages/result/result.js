@@ -57,6 +57,9 @@ Page({
     questionDetails: [],
     showQuestionDetails: false,
 
+    // 录音播放状态
+    playingAudioUrl: '',
+
     // 海报
     posterSaving: false,
 
@@ -260,10 +263,11 @@ Page({
     // 群二维码（v2直接在result里返回，但不立即显示）
     const groupQrcode = data.groupQrcode || data.group_qrcode || {}
 
-    // 逐题分析数据处理
+    // 逐题分析数据处理（兼容report接口的questions和result接口的answerDetails）
     const questionDetails = []
-    if (hasDetailQuestions && data.questions) {
-      data.questions.forEach((q, idx) => {
+    const detailSource = (hasDetailQuestions && data.questions) ? data.questions : (data.answerDetails || data.answer_details || [])
+    if (detailSource.length > 0) {
+      detailSource.forEach((q, idx) => {
         // 兼容下划线命名
         const questionText = q.questionText || q.question_text || ''
         const userAnswer = q.userAnswer || q.user_answer || q.recognizedText || q.recognized_text || ''
@@ -273,9 +277,24 @@ Page({
         const audioUrl = q.audioUrl || q.audio_url || ''
         const userAudioUrl = q.userAudioUrl || q.user_audio_url || ''
         const passed = q.passed !== undefined ? q.passed : (score >= 60)
+        const subLevel = q.subLevel || q.sub_level || ''
+        const subLevelName = q.subLevelName || q.sub_level_name || ''
+        const questionIndex = q.questionIndex || q.question_index || (idx + 1)
+
+        // 四维度评分（scoreDetail）
+        const sd = q.scoreDetail || q.score_detail || {}
+        const scoreDetail = {
+          relevance: sd.relevance !== undefined ? sd.relevance : null,
+          pronunciation: sd.pronunciation !== undefined ? sd.pronunciation : null,
+          grammar: sd.grammar !== undefined ? sd.grammar : null,
+          vocabulary: sd.vocabulary !== undefined ? sd.vocabulary : null,
+          fluency: sd.fluency !== undefined ? sd.fluency : null
+        }
+        // 是否有四维度评分数据
+        const hasScoreDetail = Object.values(scoreDetail).some(v => v !== null)
 
         questionDetails.push({
-          index: idx + 1,
+          index: questionIndex,
           questionText,
           userAnswer: userAnswer || '（未作答）',
           score,
@@ -285,7 +304,12 @@ Page({
           userAudioUrl,
           passed,
           scoreColor: passed ? '#22c55e' : '#ef4444',
-          passedText: passed ? '通过' : '未通过'
+          passedText: passed ? '通过' : '未通过',
+          subLevel,
+          subLevelName,
+          scoreDetail,
+          hasScoreDetail,
+          expanded: false  // 折叠状态
         })
       })
     }
@@ -414,6 +438,53 @@ Page({
   /** 切换逐题分析展开/折叠 */
   toggleQuestionDetails() {
     this.setData({ showQuestionDetails: !this.data.showQuestionDetails })
+  },
+
+  /** 切换单题展开/折叠（显示详细评分和AI解析） */
+  toggleQuestionExpand(e) {
+    const idx = e.currentTarget.dataset.idx
+    const key = `questionDetails[${idx}].expanded`
+    this.setData({ [key]: !this.data.questionDetails[idx].expanded })
+  },
+
+  /** 播放用户录音回放 */
+  playUserAudio(e) {
+    const url = e.currentTarget.dataset.url
+    if (!url) {
+      wx.showToast({ title: '暂无录音', icon: 'none' })
+      return
+    }
+    // 停止当前播放
+    if (this._detailAudioCtx) {
+      try { this._detailAudioCtx.stop() } catch (e) {}
+      try { this._detailAudioCtx.destroy() } catch (e) {}
+      // 如果点击的是同一个正在播放的，停止即可
+      if (this._playingAudioUrl === url) {
+        this._detailAudioCtx = null
+        this._playingAudioUrl = ''
+        this.setData({ playingAudioUrl: '' })
+        return
+      }
+    }
+    this._playingAudioUrl = url
+    this.setData({ playingAudioUrl: url })
+    this._detailAudioCtx = wx.createInnerAudioContext()
+    this._detailAudioCtx.obeyMuteSwitch = false
+    this._detailAudioCtx.src = url
+    this._detailAudioCtx.play()
+    this._detailAudioCtx.onEnded(() => {
+      try { this._detailAudioCtx.destroy() } catch (e) {}
+      this._detailAudioCtx = null
+      this._playingAudioUrl = ''
+      this.setData({ playingAudioUrl: '' })
+    })
+    this._detailAudioCtx.onError(() => {
+      wx.showToast({ title: '播放失败', icon: 'none' })
+      try { this._detailAudioCtx.destroy() } catch (e) {}
+      this._detailAudioCtx = null
+      this._playingAudioUrl = ''
+      this.setData({ playingAudioUrl: '' })
+    })
   },
 
   /** 播放题目录音（逐题分析中） */

@@ -814,12 +814,12 @@
   -webkit-backdrop-filter: blur(12px);
 }
 
-/* 题号 + 得分行 */
+/* 题号 + 得分行（可点击展开） */
 .qd-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20rpx;
+  margin-bottom: 16rpx;
   padding-bottom: 16rpx;
   border-bottom: 1rpx solid rgba(0,0,0,0.04);
 }
@@ -827,13 +827,23 @@
 .qd-index-wrap {
   display: flex;
   align-items: center;
-  gap: 12rpx;
+  gap: 10rpx;
+  flex-wrap: wrap;
 }
 
 .qd-index {
   font-size: 28rpx;
   font-weight: 700;
   color: var(--text-primary);
+}
+
+.qd-sublevel {
+  font-size: 20rpx;
+  font-weight: 500;
+  padding: 2rpx 12rpx;
+  border-radius: var(--radius-full);
+  background: rgba(59,130,246,0.08);
+  color: var(--brand-blue);
 }
 
 .qd-passed {
@@ -853,28 +863,41 @@
   color: #ef4444;
 }
 
+.qd-score-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
 .qd-score {
   font-size: 32rpx;
   font-weight: 800;
 }
 
-/* 题目/回答/反馈/建议 */
+.qd-expand-arrow {
+  width: 32rpx;
+  height: 32rpx;
+  transition: transform 0.3s ease;
+}
+
+.qd-expand-arrow.expanded {
+  transform: rotate(180deg);
+}
+
+.qd-expand-icon {
+  width: 32rpx;
+  height: 32rpx;
+  opacity: 0.4;
+}
+
+/* 题目/回答 */
 .qd-question,
-.qd-answer,
-.qd-feedback,
-.qd-suggestion {
+.qd-answer {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
   gap: 8rpx;
   margin-bottom: 16rpx;
-}
-
-.qd-question:last-child,
-.qd-answer:last-child,
-.qd-feedback:last-child,
-.qd-suggestion:last-child {
-  margin-bottom: 0;
 }
 
 .qd-label {
@@ -898,56 +921,132 @@
   font-style: italic;
 }
 
-/* 播放按钮（绿底白三角形图标） */
-.qd-play-btn {
-  width: 52rpx;
-  height: 52rpx;
-  border-radius: 50%;
-  background: var(--brand-green, #22c55e);
-  display: flex;
+/* 录音播放按钮（文字样式） */
+.qd-audio-btn {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
+  padding: 6rpx 20rpx;
+  border-radius: var(--radius-full);
+  background: rgba(59,130,246,0.08);
   flex-shrink: 0;
-  margin-left: 12rpx;
-  box-shadow: 0 4rpx 12rpx rgba(34,197,94,0.25);
-  position: relative;
+  margin-left: 8rpx;
 }
 
-.qd-play-btn:active {
-  background: #16a34a;
+.qd-audio-btn.playing {
+  background: rgba(239,68,68,0.08);
+}
+
+.qd-audio-btn:active {
+  opacity: 0.7;
   transform: scale(0.95);
 }
 
-/* 白色三角形播放图标（纯CSS实现，不依赖SVG） */
-.qd-play-icon {
-  width: 0;
-  height: 0;
-  border-style: solid;
-  border-width: 10rpx 0 10rpx 16rpx;
-  border-color: transparent transparent transparent #ffffff;
-  margin-left: 4rpx;
+.qd-audio-text {
+  font-size: 22rpx;
+  font-weight: 600;
+  color: var(--brand-blue);
 }
 
-/* 反馈区特殊样式 */
-.qd-feedback {
-  padding: 16rpx 20rpx;
+.qd-audio-btn.playing .qd-audio-text {
+  color: #ef4444;
+}
+
+/* ========== 展开详情区域 ========== */
+.qd-detail-expand {
+  margin-top: 16rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx dashed rgba(0,0,0,0.06);
+  animation: fadeIn 0.3s ease;
+}
+
+.qd-detail-title {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: block;
+  margin-bottom: 16rpx;
+}
+
+/* 四维度评分条 */
+.qd-score-detail {
+  margin-bottom: 20rpx;
+}
+
+.qd-score-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.qd-bar-item {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.qd-bar-label {
+  font-size: 24rpx;
+  font-weight: 500;
+  color: var(--text-muted);
+  width: 80rpx;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.qd-bar-track {
+  flex: 1;
+  height: 16rpx;
+  background: rgba(0,0,0,0.04);
+  border-radius: 8rpx;
+  overflow: hidden;
+}
+
+.qd-bar-fill {
+  height: 100%;
+  border-radius: 8rpx;
+  transition: width 0.6s ease;
+  min-width: 4rpx;
+}
+
+.qd-bar-value {
+  font-size: 24rpx;
+  font-weight: 700;
+  color: var(--text-primary);
+  width: 60rpx;
+  flex-shrink: 0;
+  text-align: left;
+}
+
+/* AI解析 */
+.qd-ai-analysis {
+  margin-bottom: 16rpx;
+  padding: 20rpx;
   background: rgba(59,130,246,0.03);
   border-radius: 12rpx;
   border-left: 4rpx solid rgba(59,130,246,0.3);
 }
 
-.qd-feedback .qd-label {
-  color: var(--brand-blue);
+.qd-analysis-text {
+  font-size: 26rpx;
+  color: var(--text-secondary);
+  line-height: 1.8;
 }
 
-/* 建议区特殊样式 */
-.qd-suggestion {
-  padding: 16rpx 20rpx;
+/* 改进建议 */
+.qd-suggestion-box {
+  padding: 20rpx;
   background: rgba(34,197,94,0.03);
   border-radius: 12rpx;
   border-left: 4rpx solid rgba(34,197,94,0.3);
 }
 
-.qd-suggestion .qd-label {
-  color: var(--brand-green);
+.qd-suggestion-text {
+  font-size: 26rpx;
+  color: var(--text-secondary);
+  line-height: 1.8;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-8rpx); }
+  to { opacity: 1; transform: translateY(0); }
 }

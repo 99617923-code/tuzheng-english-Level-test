@@ -547,3 +547,10 @@
 - [x] test.wxml/wxss: 跳级动画/提示UI
 - [x] test.wxml/wxss: 模式标签样式
 - [x] 保存对接文档到docs目录
+
+## 第四十三轮 - 级别显示统一+用时排查+记录页布局+逐题详情
+- [x] result页面：去掉"高中以上水平"等描述，统一用"途正口语X级"显示
+- [x] result页面：用时来自后端totalDuration字段，前端仅展示（后端计算问题已反馈）
+- [x] history页面：级别放中间突出显示，总测评/已完成数量缩小位置调整
+- [x] 新增逐题详情：录音回放、四维度评分条、AI解析、改进建议（在result页面内嵌，可折叠展开）
+- [x] 后端result/report接口已有answerDetails/questions字段，但缺少录音URL字段（已提醒后端补充）

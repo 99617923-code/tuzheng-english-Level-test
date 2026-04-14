@@ -45,25 +45,20 @@
 
     <!-- 有数据时 -->
     <block wx:if="{{list.length > 0}}">
-      <!-- 统计头部卡片 -->
+      <!-- 统计头部卡片 - 级别居中突出 -->
       <view class="stats-header animate-fade-in">
         <view class="stats-bg"></view>
         <view class="stats-content">
-          <view class="stats-row">
-            <view class="stat-block">
-              <text class="stat-number">{{list.length}}</text>
-              <text class="stat-label">总测评</text>
-            </view>
-            <view class="stat-divider"></view>
-            <view class="stat-block">
-              <text class="stat-number">{{completedCount}}</text>
-              <text class="stat-label">已完成</text>
-            </view>
-            <view class="stat-divider"></view>
-            <view class="stat-block">
-              <text class="stat-number {{bestLevel ? '' : 'no-data'}}">{{bestLevel || '-'}}</text>
-              <text class="stat-label">最高等级</text>
-            </view>
+          <!-- 主级别展示（居中突出） -->
+          <view class="stats-level-main">
+            <text class="stats-level-name">{{bestLevel || '暂无等级'}}</text>
+            <text class="stats-level-sub">最高等级</text>
+          </view>
+          <!-- 底部小字统计 -->
+          <view class="stats-mini-row">
+            <text class="stats-mini-item">总测评 {{list.length}}</text>
+            <text class="stats-mini-dot">·</text>
+            <text class="stats-mini-item">已完成 {{completedCount}}</text>
           </view>
         </view>
       </view>

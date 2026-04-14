@@ -618,3 +618,6 @@
 - [x] 去掉旧的AI跳级弹窗逻辑（showJumpAnimation/jumpFrom/jumpTo等）
 - [x] 去掉旧的aiSmartJump处理代码
 - [x] 更新模式标签显示逻辑（适配v4流程）
+
+## 第五十六轮 - AI智能模式设为默认
+- [x] 将AI智能模式排在上面且默认选中，标准模式排在下方

@@ -427,9 +427,15 @@ Page({
 
     try {
       const result = await getEvaluateModes()
-      const modes = result.modes || []
-      // 找到默认选中的模式
-      const defaultMode = modes.find(m => m.isDefault) || modes[0]
+      const rawModes = result.modes || []
+      // 排序：ai_smart放在前面，标准模式放在后面
+      const modes = rawModes.sort((a, b) => {
+        if (a.mode === 'ai_smart') return -1
+        if (b.mode === 'ai_smart') return 1
+        return 0
+      })
+      // 默认选中AI智能模式
+      const defaultMode = modes.find(m => m.mode === 'ai_smart') || modes[0]
       this.setData({
         evaluateModes: modes,
         selectedMode: defaultMode ? defaultMode.mode : 'ai_smart',

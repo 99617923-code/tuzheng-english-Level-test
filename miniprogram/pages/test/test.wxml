@@ -87,17 +87,17 @@
         <!-- 顶部标题和总体进度 -->
         <view class="intro-analysis-header">
           <view class="intro-analysis-title-row">
-            <view class="intro-analysis-pulse"></view>
-            <text class="intro-analysis-title">AI 正在分析你的英语水平</text>
+            <view class="intro-analysis-pulse" style="{{introAnalysisOverallPct >= 100 ? 'background: #10B981;' : ''}}"></view>
+            <text class="intro-analysis-title">{{introAnalysisOverallPct >= 100 ? 'AI 分析完成' : 'AI 正在分析你的英语水平'}}</text>
           </view>
           <view class="intro-analysis-overall">
-            <text class="intro-analysis-overall-pct">{{introAnalysisOverallPct}}%</text>
+            <text class="intro-analysis-overall-pct" style="{{introAnalysisOverallPct >= 100 ? 'color: #10B981;' : ''}}">{{introAnalysisOverallPct}}%</text>
           </view>
         </view>
 
         <!-- 总体进度条 -->
         <view class="intro-analysis-total-bar">
-          <view class="intro-analysis-total-fill" style="width: {{introAnalysisOverallPct}}%;"></view>
+          <view class="intro-analysis-total-fill" style="width: {{introAnalysisOverallPct}}%;{{introAnalysisOverallPct >= 100 ? 'background: linear-gradient(90deg, #10B981, #059669);' : ''}}"></view>
         </view>
 
         <!-- 五维度分析进度列表 -->

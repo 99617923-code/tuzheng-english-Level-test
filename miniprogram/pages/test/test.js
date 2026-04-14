@@ -2697,6 +2697,7 @@ Page({
       setTimeout(() => {
         dims[idx].percentage = 100
         dims[idx].pctDisplay = '100'
+        dims[idx].color = '#10B981'  // 完成时统一渐变为绿色
 
         const totalPct = dims.reduce((sum, d) => sum + d.percentage, 0)
         const overallPct = Math.round(totalPct / dims.length)

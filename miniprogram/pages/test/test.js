@@ -186,6 +186,7 @@ Page({
   _pendingLevelUpMessage: '', // 后端返回的升级提示文案
   _selfIntroRecordFilePath: '', // 自我介绍录音文件路径
   _selfIntroRecordTimer: null,  // 自我介绍录音计时器
+  _selfIntroProcessing: false,  // 自我介绍录音正在处理中（上传+预估），防重入
   _analysisProgressTimer: null, // 分析进度动画定时器
   _lastAnalysisSteps: null,     // 上次evaluate返回的实际耗时（用于校准）
   _startQuestion: null,         // start返回的兆底question（自我介绍跳过时用）
@@ -224,6 +225,7 @@ Page({
     this._requestGeneration = 0     // 请求代数，用于忽略旧请求的回调
     this._selfIntroRecordFilePath = ''
     this._selfIntroRecordTimer = null
+    this._selfIntroProcessing = false
     this._analysisProgressTimer = null
     this._lastAnalysisSteps = null
     this._startQuestion = null
@@ -301,6 +303,8 @@ Page({
     this._isSubmitting = false
     this._isStartingRecord = false
     this._showingModal = false
+    this._selfIntroProcessing = false
+    this._selfIntroMode = false
   },
 
   // ============ 计时器 ============
@@ -1938,6 +1942,7 @@ Page({
   onSelfIntroTouchStart(e) {
     if (this.data.selfIntroRecording || this.data.selfIntroUploading) return
     if (this._isStartingRecord) return
+    if (this._selfIntroProcessing) return  // 上一次录音还在处理中
     this._isStartingRecord = true
 
     // 立即显示录音状态
@@ -1945,22 +1950,30 @@ Page({
       selfIntroRecording: true,
       selfIntroRecordSeconds: 0,
       selfIntroRecordTimeDisplay: '0"',
-      selfIntroCountdown: 120,
-      recordWaveBars: Array.from({ length: 30 }, () => Math.floor(Math.random() * 40) + 10)
+      selfIntroCountdown: 120
     })
 
     // 启动录音器（最长2分钟）
     this._selfIntroRecordFilePath = ''
     this._selfIntroMode = true  // 标记当前是自我介绍录音
-    this._recorderManager.start({
-      duration: 120000,  // 2分钟
-      sampleRate: 16000,
-      numberOfChannels: 1,
-      encodeBitRate: 48000,
-      format: 'mp3'
-    })
+    try {
+      this._recorderManager.start({
+        duration: 120000,  // 2分钟
+        sampleRate: 16000,
+        numberOfChannels: 1,
+        encodeBitRate: 32000,  // 降低编码率减小文件体积
+        format: 'mp3'
+      })
+    } catch (err) {
+      console.error('[SelfIntro] Start recorder failed:', err)
+      this._isStartingRecord = false
+      this._selfIntroMode = false
+      this.setData({ selfIntroRecording: false })
+      showError('录音启动失败，请重试')
+      return
+    }
 
-    // 启动计时器
+    // 启动计时器（每秒更新时间，波形条每2秒更新一次减少setData频率）
     this._selfIntroRecordTimer = setInterval(() => {
       const secs = this.data.selfIntroRecordSeconds + 1
       const countdown = 120 - secs
@@ -1969,15 +1982,23 @@ Page({
         this._stopSelfIntroRecord()
         return
       }
-      this.setData({
+      const updateData = {
         selfIntroRecordSeconds: secs,
         selfIntroRecordTimeDisplay: secs + '"',
-        selfIntroCountdown: countdown,
-        recordWaveBars: Array.from({ length: 30 }, () => Math.floor(Math.random() * 40) + 10)
-      })
+        selfIntroCountdown: countdown
+      }
+      // 波形条每2秒更新一次，减少setData频率
+      if (secs % 2 === 0) {
+        updateData.recordWaveBars = Array.from({ length: 20 }, () => Math.floor(Math.random() * 40) + 10)
+      }
+      this.setData(updateData)
     }, 1000)
 
-    this._isStartingRecord = false
+    // 录音启动成功后才解除防抖锁（在onStart回调中解除）
+    // 不在这里立即解除，避免快速重复点击
+    setTimeout(() => {
+      this._isStartingRecord = false
+    }, 500)
   },
 
   /**
@@ -2013,10 +2034,18 @@ Page({
    * 自我介绍录音完成后的处理（在_setupRecorderEvents中的onStop回调中调用）
    */
   async _handleSelfIntroRecordComplete(filePath) {
+    // 防重入：如果上一次还在处理中，忽略
+    if (this._selfIntroProcessing) {
+      console.warn('[SelfIntro] Already processing, ignore duplicate call')
+      return
+    }
+    this._selfIntroProcessing = true
+
     const recordSeconds = this.data.selfIntroRecordSeconds
     
     // 录音太短（<3秒），提示重新录制
     if (recordSeconds < 3) {
+      this._selfIntroProcessing = false
       showToast('录音太短，请尽量多说一些')
       this.setData({
         selfIntroRecording: false,
@@ -2051,13 +2080,15 @@ Page({
       const estimateData = await selfIntroEstimate(this.data.sessionId, audioUrl)
 
       // 展示预估结果
+      this._selfIntroProcessing = false
       this._showEstimateResult(estimateData)
 
     } catch (err) {
       console.error('[SelfIntro] Estimate failed:', err)
+      this._selfIntroProcessing = false
       this.setData({ selfIntroUploading: false })
       
-      if (this._showingModal) return
+      if (this._showingModal || this._isPageUnloaded) return
       this._showingModal = true
       wx.showModal({
         title: '分析失败',
@@ -2066,6 +2097,7 @@ Page({
         cancelText: '重新录制',
         success: (res) => {
           this._showingModal = false
+          if (this._isPageUnloaded) return
           if (res.confirm) {
             this._handleSkipIntro()
           } else {

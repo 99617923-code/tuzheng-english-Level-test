@@ -194,7 +194,7 @@
         bindtouchend="onSelfIntroTouchEnd"
         bindtouchcancel="onSelfIntroTouchEnd"
       >
-        <text class="wechat-record-text">按住 开始录制自我介绍</text>
+        <text class="wechat-record-text intro-record-text">按住开始录制自我介绍</text>
       </view>
       <view
         wx:else
@@ -205,7 +205,7 @@
         <text class="wechat-record-text">松开 结束录音</text>
       </view>
       <view class="skip-row">
-        <button class="skip-btn" bindtap="handleSkipIntro">跳过自我介绍，直接开始测评</button>
+        <button class="skip-btn intro-skip-btn" bindtap="handleSkipIntro">跳过自我介绍，从头开始逐级测试</button>
       </view>
     </view>
 

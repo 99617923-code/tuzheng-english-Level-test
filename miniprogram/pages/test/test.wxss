@@ -603,6 +603,11 @@
   transition: all 0.15s ease;
   user-select: none;
   -webkit-user-select: none;
+  overflow: hidden;
+}
+
+.wechat-record-btn::after {
+  border: none;
 }
 
 .wechat-record-btn:active,
@@ -1275,11 +1280,25 @@
 .intro-record-btn {
   background: linear-gradient(135deg, #10B981, #059669) !important;
   box-shadow: 0 8rpx 32rpx rgba(16, 185, 129, 0.30) !important;
+  border-radius: 16rpx !important;
 }
 
 .intro-record-btn:active,
 .intro-record-btn.recording {
   background: linear-gradient(135deg, #059669, #047857) !important;
+}
+
+/* 自我介绍按钮文字：统一间距 */
+.intro-record-text {
+  letter-spacing: 4rpx !important;
+}
+
+/* 跳过自我介绍按钮：单行显示 */
+.intro-skip-btn {
+  white-space: nowrap !important;
+  font-size: 22rpx !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ========== v4.0 分析进度条浮层 ========== */

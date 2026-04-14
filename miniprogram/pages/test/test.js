@@ -433,6 +433,53 @@ Page({
       const majorLevel = data.currentMajorLevel !== undefined ? data.currentMajorLevel : (data.current_major_level !== undefined ? data.current_major_level : (SUB_LEVEL_MAJOR[subLevel] || 0))
       const isResumed = data.sessionId === saved.sessionId
       const totalAnswered = data.totalAnswered || data.total_answered || 0
+      const aiSmartPhase = data.aiSmartPhase || data.ai_smart_phase || ''
+
+      // v4.0: AI智能模式断点续测时，如果还在intro阶段，进入自我介绍页面
+      if (this.data.evaluateMode === 'ai_smart' && (aiSmartPhase === 'intro' || !question)) {
+        this._startQuestion = question
+        this._startSubLevel = subLevel
+        this._startMajorLevel = majorLevel
+
+        const selfIntroGuide = app.globalData.selfIntroGuide || {
+          title: '请用英语做一段自我介绍',
+          description: '请用英语介绍你的名字、从哪里来、学业情况、职业情况、学英语的动力来源和目标。',
+          duration: '30秒~2分钟',
+          tips: ['尽量用完整的句子表达', '不需要追求完美，自然表达即可', '内容越丰富，AI判断越准确']
+        }
+
+        this.setData({
+          sessionId: data.sessionId,
+          currentQuestion: question || null,
+          currentSubLevel: subLevel,
+          currentMajorLevel: majorLevel,
+          questionIndex: data.questionIndex || 1,
+          totalAnswered: 0,
+          subLevelDisplay: subLevel,
+          majorLevelDisplay: MAJOR_LEVEL_NAMES[majorLevel] || '途正口语0级',
+          questionCountDisplay: '第 1 题',
+          progressPercent: 0,
+          phase: 'selfIntro',
+          selfIntroGuide: selfIntroGuide,
+          selfIntroRecording: false,
+          selfIntroRecordSeconds: 0,
+          selfIntroRecordTimeDisplay: '0"',
+          selfIntroCountdown: 120,
+          selfIntroUploading: false,
+          estimatedLevel: null,
+          showEstimateResult: false,
+          estimateResultText: '',
+          modeLabel: 'AI智能定级',
+          aiStatusText: '请录制英文自我介绍',
+          showQuestionText: false,
+          questionTextDisplay: ''
+        })
+
+        this._previousSubLevel = subLevel
+        this._saveTestSession()
+        wx.showToast({ title: '已恢复测评，请录制自我介绍', icon: 'none', duration: 2000 })
+        return
+      }
 
       // 恢复前端计数
       this._frontendQuestionCount = isResumed ? (saved.frontendQuestionCount || totalAnswered) : 0
@@ -554,15 +601,21 @@ Page({
           question.subLevel = question.sub_level
         }
       } else {
-        console.error('[Test] No question in response!')
+        // v4.0: AI智能模式下start返回question:null是正常的
+        if (this.data.evaluateMode !== 'ai_smart') {
+          console.error('[Test] No question in response!')
+        } else {
+          console.log('[Test] AI smart mode: question is null (expected), will get question after self-intro')
+        }
       }
 
       const subLevel = data.currentSubLevel || data.current_sub_level || (question && question.subLevel) || 'PRE1'
       const majorLevel = data.currentMajorLevel !== undefined ? data.currentMajorLevel : (data.current_major_level !== undefined ? data.current_major_level : (SUB_LEVEL_MAJOR[subLevel] || 0))
+      const aiSmartPhase = data.aiSmartPhase || data.ai_smart_phase || ''
 
       // v4.0: AI智能模式下，进入自我介绍阶段而非直接出题
-      if (this.data.evaluateMode === 'ai_smart') {
-        // 缓存start返回的question作为兆底（跳过自我介绍时可用）
+      if (this.data.evaluateMode === 'ai_smart' && (aiSmartPhase === 'intro' || !question)) {
+        // 缓存start返回的question作为兜底（跳过自我介绍时可用，v4.0后可能为null）
         this._startQuestion = question
         this._startSubLevel = subLevel
         this._startMajorLevel = majorLevel
@@ -577,7 +630,7 @@ Page({
 
         this.setData({
           sessionId: data.sessionId,
-          currentQuestion: question,
+          currentQuestion: question || null,  // v4.0: AI智能模式下question可能为null
           currentSubLevel: subLevel,
           currentMajorLevel: majorLevel,
           questionIndex: data.questionIndex || 1,
@@ -2231,11 +2284,12 @@ Page({
 
     } catch (err) {
       console.error('[SkipIntro] Failed:', err)
-      // 失败时用start返回的兆底question
+      // v4.0: start返回的question可能为null，尝试用兜底question
       const question = this._startQuestion
-      if (question) {
+      if (question && question.questionId) {
         this._enterTestingPhase(question)
       } else {
+        // 没有兜底题目，提示用户重试
         showError('准备测评失败，请重试')
         this.setData({ phase: 'selfIntro', aiStatusText: '请录制英文自我介绍' })
       }

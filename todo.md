@@ -638,3 +638,12 @@
 ## 第六十轮 - 重新开始弹模式选择 + 预估结果手动选择
 - [x] 重新开始时弹出模式选择弹窗，而非直接进入标准模式第一题
 - [x] 预估结果展示后，用户手动选择“开始做题”或“重新录制”，去掉自动进入
+
+## 第六十一轮 - 排查自我介绍预估结果显示PRE1问题
+- [ ] 排查_handleSelfIntroRecordComplete和_showEstimateResult中后端返回数据的解析逻辑
+- [ ] 添加详细日志输出后端返回的原始数据
+
+## 第六十二轮 - 适配后端v4.0修复
+- [x] initTest适配start返回question:null时直接进入自我介绍引导页
+- [x] _handleSkipIntro适配skip-intro返回question字段，直接使用
+- [x] 适配aiSmartPhase:"intro"字段判断当前阶段

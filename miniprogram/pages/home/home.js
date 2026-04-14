@@ -52,7 +52,7 @@ Page({
     // 模式选择弹窗（v1.3.0 AI智能跳级）
     showModeModal: false,
     evaluateModes: [],
-    selectedMode: 'standard',
+    selectedMode: 'ai_smart',
     loadingModes: false
   },
 
@@ -432,7 +432,7 @@ Page({
       const defaultMode = modes.find(m => m.isDefault) || modes[0]
       this.setData({
         evaluateModes: modes,
-        selectedMode: defaultMode ? defaultMode.mode : 'standard',
+        selectedMode: defaultMode ? defaultMode.mode : 'ai_smart',
         loadingModes: false
       })
     } catch (err) {

@@ -1207,3 +1207,73 @@
     transform: scale(1) translateY(0);
   }
 }
+
+/* ========== 简短回答提示弹窗 ========== */
+.brief-hint-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 0 48rpx;
+}
+
+.brief-hint-card {
+  background: #fff;
+  border-radius: 28rpx;
+  padding: 56rpx 40rpx 40rpx;
+  width: 100%;
+  max-width: 580rpx;
+  text-align: center;
+  box-shadow: 0 16rpx 48rpx rgba(0, 0, 0, 0.15);
+}
+
+.brief-hint-icon {
+  font-size: 64rpx;
+  margin-bottom: 16rpx;
+}
+
+.brief-hint-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 16rpx;
+}
+
+.brief-hint-desc {
+  font-size: 28rpx;
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 40rpx;
+  padding: 0 8rpx;
+}
+
+.brief-hint-actions {
+  display: flex;
+  gap: 20rpx;
+}
+
+.brief-hint-btn {
+  flex: 1;
+  height: 80rpx;
+  line-height: 80rpx;
+  border-radius: 40rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+  text-align: center;
+}
+
+.brief-hint-btn.retry {
+  background: linear-gradient(135deg, #3B82F6, #2563EB);
+  color: #fff;
+}
+
+.brief-hint-btn.submit {
+  background: #f0f0f0;
+  color: #666;
+}

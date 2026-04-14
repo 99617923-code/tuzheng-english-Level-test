@@ -107,6 +107,19 @@
     </view>
   </view>
 
+  <!-- 简短回答提示弹窗 -->
+  <view wx:if="{{showBriefHint}}" class="brief-hint-overlay">
+    <view class="brief-hint-card animate-fade-in">
+      <view class="brief-hint-icon">💡</view>
+      <view class="brief-hint-title">尝试说得更多一些</view>
+      <view class="brief-hint-desc">回答得越详细，AI能更准确地评估你的英语水平。试试用完整的句子来回答吧！</view>
+      <view class="brief-hint-actions">
+        <view class="brief-hint-btn retry" bindtap="handleBriefHintRetry">重新回答</view>
+        <view class="brief-hint-btn submit" bindtap="handleBriefHintSubmit">继续提交</view>
+      </view>
+    </view>
+  </view>
+
   <!-- 底部操作区 -->
   <view class="bottom-bar">
     <!-- 状态：准备回答 / 录音中（含自动播放后进入） -->

@@ -150,7 +150,10 @@ Page({
     jumpTo: '',                  // 跳级后级别
     jumpReasoning: '',           // AI分析理由
     jumpSkippedLevels: 0,        // 跳过的级别数
-    hasJumped: false             // 本次测评是否已经跳过级
+    hasJumped: false,             // 本次测评是否已经跳过级
+
+    // 简短回答提示（前5题）
+    showBriefHint: false
   },
 
   // 内部状态
@@ -1158,9 +1161,22 @@ Page({
     // 安全检查：currentQuestion为null时不提交（防止"null is not an object"报错）
     if (!currentQuestion || !currentQuestion.questionId) {
       console.error('[Submit] currentQuestion is null or missing questionId, resetting to safe state')
-      this._resetToSafeState('题目数据异常，请点击“跳过此题”或等待下一题')
+      this._resetToSafeState('题目数据异常，请点击"跳过此题"或等待下一题')
       return
     }
+
+    // === 前5题简短回答提示（录音<5秒时提示用户丰富回答） ===
+    if (!this._briefAnswerHintCount) this._briefAnswerHintCount = 0
+    if (!this._skipBriefHint) {
+      const questionNum = this.data.totalAnswered + 1
+      if (questionNum <= 5 && recordSeconds < 5 && this._briefAnswerHintCount < 2) {
+        // 显示提示弹窗，让用户选择重新回答或继续提交
+        this.setData({ showBriefHint: true })
+        this._briefAnswerHintCount++
+        return  // 等待用户选择
+      }
+    }
+    this._skipBriefHint = false  // 重置跳过标志
 
     if (this._isSubmitting) {
       console.warn('[Submit] Already submitting, skip')
@@ -1826,5 +1842,20 @@ Page({
       this._volumeReminderTimer = null
     }
     this.setData({ showVolumeReminder: false })
+  },
+
+  /** 简短回答提示：用户选择“重新回答” */
+  handleBriefHintRetry() {
+    this.setData({ showBriefHint: false, phase: 'answering' })
+    // 重置录音状态，让用户重新录音
+    this._recordFilePath = ''
+    this.setData({ recordSeconds: 0, recordTimeDisplay: '0"', userTranscription: '' })
+  },
+
+  /** 简短回答提示：用户选择“继续提交” */
+  handleBriefHintSubmit() {
+    this.setData({ showBriefHint: false })
+    this._skipBriefHint = true
+    this.submitAnswer()
   }
 })

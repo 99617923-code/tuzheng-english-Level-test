@@ -116,20 +116,28 @@
             <text>✓ 确认最终评级</text>
           </button>
           <view style="text-align: center; font-size: 24rpx; color: #999; margin-top: -16rpx; margin-bottom: 20rpx;">测评未完成，完成后可确认</view>
-          <button class="action-btn-full retake-btn" bindtap="handleRetake">
-            <image class="action-btn-icon" src="/assets/icons/play.svg" mode="aspectFit" />
-            <text>不满意，重新测评</text>
-          </button>
+          <view class="action-row-inline">
+            <button class="action-btn-half retake-btn" bindtap="handleRetake">
+              <text>重新测评</text>
+            </button>
+            <button class="action-btn-half home-btn" bindtap="goHome">
+              <text>返回首页</text>
+            </button>
+          </view>
         </view>
         <!-- 正式状态：测评已完成，可以确认评级 -->
         <view wx:else>
           <button class="action-btn-full confirm-btn" bindtap="handleConfirmLevel">
             <text>✓ 确认最终评级</text>
           </button>
-          <button class="action-btn-full retake-btn" bindtap="handleRetake">
-            <image class="action-btn-icon" src="/assets/icons/play.svg" mode="aspectFit" />
-            <text>不满意，重新测评</text>
-          </button>
+          <view class="action-row-inline">
+            <button class="action-btn-half retake-btn" bindtap="handleRetake">
+              <text>重新测评</text>
+            </button>
+            <button class="action-btn-half home-btn" bindtap="goHome">
+              <text>返回首页</text>
+            </button>
+          </view>
         </view>
       </view>
 
@@ -362,10 +370,7 @@
       </view>
     </view>
 
-    <!-- 返回首页 -->
-    <view class="home-link" bindtap="goHome">
-      <text class="home-link-text">返回首页</text>
-    </view>
+
 
     <!-- 底部间距 -->
     <view style="height: calc(env(safe-area-inset-bottom) + 48rpx);"></view>

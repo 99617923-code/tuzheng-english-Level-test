@@ -599,3 +599,22 @@
 - [x] 最终报告页：三个按钮（"分享"、"保存海报"、"回首页"）放在同一行
 - [x] 按钮名称缩短：分享测评结果给好友→分享，保存测评海报→保存海报，新增回首页
 - [x] Bug修复：只有最终定级的会话才显示群二维码（通过比较status.sessionId与当前sessionId）
+
+## 第五十五轮 - v4.0 API改造（自我介绍预估+分析进度条）
+- [x] api.js: 新增selfIntroEstimate接口（POST /api/v1/test/self-intro-estimate）
+- [x] api.js: 新增skipIntro接口（POST /api/v1/test/skip-intro）
+- [x] test.js: AI智能模式下start后进入自我介绍阶段（phase: selfIntro）
+- [x] test.js: 自我介绍录音功能（最长2分钟，最短建议15秒）
+- [x] test.js: 上传自我介绍录音并调用selfIntroEstimate接口
+- [x] test.js: 跳过自我介绍功能（调用skipIntro接口）
+- [x] test.js: 预估结果展示（显示AI预估水平范围，2秒后自动进入做题）
+- [x] test.wxml: 自我介绍引导页UI（引导文案+录音按钮+跳过按钮）
+- [x] test.wxml: 自我介绍录音中UI（录音波形+倒计时+松开发送）
+- [x] test.wxml: 预估结果展示UI
+- [x] test.wxss: 自我介绍阶段样式
+- [x] test.js: evaluate接口返回analysisSteps时展示分析进度条动画
+- [x] test.wxml: 分析进度条UI（步骤名称+百分比+进度条）
+- [x] test.wxss: 分析进度条样式
+- [x] 去掉旧的AI跳级弹窗逻辑（showJumpAnimation/jumpFrom/jumpTo等）
+- [x] 去掉旧的aiSmartJump处理代码
+- [x] 更新模式标签显示逻辑（适配v4流程）

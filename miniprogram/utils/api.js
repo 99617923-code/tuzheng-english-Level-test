@@ -572,6 +572,95 @@ function getUserLevelStatus() {
   })
 }
 
+/**
+ * 提交自我介绍录音进行水平预估（v4.0 新增）
+ * AI智能模式下，start后先录制自我介绍，提交此接口获取预估水平
+ * 
+ * @param {string} sessionId - 测评会话ID
+ * @param {string} audioUrl - 自我介绍录音的OSS地址（由upload-audio上传后获得）
+ * 
+ * Response: {
+ *   estimatedLevel: {
+ *     lowerBound, lowerBoundName, upperBound, upperBoundName,
+ *     confidence, reasoning
+ *   },
+ *   startSubLevel, startSubLevelName,
+ *   transcript, wordCount,
+ *   question: { questionId, audioUrl, questionText, subLevel }
+ * }
+ */
+function selfIntroEstimate(sessionId, audioUrl) {
+  return request('/api/v1/test/self-intro-estimate', {
+    method: 'POST',
+    data: {
+      sessionId,
+      session_id: sessionId,
+      audioUrl,
+      audio_url: audioUrl
+    }
+  }).then(res => {
+    if (res.code !== 200) throw new Error(res.msg || '自我介绍预估失败')
+    const data = res.data
+    // 兼容下划线命名
+    if (!data.startSubLevel && data.start_sub_level) data.startSubLevel = data.start_sub_level
+    if (!data.startSubLevelName && data.start_sub_level_name) data.startSubLevelName = data.start_sub_level_name
+    if (!data.wordCount && data.word_count !== undefined) data.wordCount = data.word_count
+    if (!data.estimatedLevel && data.estimated_level) data.estimatedLevel = data.estimated_level
+    if (data.estimatedLevel) {
+      const el = data.estimatedLevel
+      if (!el.lowerBound && el.lower_bound) el.lowerBound = el.lower_bound
+      if (!el.lowerBoundName && el.lower_bound_name) el.lowerBoundName = el.lower_bound_name
+      if (!el.upperBound && el.upper_bound) el.upperBound = el.upper_bound
+      if (!el.upperBoundName && el.upper_bound_name) el.upperBoundName = el.upper_bound_name
+    }
+    // 兼容question字段
+    if (data.question) {
+      const q = data.question
+      if (!q.audioUrl && q.audio_url) q.audioUrl = q.audio_url
+      if (!q.questionText && q.question_text) q.questionText = q.question_text
+      if (!q.questionId && q.question_id) q.questionId = q.question_id
+      if (!q.subLevel && q.sub_level) q.subLevel = q.sub_level
+    }
+    return data
+  })
+}
+
+/**
+ * 跳过自我介绍（v4.0 新增）
+ * AI智能模式下，用户选择跳过自我介绍，从PRE1开始做题
+ * 
+ * @param {string} sessionId - 测评会话ID
+ * 
+ * Response: {
+ *   startSubLevel, startSubLevelName,
+ *   question: { questionId, audioUrl, questionText, subLevel }
+ * }
+ */
+function skipIntro(sessionId) {
+  return request('/api/v1/test/skip-intro', {
+    method: 'POST',
+    data: {
+      sessionId,
+      session_id: sessionId
+    }
+  }).then(res => {
+    if (res.code !== 200) throw new Error(res.msg || '跳过自我介绍失败')
+    const data = res.data
+    // 兼容下划线命名
+    if (!data.startSubLevel && data.start_sub_level) data.startSubLevel = data.start_sub_level
+    if (!data.startSubLevelName && data.start_sub_level_name) data.startSubLevelName = data.start_sub_level_name
+    // 兼容question字段
+    if (data.question) {
+      const q = data.question
+      if (!q.audioUrl && q.audio_url) q.audioUrl = q.audio_url
+      if (!q.questionText && q.question_text) q.questionText = q.question_text
+      if (!q.questionId && q.question_id) q.questionId = q.question_id
+      if (!q.subLevel && q.sub_level) q.subLevel = q.sub_level
+    }
+    return data
+  })
+}
+
 module.exports = {
   sendSmsCode,
   smsLogin,
@@ -593,5 +682,7 @@ module.exports = {
   getUserLevelStatus,
   getQrcodeDisplaySetting,
   getTeacherConfig,
-  getTestReport
+  getTestReport,
+  selfIntroEstimate,
+  skipIntro
 }

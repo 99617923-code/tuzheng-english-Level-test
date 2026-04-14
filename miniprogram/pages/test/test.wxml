@@ -1,7 +1,9 @@
 <!--
-  途正英语AI分级测评 - 测评主页面（自适应引擎 v2 + AI智能跳级 v1.3.0）
-  核心交互：自动播放外教语音 → 点击录音回答 → AI评分 → 自适应升级/跳级 → 下一题/出结果
-  小程序原生适配：全局导航布局
+  途正英语AI分级测评 - 测评主页面（v4.0 自我介绍预估 + 分析进度条）
+  核心交互：
+  - AI智能模式：自我介绍录音 → AI预估水平 → 从预估起点开始做题
+  - 标准模式：自动播放外教语音 → 点击录音回答 → AI评分 → 自适应升级 → 下一题/出结果
+  - 分析进度条：每题提交后展示AI分析各步骤的实时进度
 -->
 <view class="page">
   <!-- 自定义导航栏（只保留返回按钮） -->
@@ -22,21 +24,88 @@
 
   <!-- 主内容区 -->
   <view class="main-area" style="padding-top: {{navBarHeight + 20}}px;">
-    <!-- 级别 & 题号信息条 + 计时器 -->
-    <view class="level-info-bar">
+    <!-- 级别 & 题号信息条 + 计时器（自我介绍阶段隐藏） -->
+    <view wx:if="{{phase !== 'selfIntro'}}" class="level-info-bar">
       <view class="level-info-left">
         <text class="level-info-level">途正口语{{currentMajorLevel}}级</text>
         <text class="level-info-progress">{{questionCountDisplay}}</text>
-        <!-- AI智能跳级模式标签 v1.3.0 -->
-        <text wx:if="{{modeLabel}}" class="mode-label {{hasJumped ? 'mode-label-jumped' : 'mode-label-analyzing'}}">{{modeLabel}}</text>
+        <!-- v4.0 AI智能定级模式标签 -->
+        <text wx:if="{{modeLabel}}" class="mode-label mode-label-analyzing">{{modeLabel}}</text>
       </view>
       <view class="level-info-timer">
         <image class="timer-icon" src="/assets/icons/clock.svg" mode="aspectFit" />
         <text class="timer-text">{{timerDisplay}}</text>
       </view>
     </view>
-    <!-- 题目卡片 -->
-    <view class="question-card glass-card-strong animate-fade-in">
+
+    <!-- ========== 自我介绍阶段（v4.0 新增） ========== -->
+    <view wx:if="{{phase === 'selfIntro' || selfIntroUploading || showEstimateResult}}" class="self-intro-section">
+      <!-- AI头像 + 状态 -->
+      <view class="ai-header">
+        <view class="ai-avatar-wrap">
+          <image class="ai-avatar" src="{{aiAvatarUrl}}" mode="aspectFill" />
+        </view>
+        <view class="ai-info">
+          <text class="ai-name">{{teacherName}}</text>
+          <text class="ai-status">{{aiStatusText}}</text>
+        </view>
+      </view>
+
+      <!-- 自我介绍引导卡片 -->
+      <view wx:if="{{!selfIntroUploading && !showEstimateResult}}" class="intro-guide-card glass-card-strong animate-fade-in">
+        <view class="intro-guide-header">
+          <text class="intro-guide-icon">🎙️</text>
+          <text class="intro-guide-title">{{selfIntroGuide.title || '请用英语做一段自我介绍'}}</text>
+        </view>
+        <text class="intro-guide-desc">{{selfIntroGuide.description || '请用英语介绍你的名字、从哪里来、学业情况、职业情况、学英语的动力来源和目标。'}}</text>
+        <view class="intro-guide-tips">
+          <view wx:for="{{selfIntroGuide.tips}}" wx:key="index" class="intro-tip-item">
+            <text class="intro-tip-dot">•</text>
+            <text class="intro-tip-text">{{item}}</text>
+          </view>
+        </view>
+        <view class="intro-guide-duration">
+          <text class="intro-duration-text">建议时长：{{selfIntroGuide.duration || '30秒~2分钟'}}</text>
+        </view>
+      </view>
+
+      <!-- 自我介绍录音中状态 -->
+      <view wx:if="{{selfIntroRecording}}" class="intro-recording-card glass-card-strong animate-fade-in">
+        <view class="intro-recording-header">
+          <view class="intro-recording-dot"></view>
+          <text class="intro-recording-label">正在录音</text>
+          <text class="intro-recording-time">{{selfIntroRecordTimeDisplay}}</text>
+        </view>
+        <view class="intro-recording-waves">
+          <view wx:for="{{recordWaveBars}}" wx:key="index" class="intro-wave-bar" style="height: {{item}}rpx;"></view>
+        </view>
+        <text class="intro-recording-hint">松开按钮结束录音</text>
+      </view>
+
+      <!-- 正在分析中状态 -->
+      <view wx:if="{{selfIntroUploading}}" class="intro-analyzing-card glass-card-strong animate-fade-in">
+        <view class="intro-analyzing-content">
+          <view class="spinner"></view>
+          <text class="intro-analyzing-text">AI正在分析你的英语水平...</text>
+          <text class="intro-analyzing-hint">这可能需要几秒钟</text>
+        </view>
+      </view>
+
+      <!-- 预估结果展示 -->
+      <view wx:if="{{showEstimateResult}}" class="intro-result-card glass-card-strong animate-fade-in">
+        <view class="intro-result-icon">✨</view>
+        <text class="intro-result-text">{{estimateResultText}}</text>
+        <text class="intro-result-hint">即将开始测评...</text>
+        <view class="intro-result-dots">
+          <view class="listening-dot"></view>
+          <view class="listening-dot"></view>
+          <view class="listening-dot"></view>
+        </view>
+      </view>
+    </view>
+
+    <!-- ========== 正常做题阶段 ========== -->
+    <view wx:elif="{{phase !== 'selfIntro'}}" class="question-card glass-card-strong animate-fade-in">
       <!-- AI头像 + 状态 -->
       <view class="ai-header">
         <view class="ai-avatar-wrap">
@@ -50,7 +119,7 @@
       </view>
 
       <!-- AI语音播放条（外教真人录音） - 点击可重播 -->
-      <view wx:if="{{phase !== 'guide' && phase !== 'loading' && phase !== 'jumping' && currentQuestion}}" class="audio-bar" bindtap="playAudio">
+      <view wx:if="{{phase !== 'guide' && phase !== 'loading' && currentQuestion}}" class="audio-bar" bindtap="playAudio">
         <view class="audio-play-btn">
           <image wx:if="{{!audioPlaying}}" class="audio-play-icon" src="/assets/icons/play.svg" mode="aspectFit" />
           <image wx:else class="audio-play-icon" src="/assets/icons/pause.svg" mode="aspectFit" />
@@ -65,30 +134,23 @@
         <text class="question-text-label">📝 请阅读题目并用英语回答：</text>
         <text class="question-text-content">{{questionTextDisplay}}</text>
       </view>
-
-      <!-- 逐题反馈已移至结果页报告中统一展示 -->
     </view>
-
-    <!-- 升级通关动画已按客户要求去掉 -->
   </view>
 
-  <!-- AI智能跳级动画弹窗 v1.3.0 -->
-  <view wx:if="{{showJumpAnimation}}" class="jump-overlay">
-    <view class="jump-card animate-jump-in">
-      <view class="jump-icon-wrap">
-        <text class="jump-icon">⚡</text>
-      </view>
-      <text class="jump-title">智能跳级</text>
-      <view class="jump-levels">
-        <text class="jump-from">{{jumpFrom}}</text>
-        <text class="jump-arrow">→</text>
-        <text class="jump-to">{{jumpTo}}</text>
-      </view>
-      <text class="jump-hint">跳过{{jumpSkippedLevels}}个级别，继续测评</text>
-      <view class="jump-loading-dots">
-        <view class="jump-loading-dot"></view>
-        <view class="jump-loading-dot"></view>
-        <view class="jump-loading-dot"></view>
+  <!-- v4.0 分析进度条浮层 -->
+  <view wx:if="{{showAnalysisProgress}}" class="analysis-progress-overlay">
+    <view class="analysis-progress-card animate-fade-in">
+      <text class="analysis-progress-title">AI 正在分析你的回答</text>
+      <view class="analysis-steps-list">
+        <view wx:for="{{analysisSteps}}" wx:key="index" class="analysis-step-item {{index <= analysisCurrentStep ? 'active' : ''}} {{item.percentage >= 100 ? 'completed' : ''}}">
+          <view class="analysis-step-info">
+            <text class="analysis-step-name">{{item.name}}</text>
+            <text class="analysis-step-pct">{{item.percentage >= 100 ? '100' : (item.percentage > 0 ? item.percentage : '0')}}%</text>
+          </view>
+          <view class="analysis-step-bar">
+            <view class="analysis-step-fill {{item.percentage >= 100 ? 'completed' : ''}}" style="width: {{item.percentage}}%;"></view>
+          </view>
+        </view>
       </view>
     </view>
   </view>
@@ -122,8 +184,41 @@
 
   <!-- 底部操作区 -->
   <view class="bottom-bar">
+    <!-- v4.0 自我介绍阶段操作区 -->
+    <view wx:if="{{phase === 'selfIntro' && !selfIntroUploading && !showEstimateResult}}" class="action-area">
+      <!-- 按住录制自我介绍按钮 -->
+      <view
+        wx:if="{{!selfIntroRecording}}"
+        class="wechat-record-btn intro-record-btn"
+        bindtouchstart="onSelfIntroTouchStart"
+        bindtouchend="onSelfIntroTouchEnd"
+        bindtouchcancel="onSelfIntroTouchEnd"
+      >
+        <text class="wechat-record-text">按住 开始录制自我介绍</text>
+      </view>
+      <view
+        wx:else
+        class="wechat-record-btn recording intro-record-btn"
+        bindtouchend="onSelfIntroTouchEnd"
+        bindtouchcancel="onSelfIntroTouchEnd"
+      >
+        <text class="wechat-record-text">松开 结束录音</text>
+      </view>
+      <view class="skip-row">
+        <button class="skip-btn" bindtap="handleSkipIntro">跳过自我介绍，直接开始测评</button>
+      </view>
+    </view>
+
+    <!-- 自我介绍分析中 / 预估结果展示中 - 不可操作 -->
+    <view wx:elif="{{selfIntroUploading || showEstimateResult}}" class="action-area">
+      <view class="evaluating-wrap">
+        <view wx:if="{{selfIntroUploading}}" class="spinner"></view>
+        <text class="evaluating-text">{{selfIntroUploading ? 'AI正在分析中...' : '即将开始测评...'}}</text>
+      </view>
+    </view>
+
     <!-- 状态：准备回答 / 录音中（含自动播放后进入） -->
-    <view wx:if="{{phase === 'answering'}}" class="action-area">
+    <view wx:elif="{{phase === 'answering'}}" class="action-area">
       <!-- 微信风格长条按住说话按钮 -->
       <view
         class="wechat-record-btn {{isRecording ? 'recording' : ''}}"
@@ -157,16 +252,6 @@
         <text class="evaluating-text">正在评估你的回答...</text>
       </view>
     </view>
-
-    <!-- 状态：AI跳级动画中 v1.3.0 -->
-    <view wx:elif="{{phase === 'jumping'}}" class="action-area">
-      <view class="evaluating-wrap">
-        <view class="spinner"></view>
-        <text class="evaluating-text">AI正在调整测评级别...</text>
-      </view>
-    </view>
-
-    <!-- feedback phase已移除，evaluate后自动进入下一题 -->
 
     <!-- 状态：加载中 -->
     <view wx:elif="{{phase === 'loading'}}" class="action-area">

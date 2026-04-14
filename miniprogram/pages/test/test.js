@@ -32,7 +32,7 @@
  * - 后端question:null安全处理：status:continue但question为null时不崩溃，提示用户选择
  */
 const app = getApp()
-const { startTest, evaluateAnswer, uploadAudio, terminateTest, transcribeAudio, textToSpeech, getTeacherConfig } = require('../../utils/api')
+const { startTest, evaluateAnswer, uploadAudio, terminateTest, transcribeAudio, textToSpeech, getTeacherConfig, selfIntroEstimate, skipIntro } = require('../../utils/api')
 const { formatTime, showToast, showError, delay } = require('../../utils/util')
 const { ensureTokenValid } = require('../../utils/request')
 
@@ -142,15 +142,25 @@ Page({
     // 音量提醒
     showVolumeReminder: false,
 
-    // AI智能跳级模式（v1.3.0）
+    // AI智能定级模式（v4.0）
     evaluateMode: 'standard',    // standard | ai_smart
     modeLabel: '',               // 模式标签显示文字
-    showJumpAnimation: false,    // 是否显示跳级动画
-    jumpFrom: '',                // 跳级前级别
-    jumpTo: '',                  // 跳级后级别
-    jumpReasoning: '',           // AI分析理由
-    jumpSkippedLevels: 0,        // 跳过的级别数
-    hasJumped: false,             // 本次测评是否已经跳过级
+
+    // v4.0 自我介绍阶段
+    selfIntroGuide: null,        // 自我介绍引导配置（从evaluate-modes获取）
+    selfIntroRecording: false,   // 是否正在录制自我介绍
+    selfIntroRecordSeconds: 0,   // 自我介绍录音时长（秒）
+    selfIntroRecordTimeDisplay: '0"',
+    selfIntroCountdown: 120,     // 2分钟倒计时
+    selfIntroUploading: false,   // 是否正在上传自我介绍
+    estimatedLevel: null,        // AI预估水平结果
+    showEstimateResult: false,   // 是否显示预估结果
+    estimateResultText: '',      // 预估结果文案
+
+    // v4.0 分析进度条
+    analysisSteps: [],           // 分析步骤数组
+    showAnalysisProgress: false, // 是否显示分析进度
+    analysisCurrentStep: -1,     // 当前进行到的步骤索引
 
     // 简短回答提示（前5题）
     showBriefHint: false
@@ -174,6 +184,11 @@ Page({
   _frontendQuestionCount: 0, // 前端自己维护的答题计数（不依赖后端）
   _pendingLevelUp: false,    // 后端返回的升级标志（缓存到handleNext使用）
   _pendingLevelUpMessage: '', // 后端返回的升级提示文案
+  _selfIntroRecordFilePath: '', // 自我介绍录音文件路径
+  _selfIntroRecordTimer: null,  // 自我介绍录音计时器
+  _analysisProgressTimer: null, // 分析进度动画定时器
+  _lastAnalysisSteps: null,     // 上次evaluate返回的实际耗时（用于校准）
+  _startQuestion: null,         // start返回的兆底question（自我介绍跳过时用）
 
   onLoad(options) {
     const navLayout = app.getNavLayout()
@@ -207,6 +222,11 @@ Page({
     this._touchActive = false       // 手指是否正在按住
     this._pendingStop = false       // 录音启动前手指已松开标志
     this._requestGeneration = 0     // 请求代数，用于忽略旧请求的回调
+    this._selfIntroRecordFilePath = ''
+    this._selfIntroRecordTimer = null
+    this._analysisProgressTimer = null
+    this._lastAnalysisSteps = null
+    this._startQuestion = null
     this._setupRecorderEvents()
 
     // 方案一：强制忽略iOS静音开关，确保外教语音正常播放
@@ -264,6 +284,16 @@ Page({
     }
     if (plugin && plugin.voiceRecognizer) {
       try { plugin.voiceRecognizer.stop() } catch (e) {}
+    }
+    // 清除自我介绍录音计时器
+    if (this._selfIntroRecordTimer) {
+      clearInterval(this._selfIntroRecordTimer)
+      this._selfIntroRecordTimer = null
+    }
+    // 清除分析进度动画定时器
+    if (this._analysisProgressTimer) {
+      clearInterval(this._analysisProgressTimer)
+      this._analysisProgressTimer = null
     }
     // 标记页面已卸载，防止全局录音回调继续弹窗
     this._isPageUnloaded = true
@@ -526,16 +556,64 @@ Page({
       const subLevel = data.currentSubLevel || data.current_sub_level || (question && question.subLevel) || 'PRE1'
       const majorLevel = data.currentMajorLevel !== undefined ? data.currentMajorLevel : (data.current_major_level !== undefined ? data.current_major_level : (SUB_LEVEL_MAJOR[subLevel] || 0))
 
+      // v4.0: AI智能模式下，进入自我介绍阶段而非直接出题
+      if (this.data.evaluateMode === 'ai_smart') {
+        // 缓存start返回的question作为兆底（跳过自我介绍时可用）
+        this._startQuestion = question
+        this._startSubLevel = subLevel
+        this._startMajorLevel = majorLevel
+
+        // 从模式配置中获取selfIntroGuide
+        const selfIntroGuide = app.globalData.selfIntroGuide || {
+          title: '请用英语做一段自我介绍',
+          description: '请用英语介绍你的名字、从哪里来、学业情况、职业情况、学英语的动力来源和目标。',
+          duration: '30秒~2分钟',
+          tips: ['尽量用完整的句子表达', '不需要追求完美，自然表达即可', '内容越丰富，AI判断越准确']
+        }
+
+        this.setData({
+          sessionId: data.sessionId,
+          currentQuestion: question,
+          currentSubLevel: subLevel,
+          currentMajorLevel: majorLevel,
+          questionIndex: data.questionIndex || 1,
+          totalAnswered: 0,
+          subLevelDisplay: subLevel,
+          majorLevelDisplay: MAJOR_LEVEL_NAMES[majorLevel] || '途正口语0级',
+          questionCountDisplay: '第 1 题',
+          progressPercent: 0,
+          phase: 'selfIntro',
+          selfIntroGuide: selfIntroGuide,
+          selfIntroRecording: false,
+          selfIntroRecordSeconds: 0,
+          selfIntroRecordTimeDisplay: '0"',
+          selfIntroCountdown: 120,
+          selfIntroUploading: false,
+          estimatedLevel: null,
+          showEstimateResult: false,
+          estimateResultText: '',
+          modeLabel: 'AI智能定级',
+          aiStatusText: '请录制英文自我介绍',
+          showQuestionText: false,
+          questionTextDisplay: ''
+        })
+
+        this._previousSubLevel = subLevel
+        this._saveTestSession()
+        return  // 不进入guide流程
+      }
+
+      // 标准模式：正常进入guide引导流程
       this.setData({
         sessionId: data.sessionId,
         currentQuestion: question,
         currentSubLevel: subLevel,
         currentMajorLevel: majorLevel,
         questionIndex: data.questionIndex || 1,
-        totalAnswered: 0,  // 新测评强制从0开始
+        totalAnswered: 0,
         subLevelDisplay: subLevel,
         majorLevelDisplay: MAJOR_LEVEL_NAMES[majorLevel] || '途正口语0级',
-        questionCountDisplay: '第 1 题',  // 强制显示第1题
+        questionCountDisplay: '第 1 题',
         progressPercent: 0,
         phase: 'guide',
         showGuide: true,
@@ -865,6 +943,12 @@ Page({
         return
       }
 
+      // v4.0: 自我介绍模式下不需要pendingStop检查
+      if (this._selfIntroMode) {
+        console.log('[SelfIntro] Recorder started successfully')
+        return
+      }
+
       // 检查是否手指已松开（pendingStop）
       if (this._pendingStop || !this._touchActive) {
         this._pendingStop = false
@@ -913,6 +997,24 @@ Page({
       if (this._isPageUnloaded) {
         return
       }
+
+      // v4.0: 如果是自我介绍录音，走自我介绍流程
+      if (this._selfIntroMode) {
+        this._selfIntroMode = false
+        if (res.tempFilePath) {
+          this._handleSelfIntroRecordComplete(res.tempFilePath)
+        } else {
+          showToast('录音失败，请重试')
+          this.setData({
+            selfIntroRecording: false,
+            selfIntroRecordSeconds: 0,
+            selfIntroRecordTimeDisplay: '0"'
+          })
+        }
+        return
+      }
+
+      // 正常做题录音流程
       this._recordFilePath = res.tempFilePath
       this.setData({ isRecording: false, recordCountdown: 0, recordWaveBars: [] })
 
@@ -1197,6 +1299,9 @@ Page({
       aiStatusText: '正在评估你的回答...'
     })
 
+    // v4.0: 启动分析进度动画
+    this._startAnalysisProgress()
+
     try {
       // 第一步：上传录音到OSS
       let audioUrl = ''
@@ -1325,52 +1430,18 @@ Page({
         questionCountDisplay: `第 ${newTotalAnswered} 题`
       })
 
-      // v1.3.0: 检查AI智能跳级
-      const aiJump = evalRes.aiSmartJump || evalRes.ai_smart_jump
-      if (aiJump && aiJump.jumped) {
-        const estimation = aiJump.estimation || {}
-        const jumpTarget = aiJump.jumpTarget || aiJump.jump_target || ''
-        console.log('[AI跳级] 触发跳级！从', this.data.currentSubLevel, '→', jumpTarget)
-        
-        // 显示跳级动画
-        this.setData({
-          showJumpAnimation: true,
-          jumpFrom: this.data.currentSubLevel,
-          jumpTo: jumpTarget,
-          jumpReasoning: estimation.reasoning || 'AI检测到你的水平较高，已智能跳级',
-          jumpSkippedLevels: estimation.skippedLevels || estimation.skipped_levels || 0,
-          hasJumped: true,
-          modeLabel: `AI智能跳级 → ${jumpTarget}`,
-          phase: 'jumping'  // 新增跳级动画阶段
-        })
-
-        // 跳级动画显示4秒后自动继续
-        this._lastEvalResponse = evalRes
-        await delay(4000)
-        this.setData({ showJumpAnimation: false })
-
-        if (isFinished && !shouldForceContinue) {
-          if (this._isNavigating) return
-          this._isNavigating = true
-          this._clearTestSession()
-          this.cleanup()
-          wx.redirectTo({
-            url: `/pages/result/result?sessionId=${this.data.sessionId}`,
-            fail: () => { this._isNavigating = false }
-          })
-          return
-        }
-        this._autoNextQuestion(evalRes, newTotalAnswered, shouldForceContinue)
-        return
+      // v4.0: 处理analysisSteps分析进度数据
+      const analysisStepsData = evalRes.analysisSteps || evalRes.analysis_steps
+      if (analysisStepsData) {
+        this._completeAnalysisProgress(analysisStepsData)
+      } else {
+        // 没有analysisSteps时也要关闭进度条
+        this.setData({ showAnalysisProgress: false })
       }
 
-      // 非AI跳级模式下，更新模式标签
-      if (this.data.evaluateMode === 'ai_smart' && !this.data.hasJumped) {
-        // 探测阶段：前几题AI还在分析
-        this.setData({ modeLabel: 'AI分析中...' })
-      } else if (this.data.evaluateMode === 'ai_smart' && this.data.hasJumped) {
-        // 跳级后：精准定级阶段
-        this.setData({ modeLabel: '精准定级中' })
+      // v4.0: AI智能模式下更新模式标签
+      if (this.data.evaluateMode === 'ai_smart') {
+        this.setData({ modeLabel: 'AI智能定级中' })
       }
 
       // 精简版：不再显示逐题反馈，直接进入下一题或结果页
@@ -1857,5 +1928,383 @@ Page({
     this.setData({ showBriefHint: false })
     this._skipBriefHint = true
     this.submitAnswer()
+  },
+
+  // ============ v4.0 自我介绍阶段 ============
+
+  /**
+   * 开始录制自我介绍（按住说话）
+   */
+  onSelfIntroTouchStart(e) {
+    if (this.data.selfIntroRecording || this.data.selfIntroUploading) return
+    if (this._isStartingRecord) return
+    this._isStartingRecord = true
+
+    // 立即显示录音状态
+    this.setData({
+      selfIntroRecording: true,
+      selfIntroRecordSeconds: 0,
+      selfIntroRecordTimeDisplay: '0"',
+      selfIntroCountdown: 120,
+      recordWaveBars: Array.from({ length: 30 }, () => Math.floor(Math.random() * 40) + 10)
+    })
+
+    // 启动录音器（最长2分钟）
+    this._selfIntroRecordFilePath = ''
+    this._selfIntroMode = true  // 标记当前是自我介绍录音
+    this._recorderManager.start({
+      duration: 120000,  // 2分钟
+      sampleRate: 16000,
+      numberOfChannels: 1,
+      encodeBitRate: 48000,
+      format: 'mp3'
+    })
+
+    // 启动计时器
+    this._selfIntroRecordTimer = setInterval(() => {
+      const secs = this.data.selfIntroRecordSeconds + 1
+      const countdown = 120 - secs
+      if (secs >= 120) {
+        // 2分钟到，自动停止
+        this._stopSelfIntroRecord()
+        return
+      }
+      this.setData({
+        selfIntroRecordSeconds: secs,
+        selfIntroRecordTimeDisplay: secs + '"',
+        selfIntroCountdown: countdown,
+        recordWaveBars: Array.from({ length: 30 }, () => Math.floor(Math.random() * 40) + 10)
+      })
+    }, 1000)
+
+    this._isStartingRecord = false
+  },
+
+  /**
+   * 松开停止自我介绍录音
+   */
+  onSelfIntroTouchEnd(e) {
+    if (!this.data.selfIntroRecording) return
+    this._stopSelfIntroRecord()
+  },
+
+  /**
+   * 停止自我介绍录音并提交
+   */
+  _stopSelfIntroRecord() {
+    // 清除计时器
+    if (this._selfIntroRecordTimer) {
+      clearInterval(this._selfIntroRecordTimer)
+      this._selfIntroRecordTimer = null
+    }
+    // 停止录音（onStop回调中处理文件）
+    try {
+      this._recorderManager.stop()
+    } catch (e) {
+      console.warn('[SelfIntro] Stop recorder failed:', e)
+    }
+    this.setData({
+      selfIntroRecording: false,
+      recordWaveBars: []
+    })
+  },
+
+  /**
+   * 自我介绍录音完成后的处理（在_setupRecorderEvents中的onStop回调中调用）
+   */
+  async _handleSelfIntroRecordComplete(filePath) {
+    const recordSeconds = this.data.selfIntroRecordSeconds
+    
+    // 录音太短（<3秒），提示重新录制
+    if (recordSeconds < 3) {
+      showToast('录音太短，请尽量多说一些')
+      this.setData({
+        selfIntroRecording: false,
+        selfIntroRecordSeconds: 0,
+        selfIntroRecordTimeDisplay: '0"'
+      })
+      return
+    }
+
+    this._selfIntroRecordFilePath = filePath
+
+    // 开始上传+预估流程
+    this.setData({
+      selfIntroUploading: true,
+      aiStatusText: '正在分析你的英语水平...'
+    })
+
+    try {
+      // 第一步：上传录音到OSS
+      const uploadRes = await uploadAudio(
+        filePath,
+        this.data.sessionId,
+        'self-intro'  // questionId传self-intro
+      )
+      const audioUrl = uploadRes.audioUrl || uploadRes.audio_url || uploadRes.url || ''
+
+      if (!audioUrl) {
+        throw new Error('录音上传失败，请重试')
+      }
+
+      // 第二步：调用selfIntroEstimate接口
+      const estimateData = await selfIntroEstimate(this.data.sessionId, audioUrl)
+
+      // 展示预估结果
+      this._showEstimateResult(estimateData)
+
+    } catch (err) {
+      console.error('[SelfIntro] Estimate failed:', err)
+      this.setData({ selfIntroUploading: false })
+      
+      if (this._showingModal) return
+      this._showingModal = true
+      wx.showModal({
+        title: '分析失败',
+        content: err.message || '自我介绍分析失败，是否跳过直接开始测评？',
+        confirmText: '跳过开始',
+        cancelText: '重新录制',
+        success: (res) => {
+          this._showingModal = false
+          if (res.confirm) {
+            this._handleSkipIntro()
+          } else {
+            // 回到自我介绍页面
+            this.setData({
+              phase: 'selfIntro',
+              selfIntroRecordSeconds: 0,
+              selfIntroRecordTimeDisplay: '0"',
+              aiStatusText: '请重新录制英文自我介绍'
+            })
+          }
+        },
+        fail: () => { this._showingModal = false }
+      })
+    }
+  },
+
+  /**
+   * 展示预估结果，2秒后自动进入做题
+   */
+  _showEstimateResult(estimateData) {
+    const el = estimateData.estimatedLevel || {}
+    const lowerName = el.lowerBoundName || el.lowerBound || 'PRE1'
+    const upperName = el.upperBoundName || el.upperBound || ''
+    const startLevelName = estimateData.startSubLevelName || estimateData.startSubLevel || 'PRE1'
+
+    let resultText = ''
+    if (upperName && lowerName !== upperName) {
+      resultText = `根据你的自我介绍，AI预估你的水平约在 ${lowerName} - ${upperName} 范围\n将从 ${startLevelName} 级别开始测评`
+    } else {
+      resultText = `分析完成，将从 ${startLevelName} 级别开始测评`
+    }
+
+    // 更新题目为预估返回的第1题
+    const question = estimateData.question || this._startQuestion
+    const subLevel = estimateData.startSubLevel || this._startSubLevel || 'PRE1'
+    const majorLevel = SUB_LEVEL_MAJOR[subLevel] !== undefined ? SUB_LEVEL_MAJOR[subLevel] : 0
+
+    this.setData({
+      estimatedLevel: el,
+      showEstimateResult: true,
+      estimateResultText: resultText,
+      selfIntroUploading: false,
+      currentQuestion: question,
+      currentSubLevel: subLevel,
+      currentMajorLevel: majorLevel,
+      subLevelDisplay: subLevel,
+      majorLevelDisplay: MAJOR_LEVEL_NAMES[majorLevel] || '途正口语0级',
+      aiStatusText: '分析完成！'
+    })
+
+    // 2秒后自动进入做题
+    setTimeout(() => {
+      this._enterTestingPhase(question)
+    }, 2500)
+  },
+
+  /**
+   * 跳过自我介绍
+   */
+  handleSkipIntro() {
+    if (this._showingModal) return
+    this._showingModal = true
+    wx.showModal({
+      title: '跳过自我介绍',
+      content: '跳过后将从最低级别开始测评，可能需要答更多题目。确定跳过吗？',
+      confirmText: '确定跳过',
+      cancelText: '继续录制',
+      success: (res) => {
+        this._showingModal = false
+        if (res.confirm) {
+          this._handleSkipIntro()
+        }
+      },
+      fail: () => { this._showingModal = false }
+    })
+  },
+
+  /**
+   * 执行跳过自我介绍逻辑
+   */
+  async _handleSkipIntro() {
+    this.setData({
+      phase: 'loading',
+      aiStatusText: '正在准备测评...'
+    })
+
+    try {
+      const data = await skipIntro(this.data.sessionId)
+      const question = data.question || this._startQuestion
+      const subLevel = data.startSubLevel || this._startSubLevel || 'PRE1'
+      const majorLevel = SUB_LEVEL_MAJOR[subLevel] !== undefined ? SUB_LEVEL_MAJOR[subLevel] : 0
+
+      this.setData({
+        currentQuestion: question,
+        currentSubLevel: subLevel,
+        currentMajorLevel: majorLevel,
+        subLevelDisplay: subLevel,
+        majorLevelDisplay: MAJOR_LEVEL_NAMES[majorLevel] || '途正口语0级'
+      })
+
+      this._enterTestingPhase(question)
+
+    } catch (err) {
+      console.error('[SkipIntro] Failed:', err)
+      // 失败时用start返回的兆底question
+      const question = this._startQuestion
+      if (question) {
+        this._enterTestingPhase(question)
+      } else {
+        showError('准备测评失败，请重试')
+        this.setData({ phase: 'selfIntro', aiStatusText: '请录制英文自我介绍' })
+      }
+    }
+  },
+
+  /**
+   * 进入正式做题阶段（自我介绍完成/跳过后调用）
+   */
+  _enterTestingPhase(question) {
+    if (!question || !question.questionId) {
+      console.error('[EnterTesting] No valid question!')
+      showError('题目加载失败，请重试')
+      return
+    }
+
+    const audioWaves = Array.from({ length: 60 }, () => Math.floor(Math.random() * 32) + 8)
+
+    this.setData({
+      currentQuestion: question,
+      phase: 'listening',
+      showEstimateResult: false,
+      selfIntroGuide: null,
+      aiStatusText: '请听题目',
+      audioWaves,
+      showQuestionText: false,
+      questionTextDisplay: ''
+    })
+
+    this._previousSubLevel = this.data.currentSubLevel
+    this._lastEvalResponse = null
+    this._recordFilePath = ''
+    this._saveTestSession()
+
+    this.startTimer()
+
+    // 自动播放外教语音
+    setTimeout(() => {
+      this._destroyAudioContext()
+      this._playQuestionAudio()
+    }, 500)
+  },
+
+  // ============ v4.0 分析进度条动画 ============
+
+  /**
+   * 开始模拟分析进度动画
+   * 在evaluate请求发出时立即调用，模拟每个步骤的进度
+   */
+  _startAnalysisProgress() {
+    // 清除旧的定时器
+    if (this._analysisProgressTimer) {
+      clearInterval(this._analysisProgressTimer)
+      this._analysisProgressTimer = null
+    }
+
+    // 默认步骤配置（首次使用默认值，后续用实际耗时校准）
+    const lastSteps = this._lastAnalysisSteps
+    const steps = [
+      { name: '语音转文字中', percentage: 0, estimatedMs: (lastSteps && lastSteps[0]) ? lastSteps[0].durationMs * 1.1 : 1500 },
+      { name: 'AI分析语法中', percentage: 0, estimatedMs: (lastSteps && lastSteps[1]) ? lastSteps[1].durationMs * 1.1 : 800 },
+      { name: 'AI分析词汇量中', percentage: 0, estimatedMs: (lastSteps && lastSteps[2]) ? lastSteps[2].durationMs * 1.1 : 800 },
+      { name: 'AI分析流利度中', percentage: 0, estimatedMs: (lastSteps && lastSteps[3]) ? lastSteps[3].durationMs * 1.1 : 800 },
+      { name: '分析综合能力中', percentage: 0, estimatedMs: (lastSteps && lastSteps[4]) ? lastSteps[4].durationMs * 1.1 : 800 },
+      { name: '筛选下一题中', percentage: 0, estimatedMs: (lastSteps && lastSteps[5]) ? lastSteps[5].durationMs * 1.1 : 300 }
+    ]
+
+    this.setData({
+      showAnalysisProgress: true,
+      analysisSteps: steps,
+      analysisCurrentStep: 0
+    })
+
+    // 计算每个步骤的模拟时间
+    let currentStepIdx = 0
+    const totalEstimatedMs = steps.reduce((sum, s) => sum + s.estimatedMs, 0)
+    const INTERVAL = 80  // 每80ms更新一次
+
+    this._analysisProgressTimer = setInterval(() => {
+      if (currentStepIdx >= steps.length) {
+        clearInterval(this._analysisProgressTimer)
+        this._analysisProgressTimer = null
+        return
+      }
+
+      const step = steps[currentStepIdx]
+      // 每次增加的百分比：根据预估时间计算
+      const incrementPerTick = (INTERVAL / step.estimatedMs) * 90  // 最多到 90%
+      step.percentage = Math.min(step.percentage + incrementPerTick, 90)
+
+      if (step.percentage >= 90) {
+        currentStepIdx++
+        if (currentStepIdx < steps.length) {
+          steps[currentStepIdx].percentage = 0
+        }
+      }
+
+      this.setData({
+        analysisSteps: steps,
+        analysisCurrentStep: currentStepIdx
+      })
+    }, INTERVAL)
+  },
+
+  /**
+   * evaluate返回后，快速完成所有进度并校准
+   */
+  _completeAnalysisProgress(analysisStepsData) {
+    // 清除模拟定时器
+    if (this._analysisProgressTimer) {
+      clearInterval(this._analysisProgressTimer)
+      this._analysisProgressTimer = null
+    }
+
+    // 缓存实际耗时用于下次校准
+    if (analysisStepsData && analysisStepsData.steps) {
+      this._lastAnalysisSteps = analysisStepsData.steps
+    }
+
+    // 快速把所有步骤推到100%
+    const steps = this.data.analysisSteps.map(s => ({ ...s, percentage: 100 }))
+    this.setData({
+      analysisSteps: steps,
+      analysisCurrentStep: steps.length - 1
+    })
+
+    // 500ms后隐藏进度条
+    setTimeout(() => {
+      this.setData({ showAnalysisProgress: false })
+    }, 500)
   }
 })

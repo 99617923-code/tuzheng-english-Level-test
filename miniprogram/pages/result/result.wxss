@@ -106,7 +106,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 14rpx 40rpx;
+  padding: 16rpx 48rpx;
   border-radius: var(--radius-full);
   margin-bottom: 16rpx;
   max-width: 90%;
@@ -114,13 +114,11 @@
 }
 
 .hero-badge-text {
-  font-size: 30rpx;
+  font-size: 34rpx;
   font-weight: 800;
   color: #ffffff;
-  letter-spacing: 1rpx;
+  letter-spacing: 2rpx;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .hero-label {
@@ -921,19 +919,21 @@
   font-style: italic;
 }
 
-/* 录音播放按钮（文字样式） */
+/* 录音播放按钮 - 突出显示 */
 .qd-audio-btn {
   display: inline-flex;
   align-items: center;
-  padding: 6rpx 20rpx;
+  padding: 10rpx 24rpx;
   border-radius: var(--radius-full);
-  background: rgba(59,130,246,0.08);
+  background: rgba(59,130,246,0.1);
   flex-shrink: 0;
-  margin-left: 8rpx;
+  margin-left: 12rpx;
+  border: 1rpx solid rgba(59,130,246,0.2);
 }
 
 .qd-audio-btn.playing {
-  background: rgba(239,68,68,0.08);
+  background: rgba(239,68,68,0.1);
+  border-color: rgba(239,68,68,0.2);
 }
 
 .qd-audio-btn:active {
@@ -942,13 +942,62 @@
 }
 
 .qd-audio-text {
-  font-size: 22rpx;
+  font-size: 24rpx;
   font-weight: 600;
   color: var(--brand-blue);
 }
 
 .qd-audio-btn.playing .qd-audio-text {
   color: #ef4444;
+}
+
+/* 用户录音回放按钮 - 独立行显示，更醒目 */
+.qd-user-audio-row {
+  display: flex;
+  align-items: center;
+  margin-top: 12rpx;
+  padding: 14rpx 20rpx;
+  background: rgba(59,130,246,0.05);
+  border-radius: 16rpx;
+  border: 1rpx solid rgba(59,130,246,0.1);
+}
+
+.qd-user-audio-row .qd-audio-icon {
+  width: 36rpx;
+  height: 36rpx;
+  margin-right: 10rpx;
+  flex-shrink: 0;
+}
+
+.qd-user-audio-row .qd-audio-label {
+  font-size: 24rpx;
+  color: #666;
+  margin-right: 12rpx;
+  flex-shrink: 0;
+}
+
+.qd-user-audio-row .qd-play-btn {
+  display: flex;
+  align-items: center;
+  padding: 8rpx 24rpx;
+  border-radius: var(--radius-full);
+  background: var(--brand-blue);
+  margin-left: auto;
+}
+
+.qd-user-audio-row .qd-play-btn text {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #fff;
+}
+
+.qd-user-audio-row .qd-play-btn.playing {
+  background: #ef4444;
+}
+
+.qd-user-audio-row .qd-play-btn:active {
+  opacity: 0.8;
+  transform: scale(0.96);
 }
 
 /* ========== 展开详情区域 ========== */

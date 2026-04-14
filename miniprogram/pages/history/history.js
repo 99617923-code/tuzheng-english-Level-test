@@ -131,9 +131,17 @@ Page({
     const completedAt = item.completedAt || item.completed_at || item.updatedAt || item.updated_at || ''
     const createdAt = item.createdAt || item.created_at || ''
 
-    // v2: totalDuration 是毫秒
-    const totalDuration = item.totalDuration || item.total_duration || item.duration || 0
-    const durationSeconds = totalDuration > 10000 ? Math.round(totalDuration / 1000) : Math.round(totalDuration)
+    // v2: totalDuration 可能是毫秒、秒、或已格式化字符串
+    const rawDuration = item.totalDuration || item.total_duration || item.duration || 0
+    let durationSeconds = 0
+    if (typeof rawDuration === 'string' && rawDuration.includes(':')) {
+      // 已格式化字符串，解析为秒
+      const parts = rawDuration.split(':')
+      durationSeconds = (parseInt(parts[0]) || 0) * 60 + (parseInt(parts[1]) || 0)
+    } else {
+      const totalDuration = Number(rawDuration) || 0
+      durationSeconds = totalDuration > 10000 ? Math.round(totalDuration / 1000) : Math.round(totalDuration)
+    }
 
     const totalQuestions = item.totalQuestions || item.question_count || item.questionCount || 0
     const passedQuestions = item.passedQuestions || 0
@@ -148,7 +156,7 @@ Page({
       sessionId,
       majorLevel,
       isConfirmedSession,
-      levelName: isCompleted ? (item.majorLevelName || item.levelName || item.level_name || config.name) : null,
+      levelName: isCompleted ? `途正口语${majorLevel}级` : null,
       levelLabel: isCompleted ? (item.majorLevelLabel || config.label || '') : null,
       levelColor: isCompleted ? config.color : '#9CA3AF',
       completedAtFormatted: completedAt ? formatDate(completedAt) : (createdAt ? formatDate(createdAt) : '未完成'),

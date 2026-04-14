@@ -55,7 +55,7 @@ Page({
 
     // 逐题分析
     questionDetails: [],
-    showQuestionDetails: false,
+    showQuestionDetails: true,
 
     // 录音播放状态
     playingAudioUrl: '',
@@ -189,8 +189,8 @@ Page({
     this._majorLevel = data.majorLevel !== undefined ? data.majorLevel : (data.major_level !== undefined ? data.major_level : 0)
     const config = app.getLevelConfig(this._majorLevel)
 
-    // 等级名称：优先后端返回的finalLevel/levelName/majorLevelName
-    const levelName = data.finalLevel || data.levelName || data.majorLevelName || config.name
+    // 等级名称：统一使用"途正口语X级"格式，不管后端返回什么
+    const levelName = `途正口语${this._majorLevel}级`
     const levelLabel = data.levelLabel || data.majorLevelLabel || config.label || ''
 
     // 报告数据
@@ -253,12 +253,21 @@ Page({
 
     const scorePercent = Math.min(Math.round(data.overallScore || data.overall_score || 0), 100)
 
-    // 时长（后端返回毫秒或秒，做兼容）
-    const totalDuration = data.totalDuration || data.total_duration || 0
-    // 如果值大于10000，认为是毫秒；否则认为是秒
-    const durationSeconds = totalDuration > 10000 ? Math.round(totalDuration / 1000) : totalDuration
-    // 如果后端返回0（全部跳过或数据缺失），显示为短横线而非0''
-    const durationText = durationSeconds > 0 ? formatDuration(durationSeconds) : '--'
+    // 时长处理：后端可能返回毫秒、秒、或已格式化的字符串
+    const rawDuration = data.totalDuration || data.total_duration || data.duration || 0
+    console.log('[Result] 后端返回的原始时长数据:', JSON.stringify({ totalDuration: data.totalDuration, total_duration: data.total_duration, duration: data.duration, rawDuration }))
+    
+    let durationText = '--'
+    if (typeof rawDuration === 'string' && rawDuration.includes(':')) {
+      // 后端返回已格式化的字符串，如 "7:37" 或 "07:37"
+      durationText = rawDuration
+    } else {
+      const totalDuration = Number(rawDuration) || 0
+      // 如果值大于10000，认为是毫秒；否则认为是秒
+      const durationSeconds = totalDuration > 10000 ? Math.round(totalDuration / 1000) : totalDuration
+      durationText = durationSeconds > 0 ? formatDuration(durationSeconds) : '--'
+      console.log('[Result] 时长计算:', { totalDuration, durationSeconds, durationText })
+    }
 
     // 群二维码（v2直接在result里返回，但不立即显示）
     const groupQrcode = data.groupQrcode || data.group_qrcode || {}
@@ -309,7 +318,7 @@ Page({
           subLevelName,
           scoreDetail,
           hasScoreDetail,
-          expanded: false  // 折叠状态
+          expanded: true  // 默认展开，直接显示AI解析和评分
         })
       })
     }

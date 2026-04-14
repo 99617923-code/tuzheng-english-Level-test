@@ -191,12 +191,17 @@
               </view>
             </view>
 
-            <!-- 用户回答 + 录音回放（始终显示） -->
+            <!-- 用户回答（始终显示） -->
             <view class="qd-answer">
               <text class="qd-label">💬 你的回答：</text>
               <text class="qd-text {{item.userAnswer === '（未作答）' ? 'qd-no-answer' : ''}}">{{item.userAnswer}}</text>
-              <view wx:if="{{item.userAudioUrl}}" class="qd-audio-btn {{playingAudioUrl === item.userAudioUrl ? 'playing' : ''}}" data-url="{{item.userAudioUrl}}" bindtap="playUserAudio">
-                <text class="qd-audio-text">{{playingAudioUrl === item.userAudioUrl ? '■ 停止' : '▶ 回放录音'}}</text>
+            </view>
+
+            <!-- 用户录音回放（独立行，醒目显示） -->
+            <view wx:if="{{item.userAudioUrl}}" class="qd-user-audio-row" data-url="{{item.userAudioUrl}}" bindtap="playUserAudio">
+              <text class="qd-audio-label">🎤 我的录音</text>
+              <view class="qd-play-btn {{playingAudioUrl === item.userAudioUrl ? 'playing' : ''}}">
+                <text>{{playingAudioUrl === item.userAudioUrl ? '■ 停止播放' : '▶ 播放录音'}}</text>
               </view>
             </view>
 

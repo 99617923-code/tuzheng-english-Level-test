@@ -477,7 +477,7 @@ function getQrcodeDisplaySetting() {
 
 /**
  * 获取群二维码
- * @param {number} level - 等级数字（0=零级, 1=一级, 2=二级, 3=三级）
+ * @param {number} level - 等级数字（0=途正口语0级, 1=途正口语1级, 2=途正口语2级, 3=途正口语3级）
  */
 function getQrcodeByLevel(level) {
   return request(`/api/v1/qrcode/level/${level}`).then(res => {

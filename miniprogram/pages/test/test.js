@@ -54,10 +54,10 @@ const SUB_LEVEL_MAJOR = {
 
 // 大级名称（兼容后端定义，后端补充majorLevelName字段后可优先使用后端数据）
 const MAJOR_LEVEL_NAMES = {
-  0: '零级 · 学前水平',
-  1: '一级 · 小学水平',
-  2: '二级 · 中学水平',
-  3: '三级 · 雅思水平'
+  0: '途正口语0级',
+  1: '途正口语1级',
+  2: '途正口语2级',
+  3: '途正口语3级'
 }
 
 // 最少答题数（前端保底，至少答完这么多题才允许结束）
@@ -95,7 +95,7 @@ Page({
 
     // 显示信息
     subLevelDisplay: 'PRE1',
-    majorLevelDisplay: '零级 · 预备',
+    majorLevelDisplay: '途正口语0级',
     questionCountDisplay: '第 1 题',
 
     // 计时（每道题3分钟倒计时）
@@ -404,7 +404,7 @@ Page({
         questionSecondsLeft: 180,
         timerDisplay: '03:00',
         subLevelDisplay: subLevel,
-        majorLevelDisplay: MAJOR_LEVEL_NAMES[majorLevel] || '零级 · 预备',
+        majorLevelDisplay: MAJOR_LEVEL_NAMES[majorLevel] || '途正口语0级',
         questionCountDisplay: `第 ${this._frontendQuestionCount + 1} 题`,
         progressPercent: Math.min((this._frontendQuestionCount / 34) * 100, 95),
         phase: 'listening',
@@ -525,7 +525,7 @@ Page({
         questionIndex: data.questionIndex || 1,
         totalAnswered: 0,  // 新测评强制从0开始
         subLevelDisplay: subLevel,
-        majorLevelDisplay: MAJOR_LEVEL_NAMES[majorLevel] || '零级 · 预备',
+        majorLevelDisplay: MAJOR_LEVEL_NAMES[majorLevel] || '途正口语0级',
         questionCountDisplay: '第 1 题',  // 强制显示第1题
         progressPercent: 0,
         phase: 'guide',
@@ -1508,7 +1508,7 @@ Page({
           currentMajorLevel: majorLevel,
           questionIndex: data.questionIndex || 1,
           subLevelDisplay: subLevel,
-          majorLevelDisplay: MAJOR_LEVEL_NAMES[majorLevel] || '零级 · 预备',
+          majorLevelDisplay: MAJOR_LEVEL_NAMES[majorLevel] || '途正口语0级',
           questionCountDisplay: `第 ${totalAnswered + 1} 题`,
           progressPercent: Math.min((totalAnswered / 34) * 100, 95),
           phase: 'listening',
@@ -1606,7 +1606,7 @@ Page({
       currentSubLevel: newSubLevel,
       currentMajorLevel: newMajorLevel,
       subLevelDisplay: newSubLevel,
-      majorLevelDisplay: MAJOR_LEVEL_NAMES[newMajorLevel] || '零级 · 预备',
+      majorLevelDisplay: MAJOR_LEVEL_NAMES[newMajorLevel] || '途正口语0级',
       questionCountDisplay: `第 ${totalAnswered + 1} 题`,
       progressPercent: progress,
       phase: 'listening',

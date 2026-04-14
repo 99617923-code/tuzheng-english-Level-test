@@ -55,7 +55,7 @@ Page({
 
     // 逐题分析
     questionDetails: [],
-    showQuestionDetails: true,
+    showQuestionDetails: false,
 
     // 录音播放状态
     playingAudioUrl: '',

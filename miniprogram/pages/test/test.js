@@ -2235,12 +2235,12 @@ Page({
     // 默认步骤配置（首次使用默认值，后续用实际耗时校准）
     const lastSteps = this._lastAnalysisSteps
     const steps = [
-      { name: '语音转文字中', percentage: 0, estimatedMs: (lastSteps && lastSteps[0]) ? lastSteps[0].durationMs * 1.1 : 1500 },
-      { name: 'AI分析语法中', percentage: 0, estimatedMs: (lastSteps && lastSteps[1]) ? lastSteps[1].durationMs * 1.1 : 800 },
-      { name: 'AI分析词汇量中', percentage: 0, estimatedMs: (lastSteps && lastSteps[2]) ? lastSteps[2].durationMs * 1.1 : 800 },
-      { name: 'AI分析流利度中', percentage: 0, estimatedMs: (lastSteps && lastSteps[3]) ? lastSteps[3].durationMs * 1.1 : 800 },
-      { name: '分析综合能力中', percentage: 0, estimatedMs: (lastSteps && lastSteps[4]) ? lastSteps[4].durationMs * 1.1 : 800 },
-      { name: '筛选下一题中', percentage: 0, estimatedMs: (lastSteps && lastSteps[5]) ? lastSteps[5].durationMs * 1.1 : 300 }
+      { name: '语音转文字中', percentage: 0, pctDisplay: '0.00', estimatedMs: (lastSteps && lastSteps[0]) ? lastSteps[0].durationMs * 1.1 : 1500 },
+      { name: 'AI分析语法中', percentage: 0, pctDisplay: '0.00', estimatedMs: (lastSteps && lastSteps[1]) ? lastSteps[1].durationMs * 1.1 : 800 },
+      { name: 'AI分析词汇量中', percentage: 0, pctDisplay: '0.00', estimatedMs: (lastSteps && lastSteps[2]) ? lastSteps[2].durationMs * 1.1 : 800 },
+      { name: 'AI分析流利度中', percentage: 0, pctDisplay: '0.00', estimatedMs: (lastSteps && lastSteps[3]) ? lastSteps[3].durationMs * 1.1 : 800 },
+      { name: '分析综合能力中', percentage: 0, pctDisplay: '0.00', estimatedMs: (lastSteps && lastSteps[4]) ? lastSteps[4].durationMs * 1.1 : 800 },
+      { name: '筛选下一题中', percentage: 0, pctDisplay: '0.00', estimatedMs: (lastSteps && lastSteps[5]) ? lastSteps[5].durationMs * 1.1 : 300 }
     ]
 
     this.setData({
@@ -2251,7 +2251,6 @@ Page({
 
     // 计算每个步骤的模拟时间
     let currentStepIdx = 0
-    const totalEstimatedMs = steps.reduce((sum, s) => sum + s.estimatedMs, 0)
     const INTERVAL = 80  // 每80ms更新一次
 
     this._analysisProgressTimer = setInterval(() => {
@@ -2265,11 +2264,14 @@ Page({
       // 每次增加的百分比：根据预估时间计算
       const incrementPerTick = (INTERVAL / step.estimatedMs) * 90  // 最多到 90%
       step.percentage = Math.min(step.percentage + incrementPerTick, 90)
+      step.pctDisplay = step.percentage >= 100 ? '100.00' : step.percentage.toFixed(2)
 
       if (step.percentage >= 90) {
+        step.pctDisplay = '90.00'
         currentStepIdx++
         if (currentStepIdx < steps.length) {
           steps[currentStepIdx].percentage = 0
+          steps[currentStepIdx].pctDisplay = '0.00'
         }
       }
 
@@ -2281,7 +2283,7 @@ Page({
   },
 
   /**
-   * evaluate返回后，快速完成所有进度并校准
+   * evaluate返回后，从上到下逐个完成到100%并校准
    */
   _completeAnalysisProgress(analysisStepsData) {
     // 清除模拟定时器
@@ -2295,16 +2297,26 @@ Page({
       this._lastAnalysisSteps = analysisStepsData.steps
     }
 
-    // 快速把所有步骤推到100%
-    const steps = this.data.analysisSteps.map(s => ({ ...s, percentage: 100 }))
-    this.setData({
-      analysisSteps: steps,
-      analysisCurrentStep: steps.length - 1
-    })
+    // 从上到下逐个完成到100%，每个步骤间隔150ms
+    const steps = [...this.data.analysisSteps]
+    const STEP_DELAY = 150  // 每个步骤完成的间隔
 
-    // 500ms后隐藏进度条
-    setTimeout(() => {
-      this.setData({ showAnalysisProgress: false })
-    }, 500)
+    steps.forEach((step, idx) => {
+      setTimeout(() => {
+        steps[idx].percentage = 100
+        steps[idx].pctDisplay = '100.00'
+        this.setData({
+          analysisSteps: [...steps],
+          analysisCurrentStep: idx
+        })
+
+        // 最后一个步骤完成后，500ms后隐藏进度条
+        if (idx === steps.length - 1) {
+          setTimeout(() => {
+            this.setData({ showAnalysisProgress: false })
+          }, 500)
+        }
+      }, idx * STEP_DELAY)
+    })
   }
 })

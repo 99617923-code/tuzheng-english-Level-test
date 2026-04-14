@@ -145,7 +145,7 @@
         <view wx:for="{{analysisSteps}}" wx:key="index" class="analysis-step-item {{index <= analysisCurrentStep ? 'active' : ''}} {{item.percentage >= 100 ? 'completed' : ''}}">
           <view class="analysis-step-info">
             <text class="analysis-step-name">{{item.name}}</text>
-            <text class="analysis-step-pct">{{item.percentage >= 100 ? '100' : (item.percentage > 0 ? item.percentage : '0')}}%</text>
+            <text class="analysis-step-pct">{{item.pctDisplay}}%</text>
           </view>
           <view class="analysis-step-bar">
             <view class="analysis-step-fill {{item.percentage >= 100 ? 'completed' : ''}}" style="width: {{item.percentage}}%;"></view>

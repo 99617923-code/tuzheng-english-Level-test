@@ -2348,8 +2348,20 @@ Page({
 
     // 级别描述：强制使用"途正口语X级"格式，跨级时显示"X-Y级"
     // 不使用后端的levelRangeNames（可能是"初一到初三"这样的年级描述）
-    const lowerMajor = SUB_LEVEL_MAJOR[lowerName] !== undefined ? SUB_LEVEL_MAJOR[lowerName] : (SUB_LEVEL_MAJOR[startLevelName] !== undefined ? SUB_LEVEL_MAJOR[startLevelName] : 0)
-    const upperMajor = upperName ? (SUB_LEVEL_MAJOR[upperName] !== undefined ? SUB_LEVEL_MAJOR[upperName] : lowerMajor) : lowerMajor
+    // 优先从levelRange字符串中提取子级别名来计算大级别（因为estimatedLevel对象可能缺失字段）
+    let effectiveLower = lowerName
+    let effectiveUpper = upperName
+    if (estimateData.levelRange) {
+      const rangeParts = estimateData.levelRange.split(/\s*[-~]\s*/)
+      if (rangeParts[0] && SUB_LEVEL_MAJOR[rangeParts[0]] !== undefined) {
+        effectiveLower = rangeParts[0]
+      }
+      if (rangeParts[1] && SUB_LEVEL_MAJOR[rangeParts[1]] !== undefined) {
+        effectiveUpper = rangeParts[1]
+      }
+    }
+    const lowerMajor = SUB_LEVEL_MAJOR[effectiveLower] !== undefined ? SUB_LEVEL_MAJOR[effectiveLower] : (SUB_LEVEL_MAJOR[startLevelName] !== undefined ? SUB_LEVEL_MAJOR[startLevelName] : 0)
+    const upperMajor = effectiveUpper ? (SUB_LEVEL_MAJOR[effectiveUpper] !== undefined ? SUB_LEVEL_MAJOR[effectiveUpper] : lowerMajor) : lowerMajor
     const majorLevel = lowerMajor
     let levelDesc = ''
     if (lowerMajor !== upperMajor) {
@@ -2357,6 +2369,7 @@ Page({
     } else {
       levelDesc = `途正口语${lowerMajor}级`
     }
+    console.log('[EstimateResult] effectiveLower:', effectiveLower, 'effectiveUpper:', effectiveUpper, 'lowerMajor:', lowerMajor, 'upperMajor:', upperMajor)
 
     // 引导文案：优先用后端 guidanceText
     const guidanceText = estimateData.guidanceText || '为了更准确定级，请继续完成接下来的外教问答'

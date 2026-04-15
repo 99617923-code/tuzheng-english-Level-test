@@ -371,8 +371,18 @@ Page({
         'IELTS4': 3, 'IELTS5': 3, 'IELTS6': 3, 'IELTS7': 3, 'IELTS8': 3, 'IELTS9': 3
       }
       const estLevel = si.estimatedLevel || si.estimated_level || {}
-      const lowerBound = estLevel.lowerBoundName || estLevel.lowerBound || estLevel.lower_bound_name || ''
-      const upperBound = estLevel.upperBoundName || estLevel.upperBound || estLevel.upper_bound_name || ''
+      let lowerBound = estLevel.lowerBoundName || estLevel.lowerBound || estLevel.lower_bound_name || ''
+      let upperBound = estLevel.upperBoundName || estLevel.upperBound || estLevel.upper_bound_name || ''
+      // 优先从levelRange字符串提取子级别名（因为estimatedLevel对象可能缺失字段）
+      if (rawLevelRange) {
+        const rangeParts = rawLevelRange.split(/\s*[-~]\s*/)
+        if (rangeParts[0] && SUB_LEVEL_MAJOR_MAP[rangeParts[0]] !== undefined) {
+          lowerBound = rangeParts[0]
+        }
+        if (rangeParts[1] && SUB_LEVEL_MAJOR_MAP[rangeParts[1]] !== undefined) {
+          upperBound = rangeParts[1]
+        }
+      }
       const lMajor = SUB_LEVEL_MAJOR_MAP[lowerBound] !== undefined ? SUB_LEVEL_MAJOR_MAP[lowerBound] : -1
       const uMajor = SUB_LEVEL_MAJOR_MAP[upperBound] !== undefined ? SUB_LEVEL_MAJOR_MAP[upperBound] : lMajor
       let levelRangeNames = ''

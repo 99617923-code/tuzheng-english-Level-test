@@ -749,3 +749,13 @@
 - [x] test.wxml：在做题界面增加“结束测评”按钮（红色下划线文字，与跳过此题并排）
 - [x] test.js：handleTerminate弹窗确认 + _doTerminate调用terminateTest(sessionId, 'user_request') + 跳转结果页
 - [x] 结果页通过sessionId调用getTestReport获取报告，与正常结束完全复用
+
+## 第八十三轮 - 修复自我介绍录音竞态条件（真机放开后无反应/卡死）
+- [x] 根因1修复：holdDuration<800分支中重置_selfIntroMode=false，防止短按取消后残留影响下次录音
+- [x] 根因1修复：onStart的pendingStop分支中重置_selfIntroMode=false，防止竞态条件
+- [x] 根因2修复：_stopSelfIntroRecord中已有3秒onStop超时保护，弹窗提示重新录制或跳过
+- [x] 彻底方案：引入_selfIntroGeneration代数计数器，每次开始录音递增generation
+- [x] onStop回调中检查generation是否匹配，不匹配则忽略旧回调（防止旧onStop干扰新录音）
+- [x] 超时保护回调中检查generation，不匹配则不弹窗干扰
+- [x] onError回调中增加自我介绍模式的完整状态重置（清除所有定时器+重置标志位）
+- [x] cleanup方法中重置_selfIntroGeneration

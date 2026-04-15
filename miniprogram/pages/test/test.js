@@ -241,6 +241,9 @@ Page({
     this._selfIntroTouchActive = false
     this._selfIntroPendingStop = false
     this._selfIntroSafetyTimer = null
+    this._selfIntroStopFallbackTimer = null
+    this._waitingForSelfIntroOnStop = false
+    this._selfIntroGeneration = 0  // 自我介绍录音代数计数器，用于防止旧onStop回调干扰新录音
     this._analysisProgressTimer = null
     this._lastAnalysisSteps = null
     this._startQuestion = null
@@ -312,6 +315,12 @@ Page({
       clearTimeout(this._selfIntroSafetyTimer)
       this._selfIntroSafetyTimer = null
     }
+    // 清除onStop超时保护定时器
+    if (this._selfIntroStopFallbackTimer) {
+      clearTimeout(this._selfIntroStopFallbackTimer)
+      this._selfIntroStopFallbackTimer = null
+    }
+    this._waitingForSelfIntroOnStop = false
     // 清除分析进度动画定时器
     if (this._analysisProgressTimer) {
       clearInterval(this._analysisProgressTimer)
@@ -335,6 +344,7 @@ Page({
     this._showingModal = false
     this._selfIntroProcessing = false
     this._selfIntroMode = false
+    this._selfIntroGeneration = 0
   },
 
   // ============ 计时器 ============
@@ -1040,6 +1050,7 @@ Page({
         // 检查是否手指已松开（pendingStop）
         if (this._selfIntroPendingStop || !this._selfIntroTouchActive) {
           this._selfIntroPendingStop = false
+          this._selfIntroMode = false  // 重置模式标志，防止竞态
           console.log('[SelfIntro] Finger already released, stopping immediately')
           if (this._selfIntroRecordTimer) {
             clearInterval(this._selfIntroRecordTimer)
@@ -1103,7 +1114,20 @@ Page({
 
       // v4.0: 如果是自我介绍录音，走自我介绍流程
       if (this._selfIntroMode) {
+        const stoppedGeneration = this._selfIntroGeneration
         this._selfIntroMode = false
+        // 清除onStop超时保护定时器
+        this._waitingForSelfIntroOnStop = false
+        if (this._selfIntroStopFallbackTimer) {
+          clearTimeout(this._selfIntroStopFallbackTimer)
+          this._selfIntroStopFallbackTimer = null
+        }
+        console.log('[SelfIntro] onStop fired, generation:', stoppedGeneration, 'current:', this._selfIntroGeneration, 'tempFilePath:', res.tempFilePath ? 'yes' : 'no')
+        // generation检查：如果当前代数已经变了（用户开始了新录音），忽略旧回调
+        if (stoppedGeneration !== this._selfIntroGeneration) {
+          console.warn('[SelfIntro] Stale onStop callback (gen', stoppedGeneration, 'vs current', this._selfIntroGeneration, '), ignoring')
+          return
+        }
         if (res.tempFilePath) {
           this._handleSelfIntroRecordComplete(res.tempFilePath)
         } else {
@@ -1140,6 +1164,25 @@ Page({
       if (this._recordTimer) {
         clearInterval(this._recordTimer)
         this._recordTimer = null
+      }
+      // 自我介绍录音模式下的错误处理
+      if (this._selfIntroMode) {
+        this._selfIntroMode = false
+        this._waitingForSelfIntroOnStop = false
+        this._selfIntroProcessing = false
+        if (this._selfIntroStopFallbackTimer) {
+          clearTimeout(this._selfIntroStopFallbackTimer)
+          this._selfIntroStopFallbackTimer = null
+        }
+        if (this._selfIntroRecordTimer) {
+          clearInterval(this._selfIntroRecordTimer)
+          this._selfIntroRecordTimer = null
+        }
+        if (this._selfIntroSafetyTimer) {
+          clearTimeout(this._selfIntroSafetyTimer)
+          this._selfIntroSafetyTimer = null
+        }
+        this.setData({ selfIntroRecording: false, recordWaveBars: [] })
       }
       // 页面已卸载时不再操作UI和弹窗
       if (this._isPageUnloaded) {
@@ -2134,6 +2177,9 @@ Page({
     // 启动录音器（最长2分钟）
     this._selfIntroRecordFilePath = ''
     this._selfIntroMode = true
+    this._selfIntroGeneration = (this._selfIntroGeneration || 0) + 1  // 递增代数，标识本次录音会话
+    const currentGeneration = this._selfIntroGeneration
+    console.log('[SelfIntro] Starting recording, generation:', currentGeneration)
     try {
       this._recorderManager.start({
         duration: 120000,
@@ -2216,6 +2262,7 @@ Page({
     const holdDuration = Date.now() - (this._selfIntroTouchStartTime || 0)
     if (holdDuration < 800) {
       console.log('[SelfIntro] Hold too short:', holdDuration, 'ms, cancelling')
+      this._selfIntroMode = false  // 重置模式标志，防止残留影响下次录音
       try { this._recorderManager.stop() } catch (e) {}
       if (this._selfIntroRecordTimer) {
         clearInterval(this._selfIntroRecordTimer)
@@ -2256,6 +2303,20 @@ Page({
       clearTimeout(this._selfIntroSafetyTimer)
       this._selfIntroSafetyTimer = null
     }
+    // 清除上一次的onStop超时保护
+    if (this._selfIntroStopFallbackTimer) {
+      clearTimeout(this._selfIntroStopFallbackTimer)
+      this._selfIntroStopFallbackTimer = null
+    }
+
+    // 记录当前录音时长和generation（用于超时保护时判断）
+    const currentRecordSeconds = this.data.selfIntroRecordSeconds
+    const stopGeneration = this._selfIntroGeneration
+    console.log('[SelfIntro] _stopSelfIntroRecord called, recorded', currentRecordSeconds, 'seconds, generation:', stopGeneration)
+
+    // 标记等待onStop回调
+    this._waitingForSelfIntroOnStop = true
+
     // 停止录音（onStop回调中处理文件）
     try {
       this._recorderManager.stop()
@@ -2266,6 +2327,38 @@ Page({
       selfIntroRecording: false,
       recordWaveBars: []
     })
+
+    // onStop超时保护：如果3秒内onStop回调没有触发，显示提示让用户重试
+    this._selfIntroStopFallbackTimer = setTimeout(() => {
+      if (!this._waitingForSelfIntroOnStop) return  // 已经正常触发了
+      // generation检查：如果用户已经开始了新录音，不弹窗干扰
+      if (stopGeneration !== this._selfIntroGeneration) {
+        console.warn('[SelfIntro] Stale fallback timer (gen', stopGeneration, 'vs current', this._selfIntroGeneration, '), ignoring')
+        return
+      }
+      console.warn('[SelfIntro] onStop callback not fired within 3s, showing retry prompt')
+      this._waitingForSelfIntroOnStop = false
+      this._selfIntroMode = false
+      this._selfIntroProcessing = false
+      // 提示用户重新录制
+      if (!this._showingModal && !this._isPageUnloaded) {
+        this._showingModal = true
+        wx.showModal({
+          title: '录音处理异常',
+          content: '录音停止后未收到响应，请重新录制自我介绍',
+          confirmText: '重新录制',
+          cancelText: '跳过',
+          success: (res) => {
+            this._showingModal = false
+            if (res.cancel) {
+              // 跳过自我介绍
+              this._handleSkipIntro()
+            }
+            // 确认则留在当前页面等待用户重新录制
+          }
+        })
+      }
+    }, 3000)
   },
 
   /**

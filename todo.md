@@ -723,3 +723,8 @@
 ## 第七十六轮 - 根本性解决自我介绍录音松手后卡死问题
 - [x] 全面排查录音松手→onStop→_handleSelfIntroRecordComplete→分析进度→结果展示的完整链路
 - [x] 根本性修复卡死问题：用CSS transition替代setInterval驱动进度条动画，setData次数从50+次降至6次
+
+## 第七十七轮 - 修复self-intro-estimate前端超时（Nginx 499）
+- [x] api.js：将self-intro-estimate接口超时时间设为60000ms（60秒），解决AI分析需要15-30秒导致默认15s超时断开连接（Nginx 499）
+- [x] request.js已支持自定义timeout参数（优先级：自定义timeout > isLongTimeoutUrl > DEFAULT_TIMEOUT）
+- [x] loading动画已有CSS transition驱动，在等待期间持续显示五维度分析进度

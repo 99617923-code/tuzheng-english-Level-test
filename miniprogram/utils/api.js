@@ -593,6 +593,7 @@ function getUserLevelStatus() {
 function selfIntroEstimate(sessionId, audioUrl) {
   return request('/api/v1/test/self-intro-estimate', {
     method: 'POST',
+    timeout: 60000,  // 60秒超时：AI分析需要15-30秒（STT转写+LLM多维度分析），默认15s会导致客户端主动断开连接（Nginx 499）
     data: {
       sessionId,
       session_id: sessionId,

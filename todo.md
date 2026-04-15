@@ -740,3 +740,7 @@
 ## 第八十轮 - 修复预估级别映射错误（G7以上显示0级）
 - [x] test.js：从levelRange字符串（如"G7-G9"）提取子级别名计算大级别，不依赖estimatedLevel对象（可能缺失字段导致回退PRE1→0级）
 - [x] result.js：同样修复，优先从rawLevelRange提取子级别名
+
+## 第八十一轮 - 彻底解决真机长录音松手后不停止
+- [x] 根因：wx:if/wx:else切换销毁了touchstart绑定的元素，导致touchend丢失。做题录音用单元素+class切换所以没问题
+- [x] 修复：改为单元素+class切换模式，touchstart和touchend始终在同一个DOM节点上

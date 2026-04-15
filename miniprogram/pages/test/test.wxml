@@ -277,23 +277,14 @@
   <view class="bottom-bar">
     <!-- v4.0 自我介绍阶段操作区 -->
     <view wx:if="{{phase === 'selfIntro' && !selfIntroUploading && !showEstimateResult}}" class="action-area">
-      <!-- 按住录制自我介绍按钮（与做题录音一致的按住说话模式） -->
+      <!-- 按住录制自我介绍按钮（单元素+class切换，避免wx:if/wx:else销毁元素导致touchend丢失） -->
       <view
-        wx:if="{{!selfIntroRecording}}"
-        class="wechat-record-btn intro-record-btn"
+        class="wechat-record-btn intro-record-btn {{selfIntroRecording ? 'recording' : ''}}"
         bindtouchstart="onSelfIntroTouchStart"
         bindtouchend="onSelfIntroTouchEnd"
         bindtouchcancel="onSelfIntroTouchEnd"
       >
-        <text class="wechat-record-text intro-record-text">按住开始录制自我介绍</text>
-      </view>
-      <view
-        wx:else
-        class="wechat-record-btn recording intro-record-btn"
-        bindtouchend="onSelfIntroTouchEnd"
-        bindtouchcancel="onSelfIntroTouchEnd"
-      >
-        <text class="wechat-record-text">松开 结束录音</text>
+        <text class="wechat-record-text intro-record-text">{{selfIntroRecording ? '松开 结束录音' : '按住开始录制自我介绍'}}</text>
       </view>
       <view class="skip-row">
         <button class="skip-btn intro-skip-btn" bindtap="handleSkipIntro">跳过自我介绍，从头开始逐级测试</button>

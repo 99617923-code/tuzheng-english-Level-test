@@ -76,7 +76,9 @@ Page({
 
     // 个人介绍测评报告
     selfIntroReport: null,       // 个人介绍测评数据对象
-    showSelfIntroReport: true    // 默认展开个人介绍测评报告
+    showSelfIntroReport: true,   // 默认展开个人介绍测评报告
+    // 高亮详情气泡
+    activeHighlight: null         // 当前点击的高亮词详情 { text, type, suggestion, reason }
   },
 
   _sessionId: '',
@@ -380,6 +382,48 @@ Page({
         }
       })
 
+      // 解析highlights高亮标注
+      const rawHighlights = si.highlights || []
+      let textSegments = []
+      if (rawHighlights.length > 0 && transcription) {
+        // 按在原文中出现的位置排序
+        const sortedHL = rawHighlights
+          .map(h => {
+            const text = h.text || ''
+            const idx = transcription.indexOf(text)
+            return { ...h, _idx: idx }
+          })
+          .filter(h => h._idx >= 0)
+          .sort((a, b) => a._idx - b._idx)
+
+        let cursor = 0
+        sortedHL.forEach((h, i) => {
+          const start = transcription.indexOf(h.text, cursor)
+          if (start < 0) return
+          // 前面的普通文本
+          if (start > cursor) {
+            textSegments.push({ id: 'n' + i, text: transcription.slice(cursor, start), type: 'normal' })
+          }
+          // 高亮片段
+          textSegments.push({
+            id: 'h' + i,
+            text: h.text,
+            type: h.type || 'highlight', // 'error' | 'highlight'
+            suggestion: h.suggestion || '',
+            reason: h.reason || ''
+          })
+          cursor = start + h.text.length
+        })
+        // 尾部剩余普通文本
+        if (cursor < transcription.length) {
+          textSegments.push({ id: 'tail', text: transcription.slice(cursor), type: 'normal' })
+        }
+      }
+      const hasHighlights = textSegments.length > 0
+      // 统计错误和亮点数量
+      const errorCount = textSegments.filter(s => s.type === 'error').length
+      const highlightCount = textSegments.filter(s => s.type === 'highlight').length
+
       selfIntroReport = {
         audioUrl,
         transcription,
@@ -390,7 +434,11 @@ Page({
         levelRangeNames,
         overallComment,
         dimensions,
-        hasDimensions: dimensions.length > 0
+        hasDimensions: dimensions.length > 0,
+        textSegments,
+        hasHighlights,
+        errorCount,
+        highlightCount
       }
     }
 
@@ -467,6 +515,31 @@ Page({
         }
       }
     })
+  },
+
+  /** 点击高亮词查看详情 */
+  onHighlightTap(e) {
+    const { seg } = e.currentTarget.dataset
+    if (!seg || seg.type === 'normal') return
+    // 如果点击同一个，切换关闭
+    if (this.data.activeHighlight && this.data.activeHighlight.id === seg.id) {
+      this.setData({ activeHighlight: null })
+      return
+    }
+    this.setData({
+      activeHighlight: {
+        id: seg.id,
+        text: seg.text,
+        type: seg.type,
+        suggestion: seg.suggestion || '',
+        reason: seg.reason || ''
+      }
+    })
+  },
+
+  /** 关闭高亮详情气泡 */
+  closeHighlightBubble() {
+    this.setData({ activeHighlight: null })
   },
 
   /** 检查二维码显示开关 */

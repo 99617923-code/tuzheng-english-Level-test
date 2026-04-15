@@ -207,14 +207,60 @@
           </view>
         </view>
 
-        <!-- 英文文本转写 -->
+        <!-- 英文文本转写（支持高亮标注） -->
         <view wx:if="{{selfIntroReport.transcription}}" class="si-text-card">
           <view class="si-text-header">
             <text class="si-text-title">📝 英文转写</text>
-            <text wx:if="{{selfIntroReport.wordCount > 0}}" class="si-word-count">{{selfIntroReport.wordCount}} 词</text>
+            <view class="si-text-badges">
+              <text wx:if="{{selfIntroReport.errorCount > 0}}" class="si-badge si-badge-error">{{selfIntroReport.errorCount}} 个语法问题</text>
+              <text wx:if="{{selfIntroReport.highlightCount > 0}}" class="si-badge si-badge-good">✨ {{selfIntroReport.highlightCount}} 个亮点</text>
+              <text wx:if="{{selfIntroReport.wordCount > 0}}" class="si-word-count">{{selfIntroReport.wordCount}} 词</text>
+            </view>
           </view>
           <view class="si-text-content">
-            <text class="si-transcription">{{selfIntroReport.transcription}}</text>
+            <!-- 有高亮标注时用片段渲染 -->
+            <view wx:if="{{selfIntroReport.hasHighlights}}" class="si-transcription-hl">
+              <text
+                wx:for="{{selfIntroReport.textSegments}}"
+                wx:key="id"
+                class="si-seg si-seg-{{item.type}}"
+                data-seg="{{item}}"
+                bindtap="onHighlightTap"
+              >{{item.text}}</text>
+            </view>
+            <!-- 无高亮时显示纯文本 -->
+            <text wx:else class="si-transcription">{{selfIntroReport.transcription}}</text>
+          </view>
+          <!-- 高亮详情气泡 -->
+          <view wx:if="{{activeHighlight}}" class="si-hl-bubble" catchtap="closeHighlightBubble">
+            <view class="si-hl-bubble-inner" catchtap="">
+              <view class="si-hl-bubble-header">
+                <text class="si-hl-bubble-word si-hl-word-{{activeHighlight.type}}">{{activeHighlight.text}}</text>
+                <text class="si-hl-bubble-type si-hl-type-{{activeHighlight.type}}">{{activeHighlight.type === 'error' ? '语法问题' : '表达亮点'}}</text>
+              </view>
+              <view wx:if="{{activeHighlight.type === 'error' && activeHighlight.suggestion}}" class="si-hl-suggestion">
+                <text class="si-hl-suggestion-label">建议改为：</text>
+                <text class="si-hl-suggestion-text">{{activeHighlight.suggestion}}</text>
+              </view>
+              <view wx:if="{{activeHighlight.reason}}" class="si-hl-reason">
+                <text class="si-hl-reason-text">{{activeHighlight.reason}}</text>
+              </view>
+              <view class="si-hl-bubble-close" bindtap="closeHighlightBubble">
+                <text>我知道了</text>
+              </view>
+            </view>
+          </view>
+          <!-- 图例 -->
+          <view wx:if="{{selfIntroReport.hasHighlights}}" class="si-text-legend">
+            <view class="si-legend-item">
+              <view class="si-legend-dot si-legend-error"></view>
+              <text class="si-legend-label">语法问题</text>
+            </view>
+            <view class="si-legend-item">
+              <view class="si-legend-dot si-legend-good"></view>
+              <text class="si-legend-label">表达亮点</text>
+            </view>
+            <text class="si-legend-tip">点击标注词查看详情</text>
           </view>
         </view>
 

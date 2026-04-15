@@ -728,3 +728,7 @@
 - [x] api.js：将self-intro-estimate接口超时时间设为60000ms（60秒），解决AI分析需要15-30秒导致默认15s超时断开连接（Nginx 499）
 - [x] request.js已支持自定义timeout参数（优先级：自定义timeout > isLongTimeoutUrl > DEFAULT_TIMEOUT）
 - [x] loading动画已有CSS transition驱动，在等待期间持续显示五维度分析进度
+
+## 第七十八轮 - 真机录音长按touchend丢失 + 预估级别显示格式调整
+- [x] 录音改为tap切换模式（点击开始/点击停止），彻底避免长按touchend丢失，加125秒安全定时器兆底
+- [x] 预估结果级别显示改为"G7以上"格式，级别描述用"途正口语X级"或"X-Y级"（跨级时）

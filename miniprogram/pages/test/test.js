@@ -303,6 +303,11 @@ Page({
       clearInterval(this._selfIntroRecordTimer)
       this._selfIntroRecordTimer = null
     }
+    // 清除自我介绍录音安全定时器
+    if (this._selfIntroSafetyTimer) {
+      clearTimeout(this._selfIntroSafetyTimer)
+      this._selfIntroSafetyTimer = null
+    }
     // 清除分析进度动画定时器
     if (this._analysisProgressTimer) {
       clearInterval(this._analysisProgressTimer)
@@ -2015,13 +2020,24 @@ Page({
   // ============ v4.0 自我介绍阶段 ============
 
   /**
-   * 开始录制自我介绍（按住说话）
+   * 自我介绍录音 - tap切换模式（点击开始/点击停止）
+   * 解决真机上长按超过30秒后touchend事件丢失的问题
    */
-  onSelfIntroTouchStart(e) {
-    if (this.data.selfIntroRecording || this.data.selfIntroUploading) return
+  onSelfIntroTapToggle(e) {
+    if (this.data.selfIntroUploading) return
+    if (this._selfIntroProcessing) return
+
+    if (this.data.selfIntroRecording) {
+      // 当前正在录音，点击停止
+      console.log('[SelfIntro] Tap to stop recording')
+      this._stopSelfIntroRecord()
+      return
+    }
+
+    // 开始录音
     if (this._isStartingRecord) return
-    if (this._selfIntroProcessing) return  // 上一次录音还在处理中
     this._isStartingRecord = true
+    console.log('[SelfIntro] Tap to start recording')
 
     // 立即显示录音状态
     this.setData({
@@ -2033,13 +2049,13 @@ Page({
 
     // 启动录音器（最长2分钟）
     this._selfIntroRecordFilePath = ''
-    this._selfIntroMode = true  // 标记当前是自我介绍录音
+    this._selfIntroMode = true
     try {
       this._recorderManager.start({
-        duration: 120000,  // 2分钟
+        duration: 120000,
         sampleRate: 16000,
         numberOfChannels: 1,
-        encodeBitRate: 32000,  // 降低编码率减小文件体积
+        encodeBitRate: 32000,
         format: 'mp3'
       })
     } catch (err) {
@@ -2051,12 +2067,11 @@ Page({
       return
     }
 
-    // 启动计时器（每秒更新时间，波形条每2秒更新一次减少setData频率）
+    // 启动计时器
     this._selfIntroRecordTimer = setInterval(() => {
       const secs = this.data.selfIntroRecordSeconds + 1
       const countdown = 120 - secs
       if (secs >= 120) {
-        // 2分钟到，自动停止
         this._stopSelfIntroRecord()
         return
       }
@@ -2065,26 +2080,29 @@ Page({
         selfIntroRecordTimeDisplay: secs + '"',
         selfIntroCountdown: countdown
       }
-      // 波形条每2秒更新一次，减少setData频率
       if (secs % 2 === 0) {
         updateData.recordWaveBars = Array.from({ length: 20 }, () => Math.floor(Math.random() * 40) + 10)
       }
       this.setData(updateData)
     }, 1000)
 
-    // 录音启动成功后才解除防抖锁（在onStart回调中解除）
-    // 不在这里立即解除，避免快速重复点击
+    // 安全定时器：125秒后强制停止（兆底保护，比录音器的120秒稍长）
+    if (this._selfIntroSafetyTimer) clearTimeout(this._selfIntroSafetyTimer)
+    this._selfIntroSafetyTimer = setTimeout(() => {
+      console.warn('[SelfIntro] Safety timer fired! Force stopping after 125s')
+      if (this.data.selfIntroRecording) {
+        this._stopSelfIntroRecord()
+      }
+    }, 125000)
+
     setTimeout(() => {
       this._isStartingRecord = false
     }, 500)
   },
 
-  /**
-   * 松开停止自我介绍录音
-   */
+  // 保留旧的touchend处理作为兼容兆底（以防万一还有地方触发）
   onSelfIntroTouchEnd(e) {
-    if (!this.data.selfIntroRecording) return
-    this._stopSelfIntroRecord()
+    // tap模式下不再需要touchend停止录音，保留为空函数避免报错
   },
 
   /**
@@ -2095,6 +2113,11 @@ Page({
     if (this._selfIntroRecordTimer) {
       clearInterval(this._selfIntroRecordTimer)
       this._selfIntroRecordTimer = null
+    }
+    // 清除安全定时器
+    if (this._selfIntroSafetyTimer) {
+      clearTimeout(this._selfIntroSafetyTimer)
+      this._selfIntroSafetyTimer = null
     }
     // 停止录音（onStop回调中处理文件）
     try {
@@ -2244,27 +2267,33 @@ Page({
     const upperName = el.upperBoundName || el.upperBound || ''
     const startLevelName = estimateData.startSubLevelName || estimateData.startSubLevel || 'PRE1'
 
-    // 级别范围文案：优先用后端 levelRange，否则前端拼接
-    let levelRange = estimateData.levelRange || ''
-    if (!levelRange) {
-      if (upperName && lowerName !== upperName) {
-        levelRange = `${lowerName} - ${upperName}`
-      } else {
-        levelRange = lowerName || startLevelName
-      }
+    // 级别范围文案：显示为"下界以上"格式（如"G7以上"），不显示上界
+    let levelRange = ''
+    if (estimateData.levelRange) {
+      // 后端返回了levelRange，但需要转换格式：取下界+"以上"
+      const parts = estimateData.levelRange.split(/\s*[-~]\s*/)
+      levelRange = parts[0] ? `${parts[0]} 以上` : estimateData.levelRange
+    } else if (lowerName) {
+      levelRange = `${lowerName} 以上`
+    } else {
+      levelRange = `${startLevelName} 以上`
     }
 
-    // 级别描述：优先用后端 levelRangeNames，否则前端映射
-    const majorLevel = SUB_LEVEL_MAJOR[startLevelName] !== undefined ? SUB_LEVEL_MAJOR[startLevelName] : 0
-    let levelDesc = estimateData.levelRangeNames || ''
+    // 级别描述：用"途正口语X级"格式，跨级时显示"X-Y级"
+    const lowerMajor = SUB_LEVEL_MAJOR[lowerName] !== undefined ? SUB_LEVEL_MAJOR[lowerName] : (SUB_LEVEL_MAJOR[startLevelName] !== undefined ? SUB_LEVEL_MAJOR[startLevelName] : 0)
+    const upperMajor = upperName ? (SUB_LEVEL_MAJOR[upperName] !== undefined ? SUB_LEVEL_MAJOR[upperName] : lowerMajor) : lowerMajor
+    const majorLevel = lowerMajor
+    let levelDesc = ''
+    if (estimateData.levelRangeNames) {
+      // 后端返回了描述，但要转换为途正口语格式
+      levelDesc = estimateData.levelRangeNames
+    }
     if (!levelDesc) {
-      const levelDescMap = {
-        0: '学前水平 · 基础入门阶段',
-        1: '小学水平 · 日常交流阶段',
-        2: '中学水平 · 流利表达阶段',
-        3: '雅思水平 · 高级运用阶段'
+      if (lowerMajor !== upperMajor) {
+        levelDesc = `途正口语${lowerMajor}-${upperMajor}级`
+      } else {
+        levelDesc = `途正口语${lowerMajor}级`
       }
-      levelDesc = levelDescMap[majorLevel] || '英语口语水平评估'
     }
 
     // 引导文案：优先用后端 guidanceText
@@ -2314,8 +2343,8 @@ Page({
     }
 
     let resultText = ''
-    if (upperName && lowerName !== upperName) {
-      resultText = `AI预估你的水平约在 ${lowerName} - ${upperName} 范围\n将从 ${startLevelName} 级别开始测评`
+    if (lowerName) {
+      resultText = `AI预估你的水平在 ${lowerName} 以上\n将从 ${startLevelName} 级别开始测评`
     } else {
       resultText = `分析完成，将从 ${startLevelName} 级别开始测评`
     }

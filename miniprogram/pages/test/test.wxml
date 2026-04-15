@@ -79,7 +79,7 @@
         <view class="intro-recording-waves">
           <view wx:for="{{recordWaveBars}}" wx:key="index" class="intro-wave-bar" style="height: {{item}}rpx;"></view>
         </view>
-        <text class="intro-recording-hint">松开按钮结束录音</text>
+        <text class="intro-recording-hint">点击下方按钮结束录音</text>
       </view>
 
       <!-- 正在分析中状态：五维度分析进度 -->
@@ -277,23 +277,20 @@
   <view class="bottom-bar">
     <!-- v4.0 自我介绍阶段操作区 -->
     <view wx:if="{{phase === 'selfIntro' && !selfIntroUploading && !showEstimateResult}}" class="action-area">
-      <!-- 按住录制自我介绍按钮 -->
+      <!-- 点击开始/停止录制自我介绍按钮（tap切换模式，避免长按touchend丢失） -->
       <view
         wx:if="{{!selfIntroRecording}}"
         class="wechat-record-btn intro-record-btn"
-        bindtouchstart="onSelfIntroTouchStart"
-        bindtouchend="onSelfIntroTouchEnd"
-        bindtouchcancel="onSelfIntroTouchEnd"
+        bindtap="onSelfIntroTapToggle"
       >
-        <text class="wechat-record-text intro-record-text">按住开始录制自我介绍</text>
+        <text class="wechat-record-text intro-record-text">点击开始录制自我介绍</text>
       </view>
       <view
         wx:else
         class="wechat-record-btn recording intro-record-btn"
-        bindtouchend="onSelfIntroTouchEnd"
-        bindtouchcancel="onSelfIntroTouchEnd"
+        bindtap="onSelfIntroTapToggle"
       >
-        <text class="wechat-record-text">松开 结束录音</text>
+        <text class="wechat-record-text">点击 结束录音</text>
       </view>
       <view class="skip-row">
         <button class="skip-btn intro-skip-btn" bindtap="handleSkipIntro">跳过自我介绍，从头开始逐级测试</button>

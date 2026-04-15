@@ -702,3 +702,9 @@
 
 ## 第七十二轮 - 前端防御性过滤REPLACED_BY_RESUBMIT记录
 - [x] result.js：在逐题分析数据处理中过滤掉userAnswer为[REPLACED_BY_RESUBMIT]的记录
+
+## 第七十三轮 - 测评报告页新增个人介绍测评报告区块
+- [ ] result.js：从report接口获取个人介绍数据（录音URL、英文文本、五维度分析、综合评价等）
+- [ ] result.wxml：新增"个人介绍测评报告"独立可折叠区块（录音回放+英文文本+五维度雷达图+评语）
+- [x] result.wxss：个人介绍测评报告区块样式
+- [ ] result.js：录音回放播放/停止控制逻辑

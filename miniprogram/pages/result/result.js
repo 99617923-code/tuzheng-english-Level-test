@@ -72,7 +72,11 @@ Page({
     groupName: '',
 
     // 二维码显示开关（后台控制）
-    qrcodeEnabled: true
+    qrcodeEnabled: true,
+
+    // 个人介绍测评报告
+    selfIntroReport: null,       // 个人介绍测评数据对象
+    showSelfIntroReport: true    // 默认展开个人介绍测评报告
   },
 
   _sessionId: '',
@@ -341,9 +345,59 @@ Page({
       })
     }
 
+    // 提取个人介绍测评报告数据（后端在report接口中返回）
+    let selfIntroReport = null
+    const si = data.selfIntro || data.self_intro || null
+    if (si) {
+      // 兼容下划线命名
+      const audioUrl = si.audioUrl || si.audio_url || ''
+      const transcription = si.transcription || si.recognized_text || si.recognizedText || ''
+      const wordCount = si.wordCount || si.word_count || 0
+      const duration = si.duration || 0
+      const levelRange = si.levelRange || si.level_range || ''
+      const levelRangeNames = si.levelRangeNames || si.level_range_names || ''
+      const overallComment = si.overallComment || si.overall_comment || ''
+      const rawRadar = si.abilityRadar || si.ability_radar || []
+      
+      // 处理五维度数据
+      const dimensions = rawRadar.map(dim => {
+        const name = dim.dimensionName || dim.dimension_name || dim.name || ''
+        const score = dim.score !== undefined ? dim.score : 0
+        const comment = dim.comment || dim.feedback || ''
+        // 维度颜色映射
+        const colorMap = {
+          '语法复杂度': '#3B82F6',
+          '词汇丰富度': '#8B5CF6',
+          '表达连贯性': '#22c55e',
+          '流利度': '#F59E0B',
+          '内容深度': '#EC4899'
+        }
+        return {
+          name,
+          score,
+          comment,
+          color: colorMap[name] || '#3B82F6'
+        }
+      })
+
+      selfIntroReport = {
+        audioUrl,
+        transcription,
+        wordCount,
+        duration,
+        durationText: duration > 0 ? `${Math.floor(duration / 60)}:${String(duration % 60).padStart(2, '0')}` : '',
+        levelRange,
+        levelRangeNames,
+        overallComment,
+        dimensions,
+        hasDimensions: dimensions.length > 0
+      }
+    }
+
     this.setData({
       loading: false,
       isPreview,
+      selfIntroReport,
       // 等级
       levelName,
       levelLabel,
@@ -455,6 +509,50 @@ Page({
     } catch (e) {
       console.warn('[QRCode] Fetch failed:', e)
     }
+  },
+
+  /** 切换个人介绍测评报告展开/折叠 */
+  toggleSelfIntroReport() {
+    this.setData({ showSelfIntroReport: !this.data.showSelfIntroReport })
+  },
+
+  /** 播放个人介绍录音 */
+  playSelfIntroAudio() {
+    const url = this.data.selfIntroReport && this.data.selfIntroReport.audioUrl
+    if (!url) {
+      wx.showToast({ title: '暂无录音', icon: 'none' })
+      return
+    }
+    // 复用已有的音频播放逻辑
+    if (this._detailAudioCtx) {
+      try { this._detailAudioCtx.stop() } catch (e) {}
+      try { this._detailAudioCtx.destroy() } catch (e) {}
+      if (this._playingAudioUrl === url) {
+        this._detailAudioCtx = null
+        this._playingAudioUrl = ''
+        this.setData({ playingAudioUrl: '' })
+        return
+      }
+    }
+    this._playingAudioUrl = url
+    this.setData({ playingAudioUrl: url })
+    this._detailAudioCtx = wx.createInnerAudioContext()
+    this._detailAudioCtx.obeyMuteSwitch = false
+    this._detailAudioCtx.src = url
+    this._detailAudioCtx.play()
+    this._detailAudioCtx.onEnded(() => {
+      try { this._detailAudioCtx.destroy() } catch (e) {}
+      this._detailAudioCtx = null
+      this._playingAudioUrl = ''
+      this.setData({ playingAudioUrl: '' })
+    })
+    this._detailAudioCtx.onError(() => {
+      wx.showToast({ title: '播放失败', icon: 'none' })
+      try { this._detailAudioCtx.destroy() } catch (e) {}
+      this._detailAudioCtx = null
+      this._playingAudioUrl = ''
+      this.setData({ playingAudioUrl: '' })
+    })
   },
 
   /** 切换详细报告展开/折叠 */

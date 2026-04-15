@@ -1184,3 +1184,272 @@
   from { opacity: 0; transform: translateY(-8rpx); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* ============================
+   个人介绍测评报告区块样式
+   ============================ */
+
+/* 折叠标题区 - coral图标背景 */
+.section-icon-wrap.coral {
+  background: linear-gradient(135deg, rgba(244,114,82,0.15), rgba(244,114,82,0.08));
+}
+
+/* 标题行信息 */
+.si-toggle-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+.si-level-badge {
+  font-size: 22rpx;
+  color: #F47252;
+  font-weight: 600;
+  background: rgba(244,114,82,0.08);
+  padding: 2rpx 12rpx;
+  border-radius: 6rpx;
+  align-self: flex-start;
+}
+
+/* 预估级别范围卡片 */
+.si-level-card {
+  background: linear-gradient(135deg, #fff7f3, #fff0eb);
+  border-radius: 16rpx;
+  padding: 28rpx 32rpx;
+  margin-bottom: 20rpx;
+  border: 1rpx solid rgba(244,114,82,0.12);
+}
+.si-level-header {
+  margin-bottom: 12rpx;
+}
+.si-level-label {
+  font-size: 24rpx;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.si-level-range {
+  display: flex;
+  align-items: baseline;
+  gap: 16rpx;
+}
+.si-level-value {
+  font-size: 44rpx;
+  font-weight: 800;
+  color: #F47252;
+  letter-spacing: 2rpx;
+}
+.si-level-names {
+  font-size: 26rpx;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* 录音回放卡片 */
+.si-audio-card {
+  background: var(--card-bg);
+  border-radius: 16rpx;
+  padding: 24rpx 28rpx;
+  margin-bottom: 20rpx;
+  border: 1rpx solid var(--border-color);
+}
+.si-audio-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+.si-audio-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.si-audio-duration {
+  font-size: 24rpx;
+  color: var(--text-tertiary);
+  background: rgba(0,0,0,0.04);
+  padding: 4rpx 14rpx;
+  border-radius: 20rpx;
+}
+.si-audio-player {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  background: linear-gradient(135deg, #f8f9fb, #f0f2f5);
+  border-radius: 12rpx;
+  padding: 16rpx 20rpx;
+}
+.si-play-btn {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3B82F6, #2563EB);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+.si-play-btn.playing {
+  background: linear-gradient(135deg, #EF4444, #DC2626);
+}
+.si-play-icon {
+  font-size: 22rpx;
+  color: #fff;
+  margin-left: 2rpx;
+}
+.si-audio-wave {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 3rpx;
+  height: 40rpx;
+  overflow: hidden;
+}
+.si-wave-bar {
+  width: 4rpx;
+  min-height: 6rpx;
+  background: #3B82F6;
+  border-radius: 2rpx;
+  transition: height 0.4s ease;
+  opacity: 0.5;
+}
+.si-wave-bar:nth-child(odd) {
+  opacity: 0.7;
+}
+@keyframes siWaveAnim {
+  0%, 100% { height: 20%; }
+  50% { height: 100%; }
+}
+.si-play-btn.playing ~ .si-audio-wave .si-wave-bar {
+  animation: siWaveAnim 0.6s ease-in-out infinite;
+}
+.si-play-text {
+  font-size: 24rpx;
+  color: #3B82F6;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* 英文文本转写卡片 */
+.si-text-card {
+  background: var(--card-bg);
+  border-radius: 16rpx;
+  padding: 24rpx 28rpx;
+  margin-bottom: 20rpx;
+  border: 1rpx solid var(--border-color);
+}
+.si-text-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+.si-text-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.si-word-count {
+  font-size: 22rpx;
+  color: #3B82F6;
+  font-weight: 600;
+  background: rgba(59,130,246,0.08);
+  padding: 4rpx 14rpx;
+  border-radius: 20rpx;
+}
+.si-text-content {
+  background: rgba(0,0,0,0.02);
+  border-radius: 12rpx;
+  padding: 20rpx 24rpx;
+  border-left: 4rpx solid rgba(59,130,246,0.3);
+}
+.si-transcription {
+  font-size: 28rpx;
+  color: var(--text-primary);
+  line-height: 1.9;
+  font-style: italic;
+  word-break: break-word;
+}
+
+/* 五维度能力分析卡片 */
+.si-dims-card {
+  background: var(--card-bg);
+  border-radius: 16rpx;
+  padding: 24rpx 28rpx;
+  margin-bottom: 20rpx;
+  border: 1rpx solid var(--border-color);
+}
+.si-dims-header {
+  margin-bottom: 20rpx;
+}
+.si-dims-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.si-dims-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+.si-dim-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+.si-dim-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.si-dim-name {
+  font-size: 26rpx;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+.si-dim-score {
+  font-size: 26rpx;
+  font-weight: 700;
+}
+.si-dim-bar-track {
+  height: 12rpx;
+  background: rgba(0,0,0,0.04);
+  border-radius: 6rpx;
+  overflow: hidden;
+}
+.si-dim-bar-fill {
+  height: 100%;
+  border-radius: 6rpx;
+  transition: width 0.8s ease;
+}
+.si-dim-comment {
+  font-size: 24rpx;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  padding-left: 4rpx;
+  margin-top: 2rpx;
+}
+
+/* 综合评价卡片 */
+.si-comment-card {
+  background: linear-gradient(135deg, #f0f7ff, #e8f4fd);
+  border-radius: 16rpx;
+  padding: 24rpx 28rpx;
+  margin-bottom: 20rpx;
+  border: 1rpx solid rgba(59,130,246,0.1);
+}
+.si-comment-header {
+  margin-bottom: 12rpx;
+}
+.si-comment-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.si-comment-content {
+  padding: 0;
+}
+.si-comment-text {
+  font-size: 27rpx;
+  color: var(--text-primary);
+  line-height: 1.8;
+}

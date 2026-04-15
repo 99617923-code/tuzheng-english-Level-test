@@ -161,6 +161,94 @@
       </view>
     </view>
 
+    <!-- ★ 个人介绍测评报告 - 独立可折叠区块 -->
+    <view wx:if="{{selfIntroReport}}" class="detail-section animate-fade-in-delay-2">
+      <view class="detail-toggle" bindtap="toggleSelfIntroReport">
+        <view class="detail-toggle-left">
+          <view class="section-icon-wrap coral">
+            <image class="section-icon" src="/assets/icons/mic.svg" mode="aspectFit" />
+          </view>
+          <view class="si-toggle-info">
+            <text class="detail-toggle-title">个人介绍测评</text>
+            <text wx:if="{{selfIntroReport.levelRange}}" class="si-level-badge">预估 {{selfIntroReport.levelRange}}</text>
+          </view>
+        </view>
+        <view class="detail-toggle-arrow {{showSelfIntroReport ? 'expanded' : ''}}">
+          <image class="toggle-arrow-icon" src="/assets/icons/chevron-down-dark.svg" mode="aspectFit" />
+        </view>
+      </view>
+
+      <view wx:if="{{showSelfIntroReport}}" class="detail-content">
+        <!-- 预估级别范围 -->
+        <view wx:if="{{selfIntroReport.levelRange}}" class="si-level-card">
+          <view class="si-level-header">
+            <text class="si-level-label">预估英语口语级别范围</text>
+          </view>
+          <view class="si-level-range">
+            <text class="si-level-value">{{selfIntroReport.levelRange}}</text>
+            <text wx:if="{{selfIntroReport.levelRangeNames}}" class="si-level-names">{{selfIntroReport.levelRangeNames}}</text>
+          </view>
+        </view>
+
+        <!-- 录音回放 -->
+        <view wx:if="{{selfIntroReport.audioUrl}}" class="si-audio-card">
+          <view class="si-audio-header">
+            <text class="si-audio-title">🎤 我的录音</text>
+            <text wx:if="{{selfIntroReport.durationText}}" class="si-audio-duration">{{selfIntroReport.durationText}}</text>
+          </view>
+          <view class="si-audio-player" bindtap="playSelfIntroAudio">
+            <view class="si-play-btn {{playingAudioUrl === selfIntroReport.audioUrl ? 'playing' : ''}}">
+              <text class="si-play-icon">{{playingAudioUrl === selfIntroReport.audioUrl ? '■' : '▶'}}</text>
+            </view>
+            <view class="si-audio-wave">
+              <view class="si-wave-bar" wx:for="{{20}}" wx:key="index" style="animation-delay: {{index * 0.05}}s; height: {{playingAudioUrl === selfIntroReport.audioUrl ? '100%' : '30%'}};"></view>
+            </view>
+            <text class="si-play-text">{{playingAudioUrl === selfIntroReport.audioUrl ? '停止播放' : '播放录音'}}</text>
+          </view>
+        </view>
+
+        <!-- 英文文本转写 -->
+        <view wx:if="{{selfIntroReport.transcription}}" class="si-text-card">
+          <view class="si-text-header">
+            <text class="si-text-title">📝 英文转写</text>
+            <text wx:if="{{selfIntroReport.wordCount > 0}}" class="si-word-count">{{selfIntroReport.wordCount}} 词</text>
+          </view>
+          <view class="si-text-content">
+            <text class="si-transcription">{{selfIntroReport.transcription}}</text>
+          </view>
+        </view>
+
+        <!-- 五维度能力分析 -->
+        <view wx:if="{{selfIntroReport.hasDimensions}}" class="si-dims-card">
+          <view class="si-dims-header">
+            <text class="si-dims-title">📊 能力维度分析</text>
+          </view>
+          <view class="si-dims-list">
+            <view class="si-dim-item" wx:for="{{selfIntroReport.dimensions}}" wx:key="name">
+              <view class="si-dim-row">
+                <text class="si-dim-name">{{item.name}}</text>
+                <text class="si-dim-score" style="color: {{item.color}};">{{item.score}}分</text>
+              </view>
+              <view class="si-dim-bar-track">
+                <view class="si-dim-bar-fill" style="width: {{item.score}}%; background: {{item.color}};"></view>
+              </view>
+              <text wx:if="{{item.comment}}" class="si-dim-comment">{{item.comment}}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 综合评价 -->
+        <view wx:if="{{selfIntroReport.overallComment}}" class="si-comment-card">
+          <view class="si-comment-header">
+            <text class="si-comment-title">💬 综合评价</text>
+          </view>
+          <view class="si-comment-content">
+            <text class="si-comment-text">{{selfIntroReport.overallComment}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
     <!-- ★ 逐题分析 - 可折叠区域（仅report接口返回了逐题数据时显示） -->
     <view wx:if="{{questionDetails.length > 0}}" class="detail-section animate-fade-in-delay-2">
       <view class="detail-toggle" bindtap="toggleQuestionDetails">

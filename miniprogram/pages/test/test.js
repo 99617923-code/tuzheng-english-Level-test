@@ -2137,7 +2137,7 @@ Page({
       name,
       color: dimColors[i],
       percentage: 0,
-      pctDisplay: '0'
+      pctDisplay: '0.00'
     }))
 
     // 开始上传+预估流程
@@ -2617,15 +2617,8 @@ Page({
       this._introAnalysisTimer = null
     }
 
-    // 每个维度的模拟参数：延迟启动、最大速度、当前目标上限
-    const dimConfigs = [
-      { delay: 0,    speed: 1.2, maxPct: 88 },    // 语法复杂度
-      { delay: 800,  speed: 1.3, maxPct: 85 },    // 词汇丰富度
-      { delay: 1600, speed: 1.1, maxPct: 82 },    // 表达连贯性
-      { delay: 2400, speed: 1.4, maxPct: 90 },    // 流利度
-      { delay: 3200, speed: 1.0, maxPct: 80 }     // 内容深度
-    ]
-
+    // 参考做题时的步骤式进度：依次推进每个维度，当前维度到达90%后才开始下一个
+    const dimEstMs = [2500, 2000, 2000, 2000, 2500]  // 每个维度预估耗时
     const statusTexts = [
       '正在分析语法复杂度...',
       '正在分析词汇丰富度...',
@@ -2634,56 +2627,44 @@ Page({
       '正在分析内容深度...'
     ]
 
-    const startTime = Date.now()
-    let lastStatusIdx = -1
-    // 降低到300ms间隔，避免高频setData导致开发者工具卡死
-    const INTERVAL = 300
+    let currentStepIdx = 0
+    const INTERVAL = 200  // 每200ms更新一次，兼顾流畅度和性能
+    let stepStartTime = Date.now()
+
+    // 初始状态文案
+    this.setData({ introAnalysisStatus: statusTexts[0] })
 
     this._introAnalysisTimer = setInterval(() => {
-      const elapsed = Date.now() - startTime
-      // 使用路径式更新（key-path）减少setData数据量
-      const updateData = {}
-      let totalPct = 0
-      let hasChange = false
-
-      for (let i = 0; i < 5; i++) {
-        const cfg = dimConfigs[i]
-        const oldPct = this.data.introAnalysisDims[i] ? this.data.introAnalysisDims[i].percentage : 0
-        let newPct = 0
-        if (elapsed >= cfg.delay) {
-          const dimElapsed = elapsed - cfg.delay
-          const rawPct = cfg.speed * Math.sqrt(dimElapsed / 100)
-          newPct = Math.min(Math.round(rawPct), cfg.maxPct)
-        }
-        totalPct += newPct
-        // 只更新变化的维度，减少setData负载
-        if (newPct !== oldPct) {
-          updateData[`introAnalysisDims[${i}].percentage`] = newPct
-          updateData[`introAnalysisDims[${i}].pctDisplay`] = newPct.toString()
-          hasChange = true
-        }
+      if (currentStepIdx >= 5) {
+        clearInterval(this._introAnalysisTimer)
+        this._introAnalysisTimer = null
+        return
       }
 
-      if (!hasChange) return  // 无变化时不调用setData
+      const elapsed = Date.now() - stepStartTime
+      const estMs = dimEstMs[currentStepIdx]
+      // 每次增量：根据预估时间计算，最多到 90%
+      const rawPct = (elapsed / estMs) * 90
+      const newPct = Math.min(Math.round(rawPct * 100) / 100, 90)
+      const pctDisplay = newPct.toFixed(2)
 
+      const updateData = {}
+      updateData[`introAnalysisDims[${currentStepIdx}].percentage`] = Math.round(newPct)
+      updateData[`introAnalysisDims[${currentStepIdx}].pctDisplay`] = pctDisplay
+
+      // 计算总体进度：已完成的维度计90%，当前维度用实际值
+      const totalPct = currentStepIdx * 90 + newPct
       const overallPct = Math.round(totalPct / 5)
       updateData.introAnalysisOverallPct = overallPct
 
-      // 更新状态文案
-      let statusIdx = 0
-      for (let i = 4; i >= 0; i--) {
-        const dimPct = this.data.introAnalysisDims[i] ? this.data.introAnalysisDims[i].percentage : 0
-        const curPct = updateData[`introAnalysisDims[${i}].percentage`] !== undefined
-          ? updateData[`introAnalysisDims[${i}].percentage`] : dimPct
-        if (curPct > 0 && curPct < dimConfigs[i].maxPct) {
-          statusIdx = i
-          break
+      // 当前维度到达90%时，切换到下一个维度
+      if (newPct >= 90) {
+        updateData[`introAnalysisDims[${currentStepIdx}].pctDisplay`] = '90.00'
+        currentStepIdx++
+        stepStartTime = Date.now()
+        if (currentStepIdx < 5) {
+          updateData.introAnalysisStatus = statusTexts[currentStepIdx]
         }
-      }
-
-      if (statusIdx !== lastStatusIdx) {
-        updateData.introAnalysisStatus = statusTexts[statusIdx]
-        lastStatusIdx = statusIdx
       }
 
       this.setData(updateData)
@@ -2718,7 +2699,7 @@ Page({
 
         this.setData({
           [`introAnalysisDims[${idx}].percentage`]: 100,
-          [`introAnalysisDims[${idx}].pctDisplay`]: '100',
+          [`introAnalysisDims[${idx}].pctDisplay`]: '100.00',
           [`introAnalysisDims[${idx}].color`]: '#10B981',
           introAnalysisOverallPct: overallPct,
           introAnalysisStatus: idx === dimCount - 1 ? '分析完成！' : `正在完成${dimName}分析...`

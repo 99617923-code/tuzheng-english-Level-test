@@ -1275,7 +1275,8 @@
   height: 100%;
   border-radius: 12rpx;
   background: linear-gradient(90deg, var(--brand-blue, #1B3F91), var(--brand-green, #83BA12));
-  transition: width 0.15s ease, background 0.6s ease;
+  /* CSS transition驱动进度条动画，2s平滑过渡，替代JS定时器频繁setData */
+  transition: width 2s ease-out, background 0.6s ease;
   min-width: 0;
 }
 
@@ -1288,7 +1289,7 @@
 
 .intro-analysis-dim-item {
   opacity: 0.35;
-  transition: opacity 0.4s ease;
+  transition: opacity 0.5s ease;
 }
 
 .intro-analysis-dim-item.active {
@@ -1341,7 +1342,8 @@
 .intro-analysis-dim-fill {
   height: 100%;
   border-radius: 8rpx;
-  transition: width 0.15s ease, background 0.5s ease;
+  /* CSS transition驱动各维度进度条动画，1.8s平滑过渡 */
+  transition: width 1.8s ease-out, background 0.5s ease;
   min-width: 0;
 }
 

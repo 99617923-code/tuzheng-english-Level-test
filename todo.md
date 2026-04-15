@@ -704,10 +704,10 @@
 - [x] result.js：在逐题分析数据处理中过滤掉userAnswer为[REPLACED_BY_RESUBMIT]的记录
 
 ## 第七十三轮 - 测评报告页新增个人介绍测评报告区块
-- [ ] result.js：从report接口获取个人介绍数据（录音URL、英文文本、五维度分析、综合评价等）
-- [ ] result.wxml：新增"个人介绍测评报告"独立可折叠区块（录音回放+英文文本+五维度雷达图+评语）
+- [x] result.js：从 report接口获取个人介绍数据（录音URL、英文文本、五维度分析、综合评价等）
+- [x] result.wxml：新增"个人介绍测评报告"独立可折叠区块（录音回放+英文文本+五维度雷达图+评语）
 - [x] result.wxss：个人介绍测评报告区块样式
-- [ ] result.js：录音回放播放/停止控制逻辑
+- [x] result.js：录音回放播放/停止控制逻辑
 
 ## 第七十四轮 - 个人介绍英文转写文本高亮标注
 - [x] result.js：解析后端highlights数组，将纯文本拆分为高亮片段数组
@@ -719,3 +719,7 @@
 - [x] result.wxml/js/wxss：三个报告区块改为并排Tab按钮切换模式（个人介绍测评/逐题分析/能力建议）
 - [x] 默认展开个人介绍测评Tab
 - [x] 个人介绍级别展示改为"至少**级以上"格式（后端已改为levelRange返回此格式）
+
+## 第七十六轮 - 根本性解决自我介绍录音松手后卡死问题
+- [x] 全面排查录音松手→onStop→_handleSelfIntroRecordComplete→分析进度→结果展示的完整链路
+- [x] 根本性修复卡死问题：用CSS transition替代setInterval驱动进度条动画，setData次数从50+次降至6次

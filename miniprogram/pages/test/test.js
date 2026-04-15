@@ -313,6 +313,11 @@ Page({
       clearInterval(this._introAnalysisTimer)
       this._introAnalysisTimer = null
     }
+    // 清除CSS transition方案的setTimeout队列
+    if (this._introAnalysisTimeouts) {
+      this._introAnalysisTimeouts.forEach(t => clearTimeout(t))
+      this._introAnalysisTimeouts = []
+    }
     // 标记页面已卸载，防止全局录音回调继续弹窗
     this._isPageUnloaded = true
     // 重置所有锁状态
@@ -2191,6 +2196,10 @@ Page({
         clearInterval(this._introAnalysisTimer)
         this._introAnalysisTimer = null
       }
+      if (this._introAnalysisTimeouts) {
+        this._introAnalysisTimeouts.forEach(t => clearTimeout(t))
+        this._introAnalysisTimeouts = []
+      }
       this.setData({
         selfIntroUploading: false,
         introAnalysisDims: [],
@@ -2608,17 +2617,23 @@ Page({
   // ============ 自我介绍五维度分析进度动画 ============
 
   /**
-   * 启动自我介绍五维度分析进度模拟
-   * 每个维度依次进入分析，并行推进到不同速度
+   * 启动自我介绍五维度分析进度（CSS transition驱动，无setInterval）
+   * 核心思路：只用setTimeout在关键时间点setData设置目标百分比，
+   * 进度条动画完全由CSS transition完成，大幅减少setData调用次数。
+   * 整个过程只有6次setData（每个维度1次 + 初始1次），而非之前的50+次。
    */
   _startIntroAnalysisProgress(dims) {
+    // 清理旧定时器（兼容）
     if (this._introAnalysisTimer) {
       clearInterval(this._introAnalysisTimer)
       this._introAnalysisTimer = null
     }
+    // 清理旧的setTimeout队列
+    if (this._introAnalysisTimeouts) {
+      this._introAnalysisTimeouts.forEach(t => clearTimeout(t))
+    }
+    this._introAnalysisTimeouts = []
 
-    // 参考做题时的步骤式进度：依次推进每个维度，当前维度到达90%后才开始下一个
-    const dimEstMs = [2500, 2000, 2000, 2000, 2500]  // 每个维度预估耗时
     const statusTexts = [
       '正在分析语法复杂度...',
       '正在分析词汇丰富度...',
@@ -2626,58 +2641,42 @@ Page({
       '正在分析流利度...',
       '正在分析内容深度...'
     ]
-
-    let currentStepIdx = 0
-    const INTERVAL = 200  // 每200ms更新一次，兼顾流畅度和性能
-    let stepStartTime = Date.now()
+    // 每个维度的动画延迟（累计），模拟依次推进
+    const dimDelays = [0, 2200, 4000, 5800, 7600]
 
     // 初始状态文案
     this.setData({ introAnalysisStatus: statusTexts[0] })
 
-    this._introAnalysisTimer = setInterval(() => {
-      if (currentStepIdx >= 5) {
-        clearInterval(this._introAnalysisTimer)
-        this._introAnalysisTimer = null
-        return
-      }
-
-      const elapsed = Date.now() - stepStartTime
-      const estMs = dimEstMs[currentStepIdx]
-      // 每次增量：根据预估时间计算，最多到 90%
-      const rawPct = (elapsed / estMs) * 90
-      const newPct = Math.min(Math.round(rawPct * 100) / 100, 90)
-      const pctDisplay = newPct.toFixed(2)
-
-      const updateData = {}
-      updateData[`introAnalysisDims[${currentStepIdx}].percentage`] = Math.round(newPct)
-      updateData[`introAnalysisDims[${currentStepIdx}].pctDisplay`] = pctDisplay
-
-      // 计算总体进度：已完成的维度计90%，当前维度用实际值
-      const totalPct = currentStepIdx * 90 + newPct
-      const overallPct = Math.round(totalPct / 5)
-      updateData.introAnalysisOverallPct = overallPct
-
-      // 当前维度到达90%时，切换到下一个维度
-      if (newPct >= 90) {
-        updateData[`introAnalysisDims[${currentStepIdx}].pctDisplay`] = '90.00'
-        currentStepIdx++
-        stepStartTime = Date.now()
-        if (currentStepIdx < 5) {
-          updateData.introAnalysisStatus = statusTexts[currentStepIdx]
-        }
-      }
-
-      this.setData(updateData)
-    }, INTERVAL)
+    // 依次为每个维度设置目标百分比（90%），CSS transition自动动画
+    for (let i = 0; i < 5; i++) {
+      const t = setTimeout(() => {
+        if (this._isPageUnloaded) return
+        const overallPct = Math.round(((i * 90) + 90) / 5)  // 当前维度完成90%时的总进度
+        this.setData({
+          [`introAnalysisDims[${i}].percentage`]: 90,
+          [`introAnalysisDims[${i}].pctDisplay`]: '90.00',
+          introAnalysisOverallPct: overallPct,
+          introAnalysisStatus: i < 4 ? statusTexts[i] : statusTexts[4]
+        })
+        // 当前维度激活（前面的维度已经有值，自动active）
+      }, dimDelays[i])
+      this._introAnalysisTimeouts.push(t)
+    }
   },
 
   /**
    * 完成自我介绍分析进度：将所有维度快速填充到100%，然后展示勾选动画，再过渡到结果页
    */
   _completeIntroAnalysisProgress(callback) {
+    // 清理旧的setInterval（兼容）
     if (this._introAnalysisTimer) {
       clearInterval(this._introAnalysisTimer)
       this._introAnalysisTimer = null
+    }
+    // 清理setTimeout队列，停止未完成的进度动画
+    if (this._introAnalysisTimeouts) {
+      this._introAnalysisTimeouts.forEach(t => clearTimeout(t))
+      this._introAnalysisTimeouts = []
     }
 
     const dimCount = this.data.introAnalysisDims.length

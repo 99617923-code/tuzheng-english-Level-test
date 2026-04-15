@@ -1656,3 +1656,76 @@
   color: #9CA3AF;
   margin-left: auto;
 }
+
+/* ========== 报告Tab切换栏 ========== */
+.report-tabs {
+  margin-bottom: 24rpx;
+}
+
+.report-tab-bar {
+  display: flex;
+  gap: 0;
+  background: #f1f5f9;
+  border-radius: 20rpx;
+  padding: 6rpx;
+  box-shadow: inset 0 1rpx 3rpx rgba(0, 0, 0, 0.06);
+}
+
+.report-tab-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18rpx 0;
+  border-radius: 16rpx;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.report-tab-item.active {
+  background: #fff;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08), 0 1rpx 2rpx rgba(0, 0, 0, 0.04);
+}
+
+.report-tab-text {
+  font-size: 26rpx;
+  font-weight: 500;
+  color: #94a3b8;
+  transition: color 0.3s ease;
+}
+
+.report-tab-item.active .report-tab-text {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+/* Tab内容区域 */
+.report-tab-content {
+  animation: tabFadeIn 0.3s ease;
+}
+
+.report-tab-content .detail-section {
+  margin-bottom: 0;
+}
+
+@keyframes tabFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 逐题分析Tab标题 */
+.report-tab-section-header {
+  padding: 20rpx 24rpx 12rpx;
+}
+
+.report-tab-section-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #334155;
+}

@@ -161,28 +161,29 @@
       </view>
     </view>
 
-    <!-- ★ 个人介绍测评报告 - 独立可折叠区块 -->
-    <view wx:if="{{selfIntroReport}}" class="detail-section animate-fade-in-delay-2">
-      <view class="detail-toggle" bindtap="toggleSelfIntroReport">
-        <view class="detail-toggle-left">
-          <view class="section-icon-wrap coral">
-            <image class="section-icon" src="/assets/icons/mic.svg" mode="aspectFit" />
-          </view>
-          <view class="si-toggle-info">
-            <text class="detail-toggle-title">个人介绍测评</text>
-            <text wx:if="{{selfIntroReport.levelRange}}" class="si-level-badge">预估 {{selfIntroReport.levelRange}}</text>
-          </view>
+    <!-- ★ 报告Tab切换栏 -->
+    <view class="report-tabs animate-fade-in-delay-2">
+      <view class="report-tab-bar">
+        <view class="report-tab-item {{activeReportTab === 'summary' ? 'active' : ''}}" data-tab="summary" bindtap="switchReportTab">
+          <text class="report-tab-text">综合报告</text>
         </view>
-        <view class="detail-toggle-arrow {{showSelfIntroReport ? 'expanded' : ''}}">
-          <image class="toggle-arrow-icon" src="/assets/icons/chevron-down-dark.svg" mode="aspectFit" />
+        <view class="report-tab-item {{activeReportTab === 'intro' ? 'active' : ''}}" data-tab="intro" bindtap="switchReportTab">
+          <text class="report-tab-text">个人介绍</text>
+        </view>
+        <view class="report-tab-item {{activeReportTab === 'questions' ? 'active' : ''}}" data-tab="questions" bindtap="switchReportTab">
+          <text class="report-tab-text">逐题分析</text>
         </view>
       </view>
+    </view>
 
-      <view wx:if="{{showSelfIntroReport}}" class="detail-content">
+    <!-- ★ Tab内容：个人介绍测评报告 -->
+    <view wx:if="{{activeReportTab === 'intro' && selfIntroReport}}" class="report-tab-content animate-fade-in">
+      <view class="detail-section">
+        <view class="detail-content">
         <!-- 预估级别范围 -->
         <view wx:if="{{selfIntroReport.levelRange}}" class="si-level-card">
           <view class="si-level-header">
-            <text class="si-level-label">预估英语口语级别范围</text>
+            <text class="si-level-label">预估英语口语级别</text>
           </view>
           <view class="si-level-range">
             <text class="si-level-value">{{selfIntroReport.levelRange}}</text>
@@ -292,24 +293,17 @@
             <text class="si-comment-text">{{selfIntroReport.overallComment}}</text>
           </view>
         </view>
+        </view>
       </view>
     </view>
 
-    <!-- ★ 逐题分析 - 可折叠区域（仅report接口返回了逐题数据时显示） -->
-    <view wx:if="{{questionDetails.length > 0}}" class="detail-section animate-fade-in-delay-2">
-      <view class="detail-toggle" bindtap="toggleQuestionDetails">
-        <view class="detail-toggle-left">
-          <view class="section-icon-wrap purple">
-            <image class="section-icon" src="/assets/icons/bar-chart-blue.svg" mode="aspectFit" />
-          </view>
-          <text class="detail-toggle-title">逐题分析（{{questionDetails.length}}题）</text>
+    <!-- ★ Tab内容：逐题分析 -->
+    <view wx:if="{{activeReportTab === 'questions' && questionDetails.length > 0}}" class="report-tab-content animate-fade-in">
+      <view class="detail-section">
+        <view class="report-tab-section-header">
+          <text class="report-tab-section-title">逐题分析（{{questionDetails.length}}题）</text>
         </view>
-        <view class="detail-toggle-arrow {{showQuestionDetails ? 'expanded' : ''}}">
-          <image class="toggle-arrow-icon" src="/assets/icons/chevron-down-dark.svg" mode="aspectFit" />
-        </view>
-      </view>
-
-      <view wx:if="{{showQuestionDetails}}" class="detail-content">
+        <view class="detail-content">
         <view class="question-detail-list">
           <view class="question-detail-item" wx:for="{{questionDetails}}" wx:key="index" wx:for-index="qIdx">
             <!-- 题号头部（可点击展开） -->
@@ -408,24 +402,14 @@
             </view>
           </view>
         </view>
+        </view>
       </view>
     </view>
 
-    <!-- ★ 详细报告 - 可折叠区域 -->
-    <view class="detail-section animate-fade-in-delay-2">
-      <view class="detail-toggle" bindtap="toggleDetailReport">
-        <view class="detail-toggle-left">
-          <view class="section-icon-wrap blue">
-            <image class="section-icon" src="/assets/icons/bar-chart-blue.svg" mode="aspectFit" />
-          </view>
-          <text class="detail-toggle-title">查看详细报告</text>
-        </view>
-        <view class="detail-toggle-arrow {{showDetailReport ? 'expanded' : ''}}">
-          <image class="toggle-arrow-icon" src="/assets/icons/chevron-down-dark.svg" mode="aspectFit" />
-        </view>
-      </view>
-
-      <view wx:if="{{showDetailReport}}" class="detail-content">
+    <!-- ★ Tab内容：综合报告 -->
+    <view wx:if="{{activeReportTab === 'summary'}}" class="report-tab-content animate-fade-in">
+      <view class="detail-section">
+        <view class="detail-content">
         <!-- 分项得分 -->
         <view wx:if="{{scoreItems.length > 0}}" class="section">
           <view class="section-header">
@@ -504,10 +488,9 @@
             <text class="recommend-text">{{recommendation}}</text>
           </view>
         </view>
+        </view>
       </view>
     </view>
-
-
 
     <!-- 底部间距 -->
     <view style="height: calc(env(safe-area-inset-bottom) + 48rpx);"></view>

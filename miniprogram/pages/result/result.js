@@ -55,7 +55,6 @@ Page({
 
     // 逐题分析
     questionDetails: [],
-    showQuestionDetails: false,
 
     // 录音播放状态
     playingAudioUrl: '',
@@ -63,8 +62,7 @@ Page({
     // 海报
     posterSaving: false,
 
-    // 详细报告折叠
-    showDetailReport: false,
+
 
     // 二维码弹窗
     showQrModal: false,
@@ -74,9 +72,11 @@ Page({
     // 二维码显示开关（后台控制）
     qrcodeEnabled: true,
 
+    // 报告Tab切换
+    activeReportTab: 'summary',  // 当前激活的报告Tab: 'intro' | 'questions' | 'summary'，默认综合报告
+
     // 个人介绍测评报告
     selfIntroReport: null,       // 个人介绍测评数据对象
-    showSelfIntroReport: true,   // 默认展开个人介绍测评报告
     // 高亮详情气泡
     activeHighlight: null         // 当前点击的高亮词详情 { text, type, suggestion, reason }
   },
@@ -584,9 +584,12 @@ Page({
     }
   },
 
-  /** 切换个人介绍测评报告展开/折叠 */
-  toggleSelfIntroReport() {
-    this.setData({ showSelfIntroReport: !this.data.showSelfIntroReport })
+  /** 切换报告Tab */
+  switchReportTab(e) {
+    const tab = e.currentTarget.dataset.tab
+    if (tab && tab !== this.data.activeReportTab) {
+      this.setData({ activeReportTab: tab, activeHighlight: null })
+    }
   },
 
   /** 播放个人介绍录音 */
@@ -628,15 +631,7 @@ Page({
     })
   },
 
-  /** 切换详细报告展开/折叠 */
-  toggleDetailReport() {
-    this.setData({ showDetailReport: !this.data.showDetailReport })
-  },
 
-  /** 切换逐题分析展开/折叠 */
-  toggleQuestionDetails() {
-    this.setData({ showQuestionDetails: !this.data.showQuestionDetails })
-  },
 
   /** 切换单题展开/折叠（显示详细评分和AI解析） */
   toggleQuestionExpand(e) {

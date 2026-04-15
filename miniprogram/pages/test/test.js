@@ -237,6 +237,10 @@ Page({
     this._selfIntroRecordFilePath = ''
     this._selfIntroRecordTimer = null
     this._selfIntroProcessing = false
+    this._selfIntroTouchStartTime = 0
+    this._selfIntroTouchActive = false
+    this._selfIntroPendingStop = false
+    this._selfIntroSafetyTimer = null
     this._analysisProgressTimer = null
     this._lastAnalysisSteps = null
     this._startQuestion = null
@@ -1030,9 +1034,21 @@ Page({
         return
       }
 
-      // v4.0: 自我介绍模式下不需要pendingStop检查
+      // v4.0: 自我介绍模式下的pendingStop检查（与做题录音一致）
       if (this._selfIntroMode) {
         console.log('[SelfIntro] Recorder started successfully')
+        // 检查是否手指已松开（pendingStop）
+        if (this._selfIntroPendingStop || !this._selfIntroTouchActive) {
+          this._selfIntroPendingStop = false
+          console.log('[SelfIntro] Finger already released, stopping immediately')
+          if (this._selfIntroRecordTimer) {
+            clearInterval(this._selfIntroRecordTimer)
+            this._selfIntroRecordTimer = null
+          }
+          this.setData({ selfIntroRecording: false, recordWaveBars: [] })
+          try { this._recorderManager.stop() } catch (e) {}
+          showToast('说话时间太短，请按住说话')
+        }
         return
       }
 
@@ -2020,31 +2036,29 @@ Page({
   // ============ v4.0 自我介绍阶段 ============
 
   /**
-   * 自我介绍录音 - tap切换模式（点击开始/点击停止）
-   * 解决真机上长按超过30秒后touchend事件丢失的问题
+   * 按住开始录制自我介绍（与做题录音一致的按住说话模式）
+   * 移植做题录音的全部保护机制：安全定时器 + 全屏遮罩层touchend + 遮罩层tap + pendingStop
    */
-  onSelfIntroTapToggle(e) {
-    if (this.data.selfIntroUploading) return
+  onSelfIntroTouchStart(e) {
+    if (this.data.selfIntroRecording || this.data.selfIntroUploading) return
+    if (this._isStartingRecord) return
     if (this._selfIntroProcessing) return
 
-    if (this.data.selfIntroRecording) {
-      // 当前正在录音，点击停止
-      console.log('[SelfIntro] Tap to stop recording')
-      this._stopSelfIntroRecord()
-      return
-    }
-
-    // 开始录音
-    if (this._isStartingRecord) return
+    // 记录按下时间戳
+    this._selfIntroTouchStartTime = Date.now()
+    this._selfIntroTouchActive = true
+    this._selfIntroPendingStop = false
     this._isStartingRecord = true
-    console.log('[SelfIntro] Tap to start recording')
+    console.log('[SelfIntro] TouchStart - begin recording')
 
-    // 立即显示录音状态
+    // 立即显示录音状态（不等onStart回调，消除视觉延迟）
+    const waveBars = Array.from({ length: 20 }, () => Math.floor(Math.random() * 40) + 10)
     this.setData({
       selfIntroRecording: true,
       selfIntroRecordSeconds: 0,
       selfIntroRecordTimeDisplay: '0"',
-      selfIntroCountdown: 120
+      selfIntroCountdown: 120,
+      recordWaveBars: waveBars
     })
 
     // 启动录音器（最长2分钟）
@@ -2062,10 +2076,21 @@ Page({
       console.error('[SelfIntro] Start recorder failed:', err)
       this._isStartingRecord = false
       this._selfIntroMode = false
-      this.setData({ selfIntroRecording: false })
+      this._selfIntroTouchActive = false
+      this.setData({ selfIntroRecording: false, recordWaveBars: [] })
       showError('录音启动失败，请重试')
       return
     }
+
+    // 安全定时器：125秒后强制停止（兆底保护，比录音器的120秒稍长）
+    if (this._selfIntroSafetyTimer) clearTimeout(this._selfIntroSafetyTimer)
+    this._selfIntroSafetyTimer = setTimeout(() => {
+      console.warn('[SelfIntro] Safety timer fired! Force stopping after 125s')
+      if (this.data.selfIntroRecording) {
+        this._selfIntroTouchActive = false
+        this._stopSelfIntroRecord()
+      }
+    }, 125000)
 
     // 启动计时器
     this._selfIntroRecordTimer = setInterval(() => {
@@ -2086,23 +2111,65 @@ Page({
       this.setData(updateData)
     }, 1000)
 
-    // 安全定时器：125秒后强制停止（兆底保护，比录音器的120秒稍长）
-    if (this._selfIntroSafetyTimer) clearTimeout(this._selfIntroSafetyTimer)
-    this._selfIntroSafetyTimer = setTimeout(() => {
-      console.warn('[SelfIntro] Safety timer fired! Force stopping after 125s')
-      if (this.data.selfIntroRecording) {
-        this._stopSelfIntroRecord()
-      }
-    }, 125000)
-
+    // 录音启动成功后解除防抖锁
     setTimeout(() => {
       this._isStartingRecord = false
     }, 500)
   },
 
-  // 保留旧的touchend处理作为兼容兆底（以防万一还有地方触发）
+  /**
+   * 松开停止自我介绍录音（与做题录音一致的保护机制）
+   */
   onSelfIntroTouchEnd(e) {
-    // tap模式下不再需要touchend停止录音，保留为空函数避免报错
+    console.log('[SelfIntro] touchend/touchcancel triggered, selfIntroRecording:', this.data.selfIntroRecording, '_selfIntroTouchActive:', this._selfIntroTouchActive)
+    this._selfIntroTouchActive = false
+
+    // 清除安全定时器（已正常触发touchend）
+    if (this._selfIntroSafetyTimer) {
+      clearTimeout(this._selfIntroSafetyTimer)
+      this._selfIntroSafetyTimer = null
+    }
+
+    // 如果录音还没启动成功（onStart还没触发），延迟停止
+    if (this._isStartingRecord) {
+      this._selfIntroPendingStop = true
+      console.log('[SelfIntro] Set pendingStop=true (recorder still starting)')
+      return
+    }
+
+    if (!this.data.selfIntroRecording) {
+      console.log('[SelfIntro] touchend but not recording, ignore')
+      return
+    }
+
+    // 检查按住时长，太短则取消
+    const holdDuration = Date.now() - (this._selfIntroTouchStartTime || 0)
+    if (holdDuration < 800) {
+      console.log('[SelfIntro] Hold too short:', holdDuration, 'ms, cancelling')
+      try { this._recorderManager.stop() } catch (e) {}
+      if (this._selfIntroRecordTimer) {
+        clearInterval(this._selfIntroRecordTimer)
+        this._selfIntroRecordTimer = null
+      }
+      this.setData({ selfIntroRecording: false, recordWaveBars: [] })
+      showToast('说话时间太短，请按住说话')
+      this._selfIntroRecordFilePath = ''
+      return
+    }
+
+    console.log('[SelfIntro] Stopping recording after', holdDuration, 'ms hold')
+    this._stopSelfIntroRecord()
+  },
+
+  /**
+   * 自我介绍录音遮罩层点击事件（兆底保护：点击遮罩层任意位置也停止录音）
+   */
+  onSelfIntroOverlayTap(e) {
+    console.log('[SelfIntro] Overlay tapped, forcing stop recording')
+    if (this.data.selfIntroRecording) {
+      this._selfIntroTouchActive = false
+      this._stopSelfIntroRecord()
+    }
   },
 
   /**
@@ -2279,21 +2346,16 @@ Page({
       levelRange = `${startLevelName} 以上`
     }
 
-    // 级别描述：用"途正口语X级"格式，跨级时显示"X-Y级"
+    // 级别描述：强制使用"途正口语X级"格式，跨级时显示"X-Y级"
+    // 不使用后端的levelRangeNames（可能是"初一到初三"这样的年级描述）
     const lowerMajor = SUB_LEVEL_MAJOR[lowerName] !== undefined ? SUB_LEVEL_MAJOR[lowerName] : (SUB_LEVEL_MAJOR[startLevelName] !== undefined ? SUB_LEVEL_MAJOR[startLevelName] : 0)
     const upperMajor = upperName ? (SUB_LEVEL_MAJOR[upperName] !== undefined ? SUB_LEVEL_MAJOR[upperName] : lowerMajor) : lowerMajor
     const majorLevel = lowerMajor
     let levelDesc = ''
-    if (estimateData.levelRangeNames) {
-      // 后端返回了描述，但要转换为途正口语格式
-      levelDesc = estimateData.levelRangeNames
-    }
-    if (!levelDesc) {
-      if (lowerMajor !== upperMajor) {
-        levelDesc = `途正口语${lowerMajor}-${upperMajor}级`
-      } else {
-        levelDesc = `途正口语${lowerMajor}级`
-      }
+    if (lowerMajor !== upperMajor) {
+      levelDesc = `途正口语${lowerMajor}-${upperMajor}级`
+    } else {
+      levelDesc = `途正口语${lowerMajor}级`
     }
 
     // 引导文案：优先用后端 guidanceText

@@ -356,8 +356,33 @@ Page({
       const transcription = si.transcription || si.recognized_text || si.recognizedText || ''
       const wordCount = si.wordCount || si.word_count || 0
       const duration = si.duration || 0
-      const levelRange = si.levelRange || si.level_range || ''
-      const levelRangeNames = si.levelRangeNames || si.level_range_names || ''
+      // 级别范围：转换为"X以上"格式
+      const rawLevelRange = si.levelRange || si.level_range || ''
+      let levelRange = ''
+      if (rawLevelRange) {
+        const parts = rawLevelRange.split(/\s*[-~]\s*/)
+        levelRange = parts[0] ? `${parts[0]} 以上` : rawLevelRange
+      }
+      // 级别描述：强制使用"途正口语X级"格式，不使用后端的年级描述
+      const SUB_LEVEL_MAJOR_MAP = {
+        'PRE1': 0, 'PRE2': 0,
+        'G1': 1, 'G2': 1, 'G3': 1, 'G4': 1, 'G5': 1, 'G6': 1,
+        'G7': 2, 'G8': 2, 'G9': 2, 'G10': 2, 'G11': 2, 'G12': 2,
+        'IELTS4': 3, 'IELTS5': 3, 'IELTS6': 3, 'IELTS7': 3, 'IELTS8': 3, 'IELTS9': 3
+      }
+      const estLevel = si.estimatedLevel || si.estimated_level || {}
+      const lowerBound = estLevel.lowerBoundName || estLevel.lowerBound || estLevel.lower_bound_name || ''
+      const upperBound = estLevel.upperBoundName || estLevel.upperBound || estLevel.upper_bound_name || ''
+      const lMajor = SUB_LEVEL_MAJOR_MAP[lowerBound] !== undefined ? SUB_LEVEL_MAJOR_MAP[lowerBound] : -1
+      const uMajor = SUB_LEVEL_MAJOR_MAP[upperBound] !== undefined ? SUB_LEVEL_MAJOR_MAP[upperBound] : lMajor
+      let levelRangeNames = ''
+      if (lMajor >= 0) {
+        if (lMajor !== uMajor && uMajor >= 0) {
+          levelRangeNames = `途正口语${lMajor}-${uMajor}级`
+        } else {
+          levelRangeNames = `途正口语${lMajor}级`
+        }
+      }
       const overallComment = si.overallComment || si.overall_comment || ''
       const rawRadar = si.abilityRadar || si.ability_radar || []
       

@@ -695,3 +695,10 @@
 ## 第七十轮 - 修复自我介绍五维度进度效果（参考做题分析进度）
 - [x] 重写_startIntroAnalysisProgress：改为依次推进模式，每个维度从0%逐步到90%再到100%，有先后顺序感
 - [x] 参考做题时_startAnalysisProgress的步骤式进度效果
+
+## 第七十一轮 - 排查报告页两个"第1题"bug
+- [x] 排查报告页逐题分析中出现两个第1题的原因（第一个第1题回答为[REPLACED_BY_RESUBMIT]得0分）
+- [x] 判断是前端渲染问题还是后端数据问题
+
+## 第七十二轮 - 前端防御性过滤REPLACED_BY_RESUBMIT记录
+- [x] result.js：在逐题分析数据处理中过滤掉userAnswer为[REPLACED_BY_RESUBMIT]的记录

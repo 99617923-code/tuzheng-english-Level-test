@@ -287,7 +287,12 @@ Page({
 
     // 逐题分析数据处理（兼容report接口的questions和result接口的answerDetails）
     const questionDetails = []
-    const detailSource = (hasDetailQuestions && data.questions) ? data.questions : (data.answerDetails || data.answer_details || [])
+    const rawDetailSource = (hasDetailQuestions && data.questions) ? data.questions : (data.answerDetails || data.answer_details || [])
+    // 防御性过滤：过滤掉被重新提交替换的旧记录（后端标记为[REPLACED_BY_RESUBMIT]）
+    const detailSource = rawDetailSource.filter(q => {
+      const answer = q.userAnswer || q.user_answer || q.recognizedText || q.recognized_text || ''
+      return !answer.includes('[REPLACED_BY_RESUBMIT]') && !answer.includes('REPLACED_BY_RESUBMIT')
+    })
     if (detailSource.length > 0) {
       detailSource.forEach((q, idx) => {
         // 兼容下划线命名

@@ -325,6 +325,7 @@
       </view>
       <view class="skip-row">
         <button class="skip-btn" bindtap="handleSkip">跳过此题</button>
+        <button class="skip-btn end-test-btn" bindtap="handleTerminate">结束测评</button>
       </view>
     </view>
 

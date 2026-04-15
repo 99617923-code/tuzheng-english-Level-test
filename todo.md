@@ -744,3 +744,8 @@
 ## 第八十一轮 - 彻底解决真机长录音松手后不停止
 - [x] 根因：wx:if/wx:else切换销毁了touchstart绑定的元素，导致touchend丢失。做题录音用单元素+class切换所以没问题
 - [x] 修复：改为单元素+class切换模式，touchstart和touchend始终在同一个DOM节点上
+
+## 第八十二轮 - 对接terminate接口：增加"结束测评"按钮
+- [x] test.wxml：在做题界面增加“结束测评”按钮（红色下划线文字，与跳过此题并排）
+- [x] test.js：handleTerminate弹窗确认 + _doTerminate调用terminateTest(sessionId, 'user_request') + 跳转结果页
+- [x] 结果页通过sessionId调用getTestReport获取报告，与正常结束完全复用

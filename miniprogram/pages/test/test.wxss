@@ -718,6 +718,10 @@
 
 .skip-row {
   margin-top: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 40rpx;
 }
 
 .skip-btn {
@@ -731,6 +735,11 @@
 
 .skip-btn::after {
   border: none;
+}
+
+.end-test-btn {
+  color: #e74c3c;
+  text-decoration: underline;
 }
 
 /* 评估中 */

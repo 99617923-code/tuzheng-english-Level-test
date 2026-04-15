@@ -1966,6 +1966,76 @@ Page({
     })
   },
 
+  /** 结束测评并定级（调用terminate接口） */
+  handleTerminate() {
+    if (this._showingModal) return
+    this._showingModal = true
+    
+    const totalAnswered = this.data.totalAnswered || 0
+    let content = `已答${totalAnswered}道题，结束后AI将根据已答题目自动定级。\n确定要结束测评吗？`
+    if (totalAnswered < 3) {
+      content = `您才答了${totalAnswered}道题，答题太少可能影响定级准确性。\n确定要结束测评吗？`
+    }
+    
+    wx.showModal({
+      title: '结束测评',
+      content,
+      confirmText: '结束定级',
+      confirmColor: '#e74c3c',
+      cancelText: '继续做题',
+      success: async (res) => {
+        this._showingModal = false
+        if (res.confirm) {
+          await this._doTerminate()
+        }
+      },
+      fail: () => {
+        this._showingModal = false
+      }
+    })
+  },
+
+  /** 执行terminate接口调用 */
+  async _doTerminate() {
+    const sessionId = this.data.sessionId
+    if (!sessionId) {
+      wx.showToast({ title: '缺少会话ID', icon: 'none' })
+      return
+    }
+    
+    wx.showLoading({ title: '正在生成报告...', mask: true })
+    
+    try {
+      const result = await terminateTest(sessionId, 'user_request')
+      console.log('[Terminate] Success:', result)
+      wx.hideLoading()
+      
+      // 清理并跳转结果页
+      if (this._isNavigating) return
+      this._isNavigating = true
+      this._clearTestSession()
+      this.cleanup()
+      wx.redirectTo({
+        url: `/pages/result/result?sessionId=${sessionId}`,
+        fail: () => { this._isNavigating = false }
+      })
+    } catch (err) {
+      wx.hideLoading()
+      console.error('[Terminate] Failed:', err)
+      wx.showModal({
+        title: '结束失败',
+        content: err.message || '网络异常，请稍后重试',
+        confirmText: '重试',
+        cancelText: '取消',
+        success: (res) => {
+          if (res.confirm) {
+            this._doTerminate()
+          }
+        }
+      })
+    }
+  },
+
   // ============ 外教引导气泡 ============
 
   handleGuideNext() {

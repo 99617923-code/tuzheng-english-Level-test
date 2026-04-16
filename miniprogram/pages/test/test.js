@@ -903,12 +903,20 @@ Page({
     const { currentQuestion } = this.data
 
     if (!currentQuestion) {
-      console.error('[Audio] No currentQuestion')
-      this._onAudioFinished()
+      console.error('[Audio] No currentQuestion! phase:', this.data.phase)
+      // 显示提示文字，让用户知道可以录音回答
+      this.setData({
+        showQuestionText: true,
+        questionTextDisplay: '请用英语回答外教的提问'
+      })
+      setTimeout(() => {
+        this._onAudioFinished()
+      }, 2000)
       return
     }
 
     const audioUrl = currentQuestion.audioUrl
+    console.warn('[Audio] _playQuestionAudio questionId:', currentQuestion.questionId, 'audioUrl:', audioUrl ? audioUrl.substring(0, 80) : 'EMPTY', 'questionText:', currentQuestion.questionText ? currentQuestion.questionText.substring(0, 30) : 'EMPTY')
     if (audioUrl) {
       this.setData({ phase: 'listening', aiStatusText: `${this.data.teacherName || '外教'}正在提问...` })
 
@@ -920,6 +928,7 @@ Page({
       this._setAudioTimeout()
     } else {
       // 没有audioUrl → 尝试TTS降级
+      console.warn('[Audio] No audioUrl, falling back to TTS')
       this._tryTTSFallback()
     }
   },
@@ -954,8 +963,16 @@ Page({
   _tryTTSFallback() {
     const { currentQuestion } = this.data
     if (!currentQuestion || !currentQuestion.questionText) {
-      console.warn('[TTS] No questionText available, skip to answering')
-      this._onAudioFinished()
+      console.warn('[TTS] No questionText available for question:', currentQuestion ? currentQuestion.questionId : 'null')
+      // 即使没有questionText，也要显示提示让用户知道可以录音回答
+      this.setData({
+        showQuestionText: true,
+        questionTextDisplay: '请用英语回答外教的提问'
+      })
+      // 2秒后进入回答阶段
+      setTimeout(() => {
+        this._onAudioFinished()
+      }, 2000)
       return
     }
 
@@ -1022,10 +1039,11 @@ Page({
   /** 第三级降级：显示题目文字让用户看着回答 */
   _showQuestionTextFallback() {
     const { currentQuestion } = this.data
+    const questionText = (currentQuestion && currentQuestion.questionText) || ''
     // 设置一个标记让UI显示题目文字
     this.setData({
       showQuestionText: true,
-      questionTextDisplay: currentQuestion.questionText || 'Please answer the question.'
+      questionTextDisplay: questionText || '请用英语回答外教的提问'
     })
     // 给用户3秒阅读时间后进入回答阶段
     setTimeout(() => {
@@ -1540,6 +1558,7 @@ Page({
 
       // 缓存完整响应
       this._lastEvalResponse = evalRes
+      console.warn('[Evaluate] Response status:', evalRes.status, 'question:', evalRes.question ? 'exists' : 'NULL', 'questionId:', evalRes.question ? (evalRes.question.questionId || evalRes.question.question_id) : 'N/A', 'audioUrl:', evalRes.question ? (evalRes.question.audioUrl || evalRes.question.audio_url || 'EMPTY') : 'N/A')
 
       // 兼容下划线命名：evaluate返回的下一题question
       if (evalRes.question) {
@@ -1827,6 +1846,7 @@ Page({
     }
 
     // status === 'continue' → 加载下一题
+    console.warn('[AutoNext] evalRes.status:', evalRes.status, 'evalRes.question:', evalRes.question ? 'exists' : 'NULL', 'evalRes keys:', Object.keys(evalRes).join(','))
     const nextQuestion = evalRes.question
     if (nextQuestion) {
       if (!nextQuestion.audioUrl && nextQuestion.audio_url) nextQuestion.audioUrl = nextQuestion.audio_url
@@ -1837,7 +1857,7 @@ Page({
 
     // 安全处理：question为null
     if (!nextQuestion || !nextQuestion.questionId) {
-      console.error('[AutoNext] Backend returned continue but question is null/invalid!')
+      console.error('[AutoNext] Backend returned continue but question is null/invalid! evalRes:', JSON.stringify(evalRes).substring(0, 500))
       if (this._showingModal) return
       this._showingModal = true
       wx.showModal({
@@ -1845,7 +1865,7 @@ Page({
         content: '服务器未返回下一题，可能是测评已完成。是否查看当前结果？',
         confirmText: '查看结果',
         cancelText: '重试',
-        success: (modalRes) => {
+        success: async (modalRes) => {
           this._showingModal = false
           if (modalRes.confirm) {
             if (this._isNavigating) return
@@ -1856,7 +1876,50 @@ Page({
               fail: () => { this._isNavigating = false }
             })
           } else {
-            this.setData({ phase: 'answering', aiStatusText: '请重新录音回答' })
+            // 重试：重新调用startTest获取新题目（而不是简单设置phase=answering）
+            this.setData({ phase: 'loading', aiStatusText: '正在重新获取题目...' })
+            try {
+              const retryParams = {}
+              if (this.data.evaluateMode) retryParams.evaluateMode = this.data.evaluateMode
+              const data = await startTest(retryParams)
+              const question = data.question
+              if (question) {
+                if (!question.audioUrl && question.audio_url) question.audioUrl = question.audio_url
+                if (!question.questionText && question.question_text) question.questionText = question.question_text
+                if (!question.questionId && question.question_id) question.questionId = question.question_id
+                if (!question.subLevel && question.sub_level) question.subLevel = question.sub_level
+              }
+              if (!question || !question.questionId) {
+                console.error('[AutoNext] Retry also returned no question')
+                this.setData({ phase: 'answering', aiStatusText: '获取题目失败，请点击跳过此题' })
+                return
+              }
+              const subLevel = data.currentSubLevel || data.current_sub_level || (question && question.subLevel) || this.data.currentSubLevel
+              const majorLevel = data.currentMajorLevel !== undefined ? data.currentMajorLevel : (data.current_major_level !== undefined ? data.current_major_level : (SUB_LEVEL_MAJOR[subLevel] || 0))
+              const audioWaves = Array.from({ length: 60 }, () => Math.floor(Math.random() * 32) + 8)
+              this.setData({
+                sessionId: data.sessionId || this.data.sessionId,
+                currentQuestion: question,
+                currentSubLevel: subLevel,
+                currentMajorLevel: majorLevel,
+                majorLevelDisplay: MAJOR_LEVEL_NAMES[majorLevel] || '途正口语0级',
+                phase: 'listening',
+                aiStatusText: '请听题目',
+                audioWaves,
+                showQuestionText: false,
+                questionTextDisplay: ''
+              })
+              this._lastEvalResponse = null
+              this._recordFilePath = ''
+              this._saveTestSession()
+              this.startTimer()
+              await delay(500)
+              this._destroyAudioContext()
+              this._playQuestionAudio()
+            } catch (retryErr) {
+              console.error('[AutoNext] Retry startTest failed:', retryErr)
+              this.setData({ phase: 'answering', aiStatusText: '获取题目失败，请点击跳过此题' })
+            }
           }
         },
         fail: () => {

@@ -759,3 +759,11 @@
 - [x] 超时保护回调中检查generation，不匹配则不弹窗干扰
 - [x] onError回调中增加自我介绍模式的完整状态重置（清除所有定时器+重置标志位）
 - [x] cleanup方法中重置_selfIntroGeneration
+
+## 第八十四轮 - 修复第3题无语音条/无外教语音Bug
+- [x] 分析根因：evaluate返回question为null或audioUrl为空时，前端直接进入answering但无任何题目内容
+- [x] 修复1：question为null时"重试"按钮改为重新调用startTest获取新题目（而非简单设phase=answering导致空白）
+- [x] 修复2：_tryTTSFallback中questionText为空时显示"请用英语回答外教的提问"提示文字
+- [x] 修复3：_showQuestionTextFallback中防止currentQuestion为null时报错
+- [x] 修复4：_playQuestionAudio中currentQuestion为null时显示提示文字而非直接进入answering
+- [x] 修复5：增加详细日志（evaluate返回值、audioUrl、questionText），便于线上排查

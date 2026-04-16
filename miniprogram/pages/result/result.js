@@ -365,9 +365,10 @@ Page({
       }
       // 级别描述：强制使用"途正口语X级"格式，不使用后端的年级描述
       const SUB_LEVEL_MAJOR_MAP = {
-        'PRE1': 0, 'PRE2': 0,
-        'G1': 1, 'G2': 1, 'G3': 1, 'G4': 1, 'G5': 1, 'G6': 1,
-        'G7': 2, 'G8': 2, 'G9': 2, 'G10': 2, 'G11': 2, 'G12': 2,
+        'PRE1': 0, 'PRE2': 0, 'PRE': 0,
+        'G1': 0, 'G2': 0, 'G3': 0, 'G4': 0,
+        'G5': 1, 'G6': 1, 'G7': 1, 'G8': 1, 'G9': 1,
+        'G10': 2, 'G11': 2, 'G12': 2,
         'IELTS4': 3, 'IELTS5': 3, 'IELTS6': 3, 'IELTS7': 3, 'IELTS8': 3, 'IELTS9': 3
       }
       const estLevel = si.estimatedLevel || si.estimated_level || {}

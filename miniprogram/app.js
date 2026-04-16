@@ -25,10 +25,10 @@ App({
     shareCoverUrl: 'https://d2xsxph8kpxj0f.cloudfront.net/310519663267704571/C9Jj6DH7b3EoSGBmrxJBc6/share-cover_103ee497.png',
     // 等级配置（仅保留UI相关配置如颜色、星级等，名称和描述优先使用后端返回的majorLevelName、majorLevelLabel字段）
     levelConfig: {
-      0: { name: '途正口语0级', label: '', color: '#22c55e', bgColor: 'rgba(34,197,94,0.08)', stars: 1, abilityLabel: '入门' },
-      1: { name: '途正口语1级', label: '', color: '#3B82F6', bgColor: 'rgba(59,130,246,0.06)', stars: 2, abilityLabel: '基础' },
-      2: { name: '途正口语2级', label: '', color: '#8B5CF6', bgColor: 'rgba(139,92,246,0.06)', stars: 3, abilityLabel: '中级' },
-      3: { name: '途正口语3级', label: '', color: '#F59E0B', bgColor: 'rgba(245,158,11,0.06)', stars: 4, abilityLabel: '高级' }
+      0: { name: '途正口语0级', label: '学前水平', color: '#22c55e', bgColor: 'rgba(34,197,94,0.08)', stars: 1, abilityLabel: '入门' },
+      1: { name: '途正口语1级', label: '小学高年级-初中水平', color: '#3B82F6', bgColor: 'rgba(59,130,246,0.06)', stars: 2, abilityLabel: '基础' },
+      2: { name: '途正口语2级', label: '高中水平', color: '#8B5CF6', bgColor: 'rgba(139,92,246,0.06)', stars: 3, abilityLabel: '中级' },
+      3: { name: '途正口语3级', label: '高中以上', color: '#F59E0B', bgColor: 'rgba(245,158,11,0.06)', stars: 4, abilityLabel: '高级' }
     }
   },
 

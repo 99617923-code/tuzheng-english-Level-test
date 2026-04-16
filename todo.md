@@ -767,3 +767,8 @@
 - [x] 修复3：_showQuestionTextFallback中防止currentQuestion为null时报错
 - [x] 修复4：_playQuestionAudio中currentQuestion为null时显示提示文字而非直接进入answering
 - [x] 修复5：增加详细日志（evaluate返回值、audioUrl、questionText），便于线上排查
+
+## 第八十五轮 - 调整定级标准映射
+- [x] 修改test.js中SUB_LEVEL_MAJOR映射：0级=PRE/G1-G4, 1级=G5-G9, 2级=G10-G12, 3级=IELTS
+- [x] 修改result.js中SUB_LEVEL_MAJOR_MAP映射：与test.js保持一致
+- [x] 修改app.js中levelConfig的label描述：0级=学前水平, 1级=小学高年级-初中水平, 2级=高中水平, 3级=高中以上

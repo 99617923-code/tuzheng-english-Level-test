@@ -1008,7 +1008,7 @@ Page({
         success: function(res) {
           if (res.filename) {
             // 用InnerAudioContext播放合成的语音
-            const updatedQuestion = { ...currentQuestion, audioUrl: res.filename }
+            const updatedQuestion = Object.assign({}, currentQuestion, { audioUrl: res.filename })
             self.setData({ currentQuestion: updatedQuestion })
 
             const ctx = self._createAudioContext()
@@ -1039,7 +1039,7 @@ Page({
       const ttsUrl = ttsRes.audioUrl || ttsRes.audio_url || ttsRes.url || ''
 
       if (ttsUrl) {
-        const updatedQuestion = { ...currentQuestion, audioUrl: ttsUrl }
+        const updatedQuestion = Object.assign({}, currentQuestion, { audioUrl: ttsUrl })
         this.setData({ currentQuestion: updatedQuestion })
 
         const ctx = this._createAudioContext()
@@ -3217,7 +3217,7 @@ Page({
     }
 
     // 从上到下逐个完成到100%，每个步骤间隔150ms
-    const steps = [...this.data.analysisSteps]
+    const steps = this.data.analysisSteps.slice()
     const STEP_DELAY = 150  // 每个步骤完成的间隔
 
     steps.forEach((step, idx) => {
@@ -3225,7 +3225,7 @@ Page({
         steps[idx].percentage = 100
         steps[idx].pctDisplay = '100.00'
         this.setData({
-          analysisSteps: [...steps],
+          analysisSteps: steps.slice(),
           analysisCurrentStep: idx
         })
 

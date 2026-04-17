@@ -810,3 +810,11 @@
 - [x] 修改登录成功后跳转逻辑：检查profile_completed决定去向
 - [x] 首页也增加profile_completed检查拦截
 - [x] UI设计：教育温暖风格，与测评页面风格统一
+
+## 第八十九轮补充 - 修复@babel/runtime缺失（扩展运算符替换）
+- [x] test.js：替换4处扩展运算符为Object.assign/Array.slice
+- [x] history.js：替换2处扩展运算符为Array.concat/Object.assign
+- [x] result.js：替换1处扩展运算符为Object.assign
+- [x] request.js：替换2处扩展运算符为Object.assign（headers构建+原有1处）
+- [x] api.js：增强getProfileStatus错误日志，兼容多种响应格式（code:200 / success:true / 直接data）
+- [x] 根因：project.config.json中enhance:true启用了ES6转ES5，但项目未安装@babel/runtime，导致扩展运算符（...）编译后找不到_arrayWithoutHoles等helper函数

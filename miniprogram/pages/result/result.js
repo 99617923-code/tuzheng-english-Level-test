@@ -427,7 +427,7 @@ Page({
           .map(h => {
             const text = h.text || ''
             const idx = transcription.indexOf(text)
-            return { ...h, _idx: idx }
+            return Object.assign({}, h, { _idx: idx })
           })
           .filter(h => h._idx >= 0)
           .sort((a, b) => a._idx - b._idx)

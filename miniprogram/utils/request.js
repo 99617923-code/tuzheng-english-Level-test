@@ -144,11 +144,10 @@ function isLongTimeoutUrl(url) {
 function request(url, options = {}) {
   const { method = 'GET', data, header = {}, noAuth = false, timeout } = options
 
-  const headers = {
+  var headers = Object.assign({
     'Content-Type': 'application/json',
-    'X-App-Key': APP_KEY,
-    ...header
-  }
+    'X-App-Key': APP_KEY
+  }, header)
 
   if (!noAuth) {
     const token = getToken()
@@ -212,7 +211,7 @@ function request(url, options = {}) {
           subscribeTokenRefresh((refreshed) => {
             if (refreshed) {
               // 重试原请求
-              const retryHeaders = { ...headers, 'Authorization': `Bearer ${getToken()}` }
+              const retryHeaders = Object.assign({}, headers, { 'Authorization': 'Bearer ' + getToken() })
               wx.request({
                 url: `${BASE_URL}${url}`,
                 method,

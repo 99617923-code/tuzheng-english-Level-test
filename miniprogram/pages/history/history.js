@@ -87,7 +87,7 @@ Page({
       const data = await getTestHistory(this.data.page, this.data.pageSize)
       const rawList = data.list || data.records || data.items || []
       const list = rawList.map(item => this.formatItem(item))
-      const allList = [...this.data.list, ...list]
+      const allList = this.data.list.concat(list)
 
       // 计算统计摘要
       const completedItems = allList.filter(item => item.status === 'completed')
@@ -151,9 +151,8 @@ Page({
     // 检查是否是已确认分级的session
     const isConfirmedSession = this.data.levelConfirmed && this.data.confirmedSessionId === sessionId
 
-    return {
-      ...item,
-      sessionId,
+    return Object.assign({}, item, {
+      sessionId: sessionId,
       majorLevel,
       isConfirmedSession,
       levelName: isCompleted ? `途正口语${majorLevel}级` : null,
@@ -166,7 +165,7 @@ Page({
       overallScore: Math.round(overallScore),
       highestSubLevel,
       statusText: isCompleted ? '已完成' : '未完成'
-    }
+    })
   },
 
   /** 下拉刷新 */

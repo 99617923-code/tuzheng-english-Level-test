@@ -2032,3 +2032,10 @@
   font-weight: 500;
   color: var(--brand-blue);
 }
+
+.confirm-replay-hint {
+  font-size: 24rpx;
+  color: #999;
+  text-align: center;
+  margin-top: 8rpx;
+}

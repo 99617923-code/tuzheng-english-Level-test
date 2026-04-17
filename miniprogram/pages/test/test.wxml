@@ -336,15 +336,12 @@
           <text class="confirm-btn-text">提交答案，下一题</text>
         </view>
         <view class="confirm-secondary-row">
-          <view class="confirm-btn-secondary" bindtap="handleConfirmReplay">
-            <image class="confirm-icon" src="/assets/icons/play-blue.svg" mode="aspectFit" />
-            <text class="confirm-secondary-text">重听题目</text>
-          </view>
           <view class="confirm-btn-secondary" bindtap="handleConfirmRerecord">
             <image class="confirm-icon" src="/assets/icons/mic-blue.svg" mode="aspectFit" />
             <text class="confirm-secondary-text">重新录音</text>
           </view>
         </view>
+        <text class="confirm-replay-hint">点击上方语音条可重听题目</text>
       </view>
       <view class="skip-row">
         <button class="skip-btn" bindtap="handleSkip">跳过此题</button>

@@ -783,3 +783,8 @@
 - [x] confirm阶段样式设计（蓝色渐变提交按钮 + 浅色重听/重录按钮）
 - [x] cleanup中重置_confirmReplayMode
 - [x] 创建play-blue.svg和mic-blue.svg图标
+
+## 第八十六轮补充 - 去掉重听按钮，改为点击音频条重听
+- [x] 去掉confirm阶段的"重听题目"按钮
+- [x] playAudio函数增加confirm阶段支持（设置_confirmReplayMode，播放完回到confirm）
+- [x] 增加"点击上方语音条可重听题目"提示文字

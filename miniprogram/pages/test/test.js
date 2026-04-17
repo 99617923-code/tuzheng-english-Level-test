@@ -949,7 +949,7 @@ Page({
 
   /** 手动点击语音条重播 */
   playAudio() {
-    const { currentQuestion, audioPlaying } = this.data
+    const { currentQuestion, audioPlaying, phase } = this.data
 
     if (audioPlaying) {
       this._clearAudioTimeout()
@@ -960,6 +960,12 @@ Page({
     }
 
     if (!currentQuestion || !currentQuestion.audioUrl) return
+
+    // confirm阶段点击音频条重听，播放完后回到confirm
+    if (phase === 'confirm') {
+      this._confirmReplayMode = true
+      this.setData({ phase: 'listening', aiStatusText: '正在重新播放题目...' })
+    }
 
     // 重播也要重建audioContext
     const ctx = this._createAudioContext()

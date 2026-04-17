@@ -557,7 +557,7 @@
 .action-area {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
 }
 
 /* 播放按钮 */
@@ -718,10 +718,7 @@
 
 .skip-row {
   margin-top: 24rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 40rpx;
+  width: 100%;
 }
 
 .skip-btn {
@@ -1786,6 +1783,8 @@
   background: linear-gradient(135deg, #10B981, #059669) !important;
   box-shadow: 0 8rpx 32rpx rgba(16, 185, 129, 0.30) !important;
   border-radius: 16rpx !important;
+  overflow: hidden !important;
+  position: relative !important;
 }
 
 .intro-record-btn:active,
@@ -1804,11 +1803,14 @@
   text-overflow: ellipsis;
 }
 
-/* 跳过自我介绍 - 红色按钮（与录制按钮等宽等高） */
+/* 跳过自我介绍 - 红色按钮（与录制按钮完全等宽等高） */
 .skip-intro-red-btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   width: 100% !important;
   height: 100rpx !important;
-  line-height: 100rpx !important;
+  line-height: 1 !important;
   font-size: 30rpx !important;
   font-weight: 600;
   color: #ffffff !important;
@@ -1818,6 +1820,9 @@
   box-shadow: 0 8rpx 32rpx rgba(231, 76, 60, 0.30);
   text-align: center;
   letter-spacing: 4rpx;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
 }
 
 .skip-intro-red-btn::after {

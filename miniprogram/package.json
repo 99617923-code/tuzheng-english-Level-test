@@ -1,0 +1,15 @@
+{
+  "name": "miniprogram",
+  "version": "1.0.0",
+  "description": "途正英语AI分级测评小程序",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "火鹰科技",
+  "license": "ISC",
+  "dependencies": {
+    "@babel/runtime": "^7.29.2"
+  }
+}

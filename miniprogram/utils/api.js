@@ -682,7 +682,8 @@ function skipIntro(sessionId) {
  */
 function getProfileStatus() {
   return request('/api/v1/user/profile-status').then(res => {
-    console.log('[API] profile-status raw response:', JSON.stringify(res))
+    // 只打印关键字段，避免HTML响应刷屏
+    console.log('[API] profile-status response type:', typeof res, 'keys:', typeof res === 'object' && res !== null ? Object.keys(res).join(',') : 'N/A')
     // 兼容多种响应格式：{ code:200, data:{} } 或 { success:true, data:{} } 或直接返回data
     if (res.code === 200) return res.data
     if (res.success && res.data) return res.data

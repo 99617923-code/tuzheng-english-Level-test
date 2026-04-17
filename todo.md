@@ -818,3 +818,13 @@
 - [x] request.js：替换2处扩展运算符为Object.assign（headers构建+原有1处）
 - [x] api.js：增强getProfileStatus错误日志，兼容多种响应格式（code:200 / success:true / 直接data）
 - [x] 根因：project.config.json中enhance:true启用了ES6转ES5，但项目未安装@babel/runtime，导致扩展运算符（...）编译后找不到_arrayWithoutHoles等helper函数
+
+## 第九十轮 - 修复@babel/runtime/helpers/toPropertyKey缺失
+- [x] 根因分析：enhance:true启用了增强编译，但项目未安装@babel/runtime依赖
+- [x] 在miniprogram目录下创建package.json并安装@babel/runtime@7.29.2
+- [x] 安装后所有babel helper均可用（toPropertyKey/arrayWithoutHoles/defineProperty等）
+- [x] request.js增加HTML响应检测（防止接口返回HTML时当作JSON处理）
+- [x] request.js增加dataType:'json'确保wx.request自动解析JSON
+- [x] api.js简化profile-status日志输出（避免HTML响应刷屏）
+- [x] 全面扫描确认无其他ES6+语法问题
+- [ ] 用户在微信开发者工具中“构建npm”后测试验证

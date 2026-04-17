@@ -2273,22 +2273,23 @@ Page({
   },
 
   /**
-   * 确认阶段 - 重新录音：丢弃当前录音，回到answering阶段
+   * 确认阶段 - 重新录音：丢弃当前录音，自动播放题目音频，播放完后进入answering阶段
+   * 优化：减少用户操作步骤，重新录音 → 自动播放题目 → 按住说话
    */
   handleConfirmRerecord() {
-    console.log('[Confirm] User chose to re-record')
+    console.log('[Confirm] User chose to re-record, will auto-play question audio first')
     this._recordFilePath = ''
     this._confirmReplayMode = false
     this.setData({
-      phase: 'answering',
       recordSeconds: 0,
       recordTimeDisplay: '0"',
       userTranscription: '',
-      realtimeText: '',
-      aiStatusText: '请用英语回答'
+      realtimeText: ''
     })
-    // 重启每题倒计时
-    this.startTimer()
+    // 销毁旧音频上下文，然后自动播放题目音频
+    // 播放完后 _onAudioFinished 会自动进入 answering 阶段
+    this._destroyAudioContext()
+    this._playQuestionAudio()
   },
 
   /**

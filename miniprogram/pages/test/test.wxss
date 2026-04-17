@@ -719,6 +719,10 @@
 .skip-row {
   margin-top: 24rpx;
   width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .skip-btn {

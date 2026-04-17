@@ -841,3 +841,10 @@
 - [x] 修复：handleSkip不再调用evaluate，改为直接调用startTest获取下一题
 - [x] 跳过的题不计入评分，不影响后端定级算法
 - [x] 更新弹窗提示文案和失败恢复逻辑
+
+## 第九十八轮 - 新增skip-question后端接口并对接前端
+- [x] 后端已完成 POST /api/v1/test/skip-question 接口（记0分、触发连续放弃规则、影响升降级、不调AI评分）
+- [x] api.js中新增skipQuestion函数（参数sessionId+questionId，返回格式与evaluate一致，包含完整的下划线命名兼容处理）
+- [x] 前端handleSkip改为调用skipQuestion接口，复用_autoNextQuestion处理返回结果
+- [x] 弹窗提示文案更新：“跳过此题将记为0分，可能影响最终定级”
+- [x] 保留shouldForceContinue保护（不夨6题强制继续）

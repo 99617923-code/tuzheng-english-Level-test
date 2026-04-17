@@ -28,11 +28,11 @@
  * - currentQuestion null安全检查：submitAnswer/handleSkip/handleNext中防止"null is not an object"
  * - 弹窗互斥锁（_showingModal）：防止多个wx.showModal叠加导致UI卡死
  * - 全局异常恢复（_resetToSafeState）：状态混乱时提供用户可操作的恢复选项
- * - 跳过失败恢复（_handleSkipFailure）：跳过题目valuate失败时提供重试/继续录音选项
+ * - 跳过失败恢复（_handleSkipFailure）：跳过题目(skip-question)失败时提供重试/继续录音选项
  * - 后端question:null安全处理：status:continue但question为null时不崩溃，提示用户选择
  */
 const app = getApp()
-const { startTest, evaluateAnswer, uploadAudio, terminateTest, transcribeAudio, textToSpeech, getTeacherConfig, selfIntroEstimate, skipIntro } = require('../../utils/api')
+const { startTest, evaluateAnswer, uploadAudio, terminateTest, transcribeAudio, textToSpeech, getTeacherConfig, selfIntroEstimate, skipIntro, skipQuestion } = require('../../utils/api')
 const { formatTime, showToast, showError, delay } = require('../../utils/util')
 const { ensureTokenValid } = require('../../utils/request')
 
@@ -1690,7 +1690,7 @@ Page({
     await this._autoNextQuestion(evalRes, totalAnswered, shouldForceContinue)
   },
 
-  /** 跳过此题（调用evaluate传空答案，后端判0分，按AI智能定级规则处理） */
+  /** 跳过此题（调用skip-question接口，记0分、触发连续放弃规则、影响升降级、不调AI评分） */
   handleSkip() {
     // 防护：弹窗互斥锁，防止多个弹窗叠加
     if (this._showingModal) {
@@ -1701,7 +1701,7 @@ Page({
     this._showingModal = true
     wx.showModal({
       title: '跳过此题',
-      content: '跳过后将直接进入下一题，此题不计入评分。确定要跳过吗？',
+      content: '跳过此题将记为0分，可能影响最终定级。确定要跳过吗？',
       success: async (res) => {
         this._showingModal = false
         if (res.confirm) {
@@ -1709,75 +1709,28 @@ Page({
           this.stopTimer()
           this.setData({
             phase: 'loading',
-            aiStatusText: '正在加载下一题...'
+            aiStatusText: '正在跳过...'
           })
 
           try {
-            // 跳过此题：不调用evaluate（不影响评分），直接请求下一题
-            console.log('[Skip] Skipping question, fetching next question via startTest')
-            const data = await startTest({ evaluateMode: this.data.evaluateMode })
-            const question = data.question
-            if (question) {
-              if (!question.audioUrl && question.audio_url) question.audioUrl = question.audio_url
-              if (!question.questionText && question.question_text) question.questionText = question.question_text
-              if (!question.questionId && question.question_id) question.questionId = question.question_id
-              if (!question.subLevel && question.sub_level) question.subLevel = question.sub_level
-            }
+            // 调用后端skip-question接口：记0分、触发连续放弃规则、影响升降级判定、不调AI评分
+            const currentQuestion = this.data.currentQuestion
+            const questionId = currentQuestion ? (currentQuestion.questionId || currentQuestion.question_id) : undefined
+            console.log('[Skip] Calling skip-question API, sessionId:', this.data.sessionId, 'questionId:', questionId)
+            
+            const evalRes = await skipQuestion(this.data.sessionId, questionId)
+            console.log('[Skip] skip-question response:', JSON.stringify(evalRes).substring(0, 200))
 
-            // 安全检查：startTest返回的question为null
-            if (!question || !question.questionId) {
-              console.error('[Skip] startTest returned no question, redirecting to result')
-              if (this._isNavigating) return
-              this._isNavigating = true
-              this._clearTestSession()
-              this.cleanup()
-              wx.redirectTo({
-                url: `/pages/result/result?sessionId=${this.data.sessionId}`,
-                fail: () => { this._isNavigating = false }
-              })
-              return
-            }
-
-            // 跳过也计入前端题号（但不影响后端评分）
+            // 跳过计入前端题号
             this._frontendQuestionCount += 1
             const newTotalAnswered = this._frontendQuestionCount
 
-            const subLevel = data.currentSubLevel || data.current_sub_level || (question && question.subLevel) || this.data.currentSubLevel
-            const majorLevel = data.currentMajorLevel !== undefined ? data.currentMajorLevel : (data.current_major_level !== undefined ? data.current_major_level : (SUB_LEVEL_MAJOR[subLevel] || 0))
-            const audioWaves = Array.from({ length: 60 }, () => Math.floor(Math.random() * 32) + 8)
-
-            this.setData({
-              sessionId: data.sessionId || this.data.sessionId,
-              currentQuestion: question,
-              currentSubLevel: subLevel,
-              currentMajorLevel: majorLevel,
-              questionIndex: data.questionIndex || 1,
-              subLevelDisplay: subLevel,
-              majorLevelDisplay: MAJOR_LEVEL_NAMES[majorLevel] || '途正口语0级',
-              totalAnswered: newTotalAnswered,
-              questionCountDisplay: `第 ${newTotalAnswered + 1} 题`,
-              progressPercent: Math.min((newTotalAnswered / 34) * 100, 95),
-              phase: 'listening',
-              aiStatusText: '请听题目',
-              userTranscription: '',
-              realtimeText: '',
-              audioWaves,
-              showQuestionText: false,
-              questionTextDisplay: ''
-            })
-
-            this._previousSubLevel = subLevel
-            this._lastEvalResponse = null
-            this._recordFilePath = ''
-            this._saveTestSession()
-
-            this.startTimer()
-            await delay(500)
-            this._destroyAudioContext()
-            this._playQuestionAudio()
+            // 返回格式与evaluate完全一致，复用_autoNextQuestion处理逻辑
+            const shouldForceContinue = (evalRes.status === 'finished' && newTotalAnswered < MIN_QUESTIONS_BEFORE_FINISH)
+            await this._autoNextQuestion(evalRes, newTotalAnswered, shouldForceContinue)
 
           } catch (err) {
-            console.error('[Skip] startTest failed:', err)
+            console.error('[Skip] skip-question failed:', err)
             // 跳过失败时提供恢复选项
             this._handleSkipFailure(err)
           }
@@ -1795,7 +1748,7 @@ Page({
     this._showingModal = true
     wx.showModal({
       title: '跳过失败',
-      content: '网络异常，无法加载下一题，请选择操作',
+      content: '网络异常，无法跳过此题，请选择操作',
       confirmText: '重试',
       cancelText: '继续录音',
       success: (modalRes) => {
@@ -1817,7 +1770,7 @@ Page({
 
   /**
    * 精简版：答完后自动进入下一题（不再显示反馈）
-   * 供submitAnswer复用（handleSkip已改为直接调用startTest，不走此函数）
+   * 供submitAnswer和handleSkip复用
    */
   async _autoNextQuestion(evalRes, totalAnswered, shouldForceContinue) {
     if (shouldForceContinue) {

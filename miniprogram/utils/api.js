@@ -612,6 +612,59 @@ function selfIntroEstimate(sessionId, audioUrl) {
  *   question: { questionId, audioUrl, questionText, subLevel }
  * }
  */
+/**
+ * 跳过当前题目（AI智能定级模式）
+ * 记0分，触发连续放弃规则，影响升降级判定，不调用AI评分
+ * 返回格式与evaluate完全一致（evaluation + status + question）
+ * 
+ * @param {string} sessionId - 测评会话ID
+ * @param {number} [questionId] - 当前题目ID（可选）
+ */
+function skipQuestion(sessionId, questionId) {
+  const data = {
+    sessionId,
+    session_id: sessionId
+  }
+  if (questionId !== undefined && questionId !== null) {
+    data.questionId = questionId
+    data.question_id = questionId
+  }
+
+  return request('/api/v1/test/skip-question', {
+    method: 'POST',
+    data
+  }).then(res => {
+    if (res.code !== 200) throw new Error(res.msg || '跳过失败')
+    const result = res.data
+    // 兼容下划线命名（与evaluateAnswer保持一致）
+    if (!result.totalAnswered && result.total_answered !== undefined) result.totalAnswered = result.total_answered
+    if (!result.currentSubLevel && result.current_sub_level) result.currentSubLevel = result.current_sub_level
+    if (result.currentMajorLevel === undefined && result.current_major_level !== undefined) result.currentMajorLevel = result.current_major_level
+    if (!result.questionIndex && result.question_index) result.questionIndex = result.question_index
+    if (!result.sessionId && result.session_id) result.sessionId = result.session_id
+    // 兼容升级相关字段
+    if (result.levelUp === undefined && result.level_up !== undefined) result.levelUp = result.level_up
+    if (!result.levelUpMessage && result.level_up_message) result.levelUpMessage = result.level_up_message
+    // 兼容等级名称和描述字段
+    if (!result.majorLevelName && result.major_level_name) result.majorLevelName = result.major_level_name
+    if (!result.majorLevelLabel && result.major_level_label) result.majorLevelLabel = result.major_level_label
+    // 兼容question字段
+    if (result.question) {
+      const q = result.question
+      if (!q.audioUrl && q.audio_url) q.audioUrl = q.audio_url
+      if (!q.questionText && q.question_text) q.questionText = q.question_text
+      if (!q.questionId && q.question_id) q.questionId = q.question_id
+      if (!q.subLevel && q.sub_level) q.subLevel = q.sub_level
+    }
+    // finished状态时，从finished result中提取字段
+    if (result.result) {
+      if (!result.result.majorLevelName && result.result.major_level_name) result.result.majorLevelName = result.result.major_level_name
+      if (!result.result.majorLevelLabel && result.result.major_level_label) result.result.majorLevelLabel = result.result.major_level_label
+    }
+    return result
+  })
+}
+
 function skipIntro(sessionId) {
   return request('/api/v1/test/skip-intro', {
     method: 'POST',
@@ -658,5 +711,6 @@ module.exports = {
   getTeacherConfig,
   getTestReport,
   selfIntroEstimate,
-  skipIntro
+  skipIntro,
+  skipQuestion
 }

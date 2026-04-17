@@ -1804,20 +1804,20 @@
   text-overflow: ellipsis;
 }
 
-/* 跳过自我介绍 - 红色按钮 */
+/* 跳过自我介绍 - 红色按钮（与录制按钮等宽等高） */
 .skip-intro-red-btn {
   width: 100% !important;
-  height: 88rpx !important;
-  line-height: 88rpx !important;
-  font-size: 28rpx !important;
+  height: 100rpx !important;
+  line-height: 100rpx !important;
+  font-size: 30rpx !important;
   font-weight: 600;
   color: #ffffff !important;
   background: linear-gradient(135deg, #e74c3c, #c0392b) !important;
   border: none !important;
-  border-radius: 44rpx !important;
-  box-shadow: 0 4rpx 16rpx rgba(231, 76, 60, 0.35);
+  border-radius: 16rpx !important;
+  box-shadow: 0 8rpx 32rpx rgba(231, 76, 60, 0.30);
   text-align: center;
-  letter-spacing: 1rpx;
+  letter-spacing: 4rpx;
 }
 
 .skip-intro-red-btn::after {

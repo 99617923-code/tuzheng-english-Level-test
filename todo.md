@@ -792,3 +792,11 @@
 ## 第八十七轮 - 修复forceNew后question为null导致状态异常
 - [x] 根因：evaluate返回finished但题数<6 → forceNew重新开始 → startTest返回question为null → 直接设phase=listening但无题目 → 后续操作全部异常
 - [x] 修复：forceNew分支中startTest返回后增加question为null安全检查，为null时直接跳转结果页
+
+## 第八十八轮 - 彻底修复自我介绍录音卡死问题
+- [x] 根因：_selfIntroMode在stop()后仍为true，必须等onStop回调才重置，onStop不触发则永久卡死
+- [x] 修复1：_stopSelfIntroRecord中stop()之前立即重置_selfIntroMode=false
+- [x] 修复2：onStop回调改用_waitingForSelfIntroOnStop标志来识别自我介绍录音（兼容_selfIntroMode已提前重置）
+- [x] 修复3：onError回调也用_waitingForSelfIntroOnStop兼容
+- [x] 修复4：超时保护从3秒降到1.5秒，不弹modal改为轻量toast，防止modal本身导致卡死
+- [x] 修复5：stop()失败时也完全重置所有标志位

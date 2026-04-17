@@ -1151,7 +1151,9 @@ Page({
       }
 
       // v4.0: 如果是自我介绍录音，走自我介绍流程
-      if (this._selfIntroMode) {
+      // 【关键修复】用_waitingForSelfIntroOnStop代替_selfIntroMode来识别
+      // 因为_selfIntroMode已在stop()之前立即重置，防止卡死
+      if (this._selfIntroMode || this._waitingForSelfIntroOnStop) {
         const stoppedGeneration = this._selfIntroGeneration
         this._selfIntroMode = false
         // 清除onStop超时保护定时器
@@ -1204,7 +1206,7 @@ Page({
         this._recordTimer = null
       }
       // 自我介绍录音模式下的错误处理
-      if (this._selfIntroMode) {
+      if (this._selfIntroMode || this._waitingForSelfIntroOnStop) {
         this._selfIntroMode = false
         this._waitingForSelfIntroOnStop = false
         this._selfIntroProcessing = false
@@ -2469,48 +2471,43 @@ Page({
     // 标记等待onStop回调
     this._waitingForSelfIntroOnStop = true
 
+    // 【关键修复】stop()之前立即重置_selfIntroMode
+    // 这样即使onStop不触发或延迟，也不会阻塞后续操作
+    // onStop回调通过_waitingForSelfIntroOnStop标志来识别这是自我介绍录音
+    this._selfIntroMode = false
+
     // 停止录音（onStop回调中处理文件）
     try {
       this._recorderManager.stop()
     } catch (e) {
       console.warn('[SelfIntro] Stop recorder failed:', e)
+      // stop失败时也要完全重置，防止卡死
+      this._waitingForSelfIntroOnStop = false
+      this._selfIntroProcessing = false
     }
     this.setData({
       selfIntroRecording: false,
       recordWaveBars: []
     })
 
-    // onStop超时保护：如果3秒内onStop回调没有触发，显示提示让用户重试
+    // onStop超时保护：1.5秒内onStop回调没有触发，静默重置状态让用户可以重新录音
+    // 【关键修复】不弹modal（modal可能导致开发者工具卡死），改为轻量toast提示
     this._selfIntroStopFallbackTimer = setTimeout(() => {
       if (!this._waitingForSelfIntroOnStop) return  // 已经正常触发了
-      // generation检查：如果用户已经开始了新录音，不弹窗干扰
+      // generation检查：如果用户已经开始了新录音，不干扰
       if (stopGeneration !== this._selfIntroGeneration) {
         console.warn('[SelfIntro] Stale fallback timer (gen', stopGeneration, 'vs current', this._selfIntroGeneration, '), ignoring')
         return
       }
-      console.warn('[SelfIntro] onStop callback not fired within 3s, showing retry prompt')
+      console.warn('[SelfIntro] onStop callback not fired within 1.5s, silently resetting')
       this._waitingForSelfIntroOnStop = false
       this._selfIntroMode = false
       this._selfIntroProcessing = false
-      // 提示用户重新录制
-      if (!this._showingModal && !this._isPageUnloaded) {
-        this._showingModal = true
-        wx.showModal({
-          title: '录音处理异常',
-          content: '录音停止后未收到响应，请重新录制自我介绍',
-          confirmText: '重新录制',
-          cancelText: '跳过',
-          success: (res) => {
-            this._showingModal = false
-            if (res.cancel) {
-              // 跳过自我介绍
-              this._handleSkipIntro()
-            }
-            // 确认则留在当前页面等待用户重新录制
-          }
-        })
+      // 轻量toast提示，不弹modal，用户可以直接重新录音
+      if (!this._isPageUnloaded) {
+        showToast('录音处理超时，请重新录制')
       }
-    }, 3000)
+    }, 1500)
   },
 
   /**

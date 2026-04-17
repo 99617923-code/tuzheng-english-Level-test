@@ -1817,13 +1817,28 @@ Page({
           if (!question.questionId && question.question_id) question.questionId = question.question_id
           if (!question.subLevel && question.sub_level) question.subLevel = question.sub_level
         }
+
+        // 安全检查：forceNew后startTest返回的question为null，直接跳转结果页
+        if (!question || !question.questionId) {
+          console.error('[Test] Force continue: startTest returned no question, redirecting to result')
+          if (this._isNavigating) return
+          this._isNavigating = true
+          this._clearTestSession()
+          this.cleanup()
+          wx.redirectTo({
+            url: `/pages/result/result?sessionId=${this.data.sessionId}`,
+            fail: () => { this._isNavigating = false }
+          })
+          return
+        }
+
         const subLevel = data.currentSubLevel || data.current_sub_level || (question && question.subLevel) || this.data.currentSubLevel
         const majorLevel = data.currentMajorLevel !== undefined ? data.currentMajorLevel : (data.current_major_level !== undefined ? data.current_major_level : (SUB_LEVEL_MAJOR[subLevel] || 0))
 
         const audioWaves = Array.from({ length: 60 }, () => Math.floor(Math.random() * 32) + 8)
 
         this.setData({
-          sessionId: data.sessionId,
+          sessionId: data.sessionId || this.data.sessionId,
           currentQuestion: question,
           currentSubLevel: subLevel,
           currentMajorLevel: majorLevel,

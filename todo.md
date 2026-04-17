@@ -788,3 +788,7 @@
 - [x] 去掉confirm阶段的"重听题目"按钮
 - [x] playAudio函数增加confirm阶段支持（设置_confirmReplayMode，播放完回到confirm）
 - [x] 增加"点击上方语音条可重听题目"提示文字
+
+## 第八十七轮 - 修复forceNew后question为null导致状态异常
+- [x] 根因：evaluate返回finished但题数<6 → forceNew重新开始 → startTest返回question为null → 直接设phase=listening但无题目 → 后续操作全部异常
+- [x] 修复：forceNew分支中startTest返回后增加question为null安全检查，为null时直接跳转结果页

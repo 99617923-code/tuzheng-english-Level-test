@@ -80,7 +80,7 @@ Page({
     navContentHeight: 0,
 
     // 测评状态
-    phase: 'loading', // guide | loading | listening | answering | evaluating | feedback | levelup
+    phase: 'loading', // guide | loading | listening | answering | confirm | evaluating | feedback | levelup
 
     // 首次引导
     showGuide: false,
@@ -346,6 +346,7 @@ Page({
     this._selfIntroProcessing = false
     this._selfIntroMode = false
     this._selfIntroGeneration = 0
+    this._confirmReplayMode = false
   },
 
   // ============ 计时器 ============
@@ -862,6 +863,17 @@ Page({
    * 音频播放完成后的统一处理
    */
   _onAudioFinished() {
+    // 如果是确认阶段的重听模式，播放完后回到confirm而不是answering
+    if (this._confirmReplayMode) {
+      this._confirmReplayMode = false
+      this.setData({
+        audioPlaying: false,
+        aiSpeaking: false,
+        aiStatusText: '录音完成，请确认',
+        phase: 'confirm'
+      })
+      return
+    }
     this.setData({
       audioPlaying: false,
       aiSpeaking: false,
@@ -919,7 +931,8 @@ Page({
     const audioUrl = currentQuestion.audioUrl
     console.warn('[Audio] _playQuestionAudio questionId:', currentQuestion.questionId, 'audioUrl:', audioUrl ? audioUrl.substring(0, 80) : 'EMPTY', 'questionText:', currentQuestion.questionText ? currentQuestion.questionText.substring(0, 30) : 'EMPTY')
     if (audioUrl) {
-      this.setData({ phase: 'listening', aiStatusText: `${this.data.teacherName || '外教'}正在提问...` })
+      // confirm重听模式下也设为listening（显示播放动画），播放完后由_onAudioFinished回到confirm
+      this.setData({ phase: 'listening', aiStatusText: this._confirmReplayMode ? '正在重新播放题目...' : `${this.data.teacherName || '外教'}正在提问...` })
 
       const ctx = this._createAudioContext()
       ctx.src = audioUrl
@@ -1169,8 +1182,8 @@ Page({
       }
 
       if (this._recordFilePath && this.data.recordSeconds >= 1) {
-        // 至少录了1秒才提交
-        this.submitAnswer()
+        // 至少录了1秒 → 进入确认阶段（不再自动提交）
+        this._enterConfirmPhase()
       } else if (this._recordFilePath && this.data.recordSeconds < 1) {
         showToast('录音时间太短，请重新录制')
         this._recordFilePath = ''
@@ -2207,6 +2220,60 @@ Page({
   handleBriefHintSubmit() {
     this.setData({ showBriefHint: false })
     this._skipBriefHint = true
+    this.submitAnswer()
+  },
+
+  // ============ 录音确认阶段（重听/重做/提交） ============
+
+  /**
+   * 进入确认阶段：录音完成后不自动提交，让用户选择重听/重录/提交
+   */
+  _enterConfirmPhase() {
+    console.log('[Confirm] Entering confirm phase, recordSeconds:', this.data.recordSeconds)
+    // 停止每题倒计时（确认阶段不计时）
+    this.stopTimer()
+    this.setData({
+      phase: 'confirm',
+      aiStatusText: '录音完成，请确认'
+    })
+  },
+
+  /**
+   * 确认阶段 - 重听题目：重新播放当前题目的外教语音
+   */
+  handleConfirmReplay() {
+    console.log('[Confirm] User chose to replay question audio')
+    // 重新播放当前题目音频，播放完后回到confirm阶段
+    this._confirmReplayMode = true
+    this._destroyAudioContext()
+    this._playQuestionAudio()
+  },
+
+  /**
+   * 确认阶段 - 重新录音：丢弃当前录音，回到answering阶段
+   */
+  handleConfirmRerecord() {
+    console.log('[Confirm] User chose to re-record')
+    this._recordFilePath = ''
+    this._confirmReplayMode = false
+    this.setData({
+      phase: 'answering',
+      recordSeconds: 0,
+      recordTimeDisplay: '0"',
+      userTranscription: '',
+      realtimeText: '',
+      aiStatusText: '请用英语回答'
+    })
+    // 重启每题倒计时
+    this.startTimer()
+  },
+
+  /**
+   * 确认阶段 - 提交答案：调用submitAnswer
+   */
+  handleConfirmSubmit() {
+    console.log('[Confirm] User chose to submit answer')
+    this._confirmReplayMode = false
     this.submitAnswer()
   },
 

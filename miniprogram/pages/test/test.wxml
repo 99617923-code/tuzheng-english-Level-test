@@ -329,6 +329,29 @@
       </view>
     </view>
 
+    <!-- 状态：录音确认（重听/重录/提交） -->
+    <view wx:elif="{{phase === 'confirm'}}" class="action-area">
+      <view class="confirm-actions">
+        <view class="confirm-btn confirm-btn-submit" bindtap="handleConfirmSubmit">
+          <text class="confirm-btn-text">提交答案，下一题</text>
+        </view>
+        <view class="confirm-secondary-row">
+          <view class="confirm-btn-secondary" bindtap="handleConfirmReplay">
+            <image class="confirm-icon" src="/assets/icons/play-blue.svg" mode="aspectFit" />
+            <text class="confirm-secondary-text">重听题目</text>
+          </view>
+          <view class="confirm-btn-secondary" bindtap="handleConfirmRerecord">
+            <image class="confirm-icon" src="/assets/icons/mic-blue.svg" mode="aspectFit" />
+            <text class="confirm-secondary-text">重新录音</text>
+          </view>
+        </view>
+      </view>
+      <view class="skip-row">
+        <button class="skip-btn" bindtap="handleSkip">跳过此题</button>
+        <button class="skip-btn end-test-btn" bindtap="handleTerminate">结束测评</button>
+      </view>
+    </view>
+
     <!-- 状态：正在播放AI语音（自动播放中，不可操作） -->
     <view wx:elif="{{phase === 'listening'}}" class="action-area">
       <view class="listening-hint-wrap">

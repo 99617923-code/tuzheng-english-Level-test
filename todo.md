@@ -772,3 +772,14 @@
 - [x] 修改test.js中SUB_LEVEL_MAJOR映射：0级=PRE/G1-G4, 1级=G5-G9, 2级=G10-G12, 3级=IELTS
 - [x] 修改result.js中SUB_LEVEL_MAJOR_MAP映射：与test.js保持一致
 - [x] 修改app.js中levelConfig的label描述：0级=学前水平, 1级=小学高年级-初中水平, 2级=高中水平, 3级=高中以上
+
+## 第八十六轮 - 每题重听重做功能（方案C）
+- [x] 新增confirm阶段（phase='confirm'）：录音完成后进入确认阶段
+- [x] confirm阶段UI：显示重听题目/重新录音/提交答案三个按钮
+- [x] 修改录音完成后流程：不再自动调用submitAnswer，改为进入confirm阶段
+- [x] 重听题目：重新播放当前题目音频（_confirmReplayMode + _onAudioFinished回到confirm）
+- [x] 重新录音：丢弃录音文件，回到answering阶段
+- [x] 提交答案：调用submitAnswer，流程与之前一致
+- [x] confirm阶段样式设计（蓝色渐变提交按钮 + 浅色重听/重录按钮）
+- [x] cleanup中重置_confirmReplayMode
+- [x] 创建play-blue.svg和mic-blue.svg图标

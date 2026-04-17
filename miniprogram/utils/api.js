@@ -676,6 +676,56 @@ function skipIntro(sessionId) {
   })
 }
 
+/**
+ * 获取用户资料完善状态
+ * Response: { profile_completed, has_address, has_payment_screenshot }
+ */
+function getProfileStatus() {
+  return request('/api/v1/user/profile-status').then(res => {
+    if (res.code !== 200) throw new Error(res.msg || '获取资料状态失败')
+    return res.data
+  })
+}
+
+/**
+ * 上传付款截图到OSS
+ * @param {string} filePath - 本地文件路径
+ * Response: { url, screenshot_url }
+ */
+function uploadPaymentScreenshot(filePath) {
+  return uploadFile('/api/v1/user/upload-payment-screenshot', filePath, 'file', {}).then(res => {
+    if (res.code !== 200) throw new Error(res.msg || '上传截图失败')
+    return res.data
+  })
+}
+
+/**
+ * 提交邮寄地址+付款截图URL，完善资料
+ * @param {object} data - { recipientName, recipientPhone, address, region, detailAddress, paymentScreenshotUrl }
+ * Response: { profile_completed: true }
+ */
+function completeProfile(data) {
+  return request('/api/v1/user/complete-profile', {
+    method: 'PUT',
+    data: {
+      recipient_name: data.recipientName,
+      recipient_phone: data.recipientPhone,
+      address: data.address,
+      region: data.region,
+      detail_address: data.detailAddress,
+      payment_screenshot_url: data.paymentScreenshotUrl,
+      // 也发驼峰命名兼容
+      recipientName: data.recipientName,
+      recipientPhone: data.recipientPhone,
+      detailAddress: data.detailAddress,
+      paymentScreenshotUrl: data.paymentScreenshotUrl
+    }
+  }).then(res => {
+    if (res.code !== 200) throw new Error(res.msg || '提交资料失败')
+    return res.data
+  })
+}
+
 module.exports = {
   sendSmsCode,
   smsLogin,
@@ -699,5 +749,8 @@ module.exports = {
   getTeacherConfig,
   getTestReport,
   selfIntroEstimate,
-  skipIntro
+  skipIntro,
+  getProfileStatus,
+  uploadPaymentScreenshot,
+  completeProfile
 }

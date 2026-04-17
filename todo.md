@@ -800,3 +800,13 @@
 - [x] 修复3：onError回调也用_waitingForSelfIntroOnStop兼容
 - [x] 修复4：超时保护从3秒降到1.5秒，不弹modal改为轻量toast，防止modal本身导致卡死
 - [x] 修复5：stop()失败时也完全重置所有标志位
+
+## 第八十九轮 - 用户资料完善功能（地址+付款截图）
+- [x] 新建资料填写页面 pages/profile/profile（wxml+wxss+js+json）
+- [x] 实现邮寄地址输入（收件人、手机号、省市区、详细地址）
+- [x] 实现付款截图上传（chooseImage + 调用upload-payment-screenshot接口）
+- [x] 对接后端profile-status接口检查资料完善状态
+- [x] 对接后端complete-profile接口提交资料
+- [x] 修改登录成功后跳转逻辑：检查profile_completed决定去向
+- [x] 首页也增加profile_completed检查拦截
+- [x] UI设计：教育温暖风格，与测评页面风格统一

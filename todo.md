@@ -800,3 +800,9 @@
 - [x] 修复3：onError回调也用_waitingForSelfIntroOnStop兼容
 - [x] 修复4：超时保护从3秒降到1.5秒，不弹modal改为轻量toast，防止modal本身导致卡死
 - [x] 修复5：stop()失败时也完全重置所有标志位
+
+## 第九十一轮 - 回退到第八十八轮 + 安装@babel/runtime
+- [x] 回退到版本46e78a0（第八十八轮），去掉第八十九、九十轮的用户资料完善功能
+- [x] 在miniprogram目录下创建package.json并安装@babel/runtime@7.29.2
+- [x] @babel/runtime是微信小程序增强编译(enhance:true)的标准依赖，解决toPropertyKey/arrayWithoutHoles等helper缺失
+- [ ] 用户在微信开发者工具中执行"构建npm"后重新编译测试

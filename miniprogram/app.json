@@ -5,8 +5,7 @@
     "pages/rules/rules",
     "pages/test/test",
     "pages/result/result",
-    "pages/history/history",
-    "pages/profile/profile"
+    "pages/history/history"
   ],
   "window": {
     "navigationStyle": "custom",

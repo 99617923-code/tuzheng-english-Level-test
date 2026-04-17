@@ -144,10 +144,11 @@ function isLongTimeoutUrl(url) {
 function request(url, options = {}) {
   const { method = 'GET', data, header = {}, noAuth = false, timeout } = options
 
-  var headers = Object.assign({
+  const headers = {
     'Content-Type': 'application/json',
-    'X-App-Key': APP_KEY
-  }, header)
+    'X-App-Key': APP_KEY,
+    ...header
+  }
 
   if (!noAuth) {
     const token = getToken()
@@ -167,7 +168,6 @@ function request(url, options = {}) {
       method,
       data,
       header: headers,
-      dataType: 'json',
       timeout: requestTimeout,
       success(res) {
         const responseData = res.data
@@ -212,7 +212,7 @@ function request(url, options = {}) {
           subscribeTokenRefresh((refreshed) => {
             if (refreshed) {
               // 重试原请求
-              const retryHeaders = Object.assign({}, headers, { 'Authorization': 'Bearer ' + getToken() })
+              const retryHeaders = { ...headers, 'Authorization': `Bearer ${getToken()}` }
               wx.request({
                 url: `${BASE_URL}${url}`,
                 method,
@@ -247,13 +247,6 @@ function request(url, options = {}) {
               reject(new Error('登录已过期，请重新登录'))
             }
           })
-          return
-        }
-
-        // 检查响应是否为HTML而非JSON（nginx SPA fallback或重定向）
-        if (typeof responseData === 'string' && responseData.charAt(0) === '<') {
-          console.error('[Request] Got HTML instead of JSON for:', url, '(statusCode=' + statusCode + ')')
-          reject(new Error('接口返回异常(非JSON)'))
           return
         }
 

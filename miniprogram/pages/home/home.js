@@ -9,7 +9,7 @@
  */
 const app = getApp()
 const { checkLogin, getUserInfo } = require('../../utils/util')
-const { getIntroVideo, getUserLevelStatus, getQrcodeByLevel, getQrcodeDisplaySetting, getEvaluateModes, getProfileStatus } = require('../../utils/api')
+const { getIntroVideo, getUserLevelStatus, getQrcodeByLevel, getQrcodeDisplaySetting, getEvaluateModes } = require('../../utils/api')
 
 Page({
   data: {
@@ -91,7 +91,6 @@ Page({
     // 检查二维码显示开关
     this._checkQrcodeSwitch()
     if (isAuth) {
-      this._checkProfileCompleted()
       this._checkLevelStatus()
     } else {
       this.setData({ levelConfirmed: false })
@@ -141,33 +140,6 @@ Page({
       this.setData({ hasIntroVideo: false })
     } finally {
       this._loadingVideo = false
-    }
-  },
-
-  /** 检查用户资料是否完善，未完善则跳转到profile页 */
-  async _checkProfileCompleted() {
-    try {
-      // 先检查本地缓存
-      const userInfo = getUserInfo() || {}
-      if (userInfo.profile_completed || userInfo.profileCompleted) return
-
-      // 调用接口确认
-      const status = await getProfileStatus()
-      if (status && status.profile_completed) {
-        // 更新本地缓存
-        try {
-          const cached = wx.getStorageSync('tz_user_info') || {}
-          cached.profile_completed = true
-          wx.setStorageSync('tz_user_info', cached)
-        } catch (e) {}
-        return
-      }
-
-      // 资料未完善，跳转到资料填写页
-      wx.redirectTo({ url: '/pages/profile/profile' })
-    } catch (err) {
-      console.warn('[Home] Check profile status failed:', err)
-      // 检查失败不阻塞正常使用
     }
   },
 

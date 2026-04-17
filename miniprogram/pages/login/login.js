@@ -3,7 +3,7 @@
  * 小程序原生适配：微信手机号快捷登录 + 短信验证码登录
  */
 const app = getApp()
-const { sendSmsCode, smsLogin, wxPhoneLogin, getProfileStatus } = require('../../utils/api')
+const { sendSmsCode, smsLogin, wxPhoneLogin } = require('../../utils/api')
 const { showToast, showError, showSuccess } = require('../../utils/util')
 
 Page({
@@ -87,8 +87,11 @@ Page({
               showSuccess('登录成功')
             }
 
-            // 检查资料完善状态
-            this._checkProfileAndNavigate()
+            setTimeout(() => {
+              wx.navigateBack({ fail: () => {
+                wx.redirectTo({ url: '/pages/home/home' })
+              }})
+            }, 800)
           })
           .catch(err => {
             showError(err.message || '登录失败，请重试')
@@ -161,49 +164,6 @@ Page({
     }, 1000)
   },
 
-  /** 检查资料完善状态并跳转 */
-  async _checkProfileAndNavigate() {
-    try {
-      // 先检查登录接口返回的 profile_completed 字段
-      const userInfo = app.globalData.userInfo || {}
-      const profileCompleted = userInfo.profile_completed || userInfo.profileCompleted
-
-      if (profileCompleted) {
-        // 资料已完善，直接进入首页
-        setTimeout(() => {
-          wx.navigateBack({ fail: () => {
-            wx.reLaunch({ url: '/pages/home/home' })
-          }})
-        }, 800)
-        return
-      }
-
-      // 再调用 profile-status 接口确认
-      const status = await getProfileStatus()
-      if (status && status.profile_completed) {
-        setTimeout(() => {
-          wx.navigateBack({ fail: () => {
-            wx.reLaunch({ url: '/pages/home/home' })
-          }})
-        }, 800)
-        return
-      }
-
-      // 资料未完善，跳转到资料填写页
-      setTimeout(() => {
-        wx.redirectTo({ url: '/pages/profile/profile' })
-      }, 800)
-    } catch (err) {
-      console.warn('[Login] Check profile status failed:', err)
-      // 检查失败不阻塞，直接进入首页
-      setTimeout(() => {
-        wx.navigateBack({ fail: () => {
-          wx.reLaunch({ url: '/pages/home/home' })
-        }})
-      }, 800)
-    }
-  },
-
   /** 短信验证码登录 */
   handleSmsLogin() {
     const { phone, smsCode, loading } = this.data
@@ -239,8 +199,11 @@ Page({
           showSuccess('登录成功')
         }
 
-        // 检查资料完善状态
-        this._checkProfileAndNavigate()
+        setTimeout(() => {
+          wx.navigateBack({ fail: () => {
+            wx.redirectTo({ url: '/pages/home/home' })
+          }})
+        }, 800)
       })
       .catch(err => {
         showError(err.message || '登录失败')

@@ -1690,18 +1690,11 @@ Page({
     await this._autoNextQuestion(evalRes, totalAnswered, shouldForceContinue)
   },
 
-  /** 跳过此题 */
+  /** 跳过此题（调用evaluate传空答案，后端判0分，按AI智能定级规则处理） */
   handleSkip() {
     // 防护：弹窗互斥锁，防止多个弹窗叠加
     if (this._showingModal) {
       console.warn('[Skip] Modal already showing, ignored')
-      return
-    }
-
-    // 安全检查：currentQuestion为null时不调用evaluate
-    if (!this.data.currentQuestion || !this.data.currentQuestion.questionId) {
-      console.error('[Skip] currentQuestion is null or missing questionId')
-      this._resetToSafeState('题目数据异常，正在尝试恢复...')
       return
     }
 
@@ -1720,6 +1713,8 @@ Page({
           })
 
           try {
+            // 跳过此题：调用evaluate传空答案，后端判0分
+            // 后端按AI智能定级规则处理（连续2次0分/放弃才强制结束）
             const evalRes = await evaluateAnswer({
               sessionId: this.data.sessionId,
               questionId: this.data.currentQuestion.questionId,
@@ -1729,9 +1724,18 @@ Page({
 
             this._lastEvalResponse = evalRes
 
+            // 兼容下划线命名
+            if (evalRes.question) {
+              const q = evalRes.question
+              if (!q.audioUrl && q.audio_url) q.audioUrl = q.audio_url
+              if (!q.questionText && q.question_text) q.questionText = q.question_text
+              if (!q.questionId && q.question_id) q.questionId = q.question_id
+              if (!q.subLevel && q.sub_level) q.subLevel = q.sub_level
+            }
+
             // 跳过也算答了一题
             this._frontendQuestionCount += 1
-            const backendTotal = evalRes.totalAnswered || this._frontendQuestionCount
+            const backendTotal = evalRes.totalAnswered || evalRes.total_answered || this._frontendQuestionCount
             const newTotalAnswered = Math.max(this._frontendQuestionCount, backendTotal)
 
             const isFinished = evalRes.status === 'finished'
@@ -1756,12 +1760,12 @@ Page({
               return
             }
 
-            // 继续下一题
+            // 继续下一题（包括shouldForceContinue强制继续的情况）
             this._autoNextQuestion(evalRes, newTotalAnswered, shouldForceContinue)
 
           } catch (err) {
             console.error('[Skip] evaluate failed:', err)
-            // 跳过失败时不是简单回到answering，而是提供恢复选项
+            // 跳过失败时提供恢复选项
             this._handleSkipFailure(err)
           }
         }

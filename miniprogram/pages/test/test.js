@@ -1701,54 +1701,32 @@ Page({
     this._showingModal = true
     wx.showModal({
       title: '跳过此题',
-      content: '跳过将视为未通过此题，可能影响你的最终定级。确定要跳过吗？',
+      content: '跳过后将直接进入下一题，此题不计入评分。确定要跳过吗？',
       success: async (res) => {
         this._showingModal = false
         if (res.confirm) {
           // 跳过时停止倒计时
           this.stopTimer()
           this.setData({
-            phase: 'evaluating',
-            aiStatusText: '正在处理...'
+            phase: 'loading',
+            aiStatusText: '正在加载下一题...'
           })
 
           try {
-            // 跳过此题：调用evaluate传空答案，后端判0分
-            // 后端按AI智能定级规则处理（连续2次0分/放弃才强制结束）
-            const evalRes = await evaluateAnswer({
-              sessionId: this.data.sessionId,
-              questionId: this.data.currentQuestion.questionId,
-              recognizedText: '',
-              duration: 0
-            })
-
-            this._lastEvalResponse = evalRes
-
-            // 兼容下划线命名
-            if (evalRes.question) {
-              const q = evalRes.question
-              if (!q.audioUrl && q.audio_url) q.audioUrl = q.audio_url
-              if (!q.questionText && q.question_text) q.questionText = q.question_text
-              if (!q.questionId && q.question_id) q.questionId = q.question_id
-              if (!q.subLevel && q.sub_level) q.subLevel = q.sub_level
+            // 跳过此题：不调用evaluate（不影响评分），直接请求下一题
+            console.log('[Skip] Skipping question, fetching next question via startTest')
+            const data = await startTest({ evaluateMode: this.data.evaluateMode })
+            const question = data.question
+            if (question) {
+              if (!question.audioUrl && question.audio_url) question.audioUrl = question.audio_url
+              if (!question.questionText && question.question_text) question.questionText = question.question_text
+              if (!question.questionId && question.question_id) question.questionId = question.question_id
+              if (!question.subLevel && question.sub_level) question.subLevel = question.sub_level
             }
 
-            // 跳过也算答了一题
-            this._frontendQuestionCount += 1
-            const backendTotal = evalRes.totalAnswered || evalRes.total_answered || this._frontendQuestionCount
-            const newTotalAnswered = Math.max(this._frontendQuestionCount, backendTotal)
-
-            const isFinished = evalRes.status === 'finished'
-            const shouldForceContinue = isFinished && newTotalAnswered < MIN_QUESTIONS_BEFORE_FINISH
-
-            // 更新计数
-            this.setData({
-              totalAnswered: newTotalAnswered,
-              questionCountDisplay: `第 ${newTotalAnswered} 题`
-            })
-
-            // 精简版：跳过后也直接进入下一题或结果页
-            if (isFinished && !shouldForceContinue) {
+            // 安全检查：startTest返回的question为null
+            if (!question || !question.questionId) {
+              console.error('[Skip] startTest returned no question, redirecting to result')
               if (this._isNavigating) return
               this._isNavigating = true
               this._clearTestSession()
@@ -1760,11 +1738,46 @@ Page({
               return
             }
 
-            // 继续下一题（包括shouldForceContinue强制继续的情况）
-            this._autoNextQuestion(evalRes, newTotalAnswered, shouldForceContinue)
+            // 跳过也计入前端题号（但不影响后端评分）
+            this._frontendQuestionCount += 1
+            const newTotalAnswered = this._frontendQuestionCount
+
+            const subLevel = data.currentSubLevel || data.current_sub_level || (question && question.subLevel) || this.data.currentSubLevel
+            const majorLevel = data.currentMajorLevel !== undefined ? data.currentMajorLevel : (data.current_major_level !== undefined ? data.current_major_level : (SUB_LEVEL_MAJOR[subLevel] || 0))
+            const audioWaves = Array.from({ length: 60 }, () => Math.floor(Math.random() * 32) + 8)
+
+            this.setData({
+              sessionId: data.sessionId || this.data.sessionId,
+              currentQuestion: question,
+              currentSubLevel: subLevel,
+              currentMajorLevel: majorLevel,
+              questionIndex: data.questionIndex || 1,
+              subLevelDisplay: subLevel,
+              majorLevelDisplay: MAJOR_LEVEL_NAMES[majorLevel] || '途正口语0级',
+              totalAnswered: newTotalAnswered,
+              questionCountDisplay: `第 ${newTotalAnswered + 1} 题`,
+              progressPercent: Math.min((newTotalAnswered / 34) * 100, 95),
+              phase: 'listening',
+              aiStatusText: '请听题目',
+              userTranscription: '',
+              realtimeText: '',
+              audioWaves,
+              showQuestionText: false,
+              questionTextDisplay: ''
+            })
+
+            this._previousSubLevel = subLevel
+            this._lastEvalResponse = null
+            this._recordFilePath = ''
+            this._saveTestSession()
+
+            this.startTimer()
+            await delay(500)
+            this._destroyAudioContext()
+            this._playQuestionAudio()
 
           } catch (err) {
-            console.error('[Skip] evaluate failed:', err)
+            console.error('[Skip] startTest failed:', err)
             // 跳过失败时提供恢复选项
             this._handleSkipFailure(err)
           }
@@ -1782,8 +1795,8 @@ Page({
     this._showingModal = true
     wx.showModal({
       title: '跳过失败',
-      content: '网络异常，请选择操作',
-      confirmText: '重试跳过',
+      content: '网络异常，无法加载下一题，请选择操作',
+      confirmText: '重试',
       cancelText: '继续录音',
       success: (modalRes) => {
         this._showingModal = false
@@ -1804,7 +1817,7 @@ Page({
 
   /**
    * 精简版：答完后自动进入下一题（不再显示反馈）
-   * 抽取公共逻辑，供submitAnswer和handleSkip复用
+   * 供submitAnswer复用（handleSkip已改为直接调用startTest，不走此函数）
    */
   async _autoNextQuestion(evalRes, totalAnswered, shouldForceContinue) {
     if (shouldForceContinue) {

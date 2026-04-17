@@ -835,3 +835,9 @@
 - [x] 清理home首页：删除二维码data字段、handleViewConfirmedQr、closeConfirmedQrModal、_checkQrcodeSwitch、二维码按钮和弹窗模板、qr样式
 - [x] 清理api.js：删除getQrcodeDisplaySetting、getQrcodeByLevel函数及导出，清理groupQrcode注释和兼容代码
 - [x] 全面grep确认零残留
+
+## 第九十七轮 - 修复“跳过此题”仍然直接出报告的bug
+- [x] 深度排查handleSkip完整逻辑链路
+- [x] 修复：handleSkip不再调用evaluate，改为直接调用startTest获取下一题
+- [x] 跳过的题不计入评分，不影响后端定级算法
+- [x] 更新弹窗提示文案和失败恢复逻辑

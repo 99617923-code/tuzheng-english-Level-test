@@ -284,10 +284,10 @@
         bindtouchend="onSelfIntroTouchEnd"
         bindtouchcancel="onSelfIntroTouchEnd"
       >
-        <text class="wechat-record-text intro-record-text">{{selfIntroRecording ? '松开 结束录音' : '按住开始录制自我介绍'}}</text>
+        <text class="wechat-record-text intro-record-text">{{selfIntroRecording ? '松开 结束录音' : '按住录制自我介绍（适用有基础用户）'}}</text>
       </view>
       <view class="skip-row">
-        <button class="skip-btn intro-skip-btn" bindtap="handleSkipIntro">跳过自我介绍，从头开始逐级测试</button>
+        <button class="skip-intro-red-btn" bindtap="handleSkipIntro">跳过自我介绍，逐级测试（适用初学者）</button>
       </view>
     </view>
 

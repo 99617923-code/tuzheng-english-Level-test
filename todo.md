@@ -807,3 +807,7 @@
 - [x] @babel/runtime是微信小程序增强编译(enhance:true)的标准依赖，解决toPropertyKey/arrayWithoutHoles等helper缺失
 - [x] 修复构建npm失败：project.config.json中packNpmManually改为true，配置packNpmRelationList指向./package.json
 - [ ] 用户在微信开发者工具中重新执行“构建npm”后编译测试
+
+## 第九十二轮 - 测评页面文案修改
+- [x] "跳过自我介绍，逐级测试（适用初学者）"改为红色渐变按钮样式（白字+红底+圆角+阴影）
+- [x] "按住开始录制自我介绍"改为"按住录制自我介绍（适用有基础用户）"

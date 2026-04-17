@@ -805,4 +805,5 @@
 - [x] 回退到版本46e78a0（第八十八轮），去掉第八十九、九十轮的用户资料完善功能
 - [x] 在miniprogram目录下创建package.json并安装@babel/runtime@7.29.2
 - [x] @babel/runtime是微信小程序增强编译(enhance:true)的标准依赖，解决toPropertyKey/arrayWithoutHoles等helper缺失
-- [ ] 用户在微信开发者工具中执行"构建npm"后重新编译测试
+- [x] 修复构建npm失败：project.config.json中packNpmManually改为true，配置packNpmRelationList指向./package.json
+- [ ] 用户在微信开发者工具中重新执行“构建npm”后编译测试

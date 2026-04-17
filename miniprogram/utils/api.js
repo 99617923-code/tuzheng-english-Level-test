@@ -245,8 +245,7 @@ function startTest(options = {}) {
  *   result: {
  *     majorLevel, majorLevelName, highestSubLevel, overallScore,
  *     totalQuestions, passedQuestions, totalDuration,
- *     report: { pronunciation, grammar, vocabulary, fluency, summary, strengths, weaknesses, recommendation },
- *     groupQrcode: { groupName, qrcodeUrl }
+ *     report: { pronunciation, grammar, vocabulary, fluency, summary, strengths, weaknesses, recommendation }
  *   }
  * }
  */
@@ -317,8 +316,7 @@ function evaluateAnswer(params) {
  * Response: {
  *   majorLevel, majorLevelName, highestSubLevel, overallScore,
  *   totalQuestions, passedQuestions, totalDuration,
- *   report: { pronunciation, grammar, vocabulary, fluency, summary, strengths, weaknesses, recommendation },
- *   groupQrcode: { groupName, qrcodeUrl }
+ *   report: { pronunciation, grammar, vocabulary, fluency, summary, strengths, weaknesses, recommendation }
  * }
  */
 function getTestResult(sessionId) {
@@ -434,8 +432,7 @@ function getTeacherConfig() {
  * Response: {
  *   majorLevel, majorLevelName, highestSubLevel, overallScore,
  *   totalQuestions, passedQuestions, totalDuration,
- *   report: { pronunciation, grammar, vocabulary, fluency, summary, strengths, weaknesses, recommendation },
- *   groupQrcode: { groupName, qrcodeUrl }
+ *   report: { pronunciation, grammar, vocabulary, fluency, summary, strengths, weaknesses, recommendation }
  * }
  */
 function getTestReport(sessionId) {
@@ -450,40 +447,7 @@ function getTestReport(sessionId) {
     if (!data.totalQuestions && data.total_questions !== undefined) data.totalQuestions = data.total_questions
     if (!data.passedQuestions && data.passed_questions !== undefined) data.passedQuestions = data.passed_questions
     if (!data.totalDuration && data.total_duration !== undefined) data.totalDuration = data.total_duration
-    if (!data.groupQrcode && data.group_qrcode) data.groupQrcode = data.group_qrcode
     return data
-  })
-}
-
-/**
- * 查询二维码展示开关（公开接口，无需认证）
- * 后台可随时开关群二维码的显示功能
- * 
- * Response: {
- *   enabled: true/false  // true=展示二维码，false=不展示
- * }
- */
-function getQrcodeDisplaySetting() {
-  return request('/api/v1/test/qrcode-display-setting', { noAuth: true }).then(res => {
-    // 兼容 code=0 和 code=200
-    if (res.code !== 200 && res.code !== 0) throw new Error(res.msg || '查询二维码开关失败')
-    const data = res.data || res
-    return { enabled: !!data.enabled }
-  }).catch(err => {
-    console.warn('[API] getQrcodeDisplaySetting failed:', err)
-    // 接口失败时默认显示二维码（安全降级）
-    return { enabled: true }
-  })
-}
-
-/**
- * 获取群二维码
- * @param {number} level - 等级数字（0=途正口语0级, 1=途正口语1级, 2=途正口语2级, 3=途正口语3级）
- */
-function getQrcodeByLevel(level) {
-  return request(`/api/v1/qrcode/level/${level}`).then(res => {
-    if (res.code !== 200) throw new Error(res.msg || '获取二维码失败')
-    return res.data
   })
 }
 
@@ -539,8 +503,7 @@ function confirmLevel(sessionId, majorLevel, majorLevelName) {
  *   confirmed: true,
  *   level, levelName, levelLabel,
  *   gradeTier, gradeTierLabel,
- *   overallScore, sessionId, confirmedAt,
- *   qrcodeUrl
+ *   overallScore, sessionId, confirmedAt
  * }
  * 
  * Response (未确认): {
@@ -567,8 +530,6 @@ function getUserLevelStatus() {
     if (data.overallScore === undefined && data.overall_score !== undefined) data.overallScore = data.overall_score
     if (!data.confirmedAt && data.confirmed_at) data.confirmedAt = data.confirmed_at
     if (!data.sessionId && data.session_id) data.sessionId = data.session_id
-    if (!data.qrcodeUrl && data.qrcode_url) data.qrcodeUrl = data.qrcode_url
-    if (!data.groupName && data.group_name) data.groupName = data.group_name
     return data
   })
 }
@@ -691,11 +652,9 @@ module.exports = {
   terminateTest,
   getTestHistory,
   textToSpeech,
-  getQrcodeByLevel,
   getIntroVideo,
   confirmLevel,
   getUserLevelStatus,
-  getQrcodeDisplaySetting,
   getTeacherConfig,
   getTestReport,
   selfIntroEstimate,

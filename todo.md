@@ -828,3 +828,10 @@
 - [x] 增加evalRes.question下划线命名兼容处理
 - [x] 增加evalRes.total_answered下划线命名兼容
 - [x] 保留shouldForceContinue保护（不夦6题强制继续）
+
+## 第九十六轮 - 清理所有二维码相关代码
+- [x] 搜索所有涉及二维码的文件（result.js/wxml/wxss、home.js/wxml/wxss、api.js）
+- [x] 清理result结果页：删除二维码data字段、handleJoinGroup、closeQrModal、_checkQrcodeSwitch、二维码弹窗模板、modal样式、preventClose
+- [x] 清理home首页：删除二维码data字段、handleViewConfirmedQr、closeConfirmedQrModal、_checkQrcodeSwitch、二维码按钮和弹窗模板、qr样式
+- [x] 清理api.js：删除getQrcodeDisplaySetting、getQrcodeByLevel函数及导出，清理groupQrcode注释和兼容代码
+- [x] 全面grep确认零残留

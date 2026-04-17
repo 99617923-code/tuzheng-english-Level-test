@@ -4,7 +4,7 @@
  * 核心流程：
  * 1. 显示测评结果（等级、得分、报告）
  * 2. 用户可以"重新测评"（不满意当前结果）
- * 3. 用户点击"确认最终评级"后锁定结果，显示班级群二维码
+ * 3. 用户点击"确认最终评级"后锁定结果
  * 4. 确认后不可更改
  * 
  * 数据来源：
@@ -12,7 +12,7 @@
  * - 降级：GET /api/v1/test/result/:sessionId（旧接口，无逐题分析）
  */
 const app = getApp()
-const { getTestReport, getTestResult, getQrcodeByLevel, confirmLevel, getUserLevelStatus, getQrcodeDisplaySetting } = require('../../utils/api')
+const { getTestReport, getTestResult, confirmLevel, getUserLevelStatus } = require('../../utils/api')
 const { showError, formatDuration } = require('../../utils/util')
 
 Page({
@@ -64,14 +64,6 @@ Page({
 
 
 
-    // 二维码弹窗
-    showQrModal: false,
-    qrcodeUrl: '',
-    groupName: '',
-
-    // 二维码显示开关（后台控制）
-    qrcodeEnabled: true,
-
     // 报告Tab切换
     activeReportTab: 'summary',  // 当前激活的报告Tab: 'intro' | 'questions' | 'summary'，默认综合报告
 
@@ -94,8 +86,6 @@ Page({
 
     this._sessionId = options.sessionId || ''
     if (this._sessionId) {
-      // 检查二维码显示开关
-      this._checkQrcodeSwitch()
       // 检查是否已经确认过
       this._checkConfirmed()
       this.loadResult()
@@ -117,12 +107,6 @@ Page({
         
         // 所有已定级用户的记录都显示confirmed状态（不可再测）
         this.setData({ confirmed: true })
-        
-        // 但只有最终定级的那个会话才显示群二维码
-        if (!isThisSessionConfirmed) {
-          this.setData({ qrcodeEnabled: false })
-          console.log('[Result] 非定级会话，隐藏群二维码')
-        }
         
         // 同步保存到本地缓存
         this._saveConfirmedLocal()
@@ -287,9 +271,6 @@ Page({
       durationText = durationSeconds > 0 ? formatDuration(durationSeconds) : '--'
       console.log('[Result] 时长计算:', { totalDuration, durationSeconds, durationText })
     }
-
-    // 群二维码（v2直接在result里返回，但不立即显示）
-    const groupQrcode = data.groupQrcode || data.group_qrcode || {}
 
     // 逐题分析数据处理（兼容report接口的questions和result接口的answerDetails）
     const questionDetails = []
@@ -506,9 +487,6 @@ Page({
       scoreItems,
       // 逐题分析
       questionDetails,
-      // 群二维码（预存但不显示，确认后才可见）
-      qrcodeUrl: groupQrcode.qrcodeUrl || groupQrcode.qrcode_url || '',
-      groupName: groupQrcode.groupName || groupQrcode.group_name || ''
     })
   },
 
@@ -578,47 +556,7 @@ Page({
     this.setData({ activeHighlight: null })
   },
 
-  /** 检查二维码显示开关 */
-  async _checkQrcodeSwitch() {
-    try {
-      const setting = await getQrcodeDisplaySetting()
-      this.setData({ qrcodeEnabled: setting.enabled })
-    } catch (e) {
-      // 默认显示
-    }
-  },
 
-  /** 加入学习群（仅确认后可用） */
-  async handleJoinGroup() {
-    if (!this.data.qrcodeEnabled) {
-      wx.showToast({ title: '二维码功能暂未开放', icon: 'none' })
-      return
-    }
-    if (!this.data.confirmed) {
-      wx.showToast({ title: '请先确认评级', icon: 'none' })
-      return
-    }
-
-    // 如果v2 result已经返回了二维码，直接显示
-    if (this.data.qrcodeUrl) {
-      this.setData({ showQrModal: true })
-      return
-    }
-
-    // 否则单独请求
-    this.setData({ showQrModal: true })
-    try {
-      const data = await getQrcodeByLevel(this._majorLevel)
-      if (data) {
-        this.setData({
-          qrcodeUrl: data.qrcodeUrl || data.qrcode_url || data.imageUrl || '',
-          groupName: data.groupName || data.group_name || ''
-        })
-      }
-    } catch (e) {
-      console.warn('[QRCode] Fetch failed:', e)
-    }
-  },
 
   /** 切换报告Tab */
   switchReportTab(e) {
@@ -739,12 +677,7 @@ Page({
     })
   },
 
-  /** 关闭二维码弹窗 */
-  closeQrModal() {
-    this.setData({ showQrModal: false })
-  },
 
-  preventClose() {},
 
   /** 重新测评（仅未确认时可用） */
   handleRetake() {

@@ -56,7 +56,6 @@
       </view>
       <text class="confirmed-hint">你已完成分级测评，无法再次测评</text>
       <view class="confirmed-actions">
-        <view wx:if="{{qrcodeEnabled}}" class="confirmed-btn confirmed-btn-qr" bindtap="handleViewConfirmedQr">查看班级群二维码</view>
         <view class="confirmed-btn confirmed-btn-result" bindtap="handleViewConfirmedResult">查看测评报告</view>
       </view>
     </view>
@@ -138,20 +137,7 @@
     </view>
   </view>
 
-  <!-- 已确认分级二维码弹窗 -->
-  <view wx:if="{{showConfirmedQrModal}}" class="resume-modal-mask" bindtap="closeConfirmedQrModal">
-    <view class="confirmed-qr-card" catchtap="preventClose">
-      <view class="resume-modal-close" bindtap="closeConfirmedQrModal">
-        <text class="resume-modal-close-icon">✕</text>
-      </view>
-      <text class="confirmed-qr-title">{{confirmedGroupName || '班级群'}}</text>
-      <text class="confirmed-qr-subtitle">长按识别二维码加入学习群</text>
-      <image wx:if="{{confirmedQrcodeUrl}}" class="confirmed-qr-image" src="{{confirmedQrcodeUrl}}" mode="aspectFit" show-menu-by-longpress="{{true}}" />
-      <view wx:else class="confirmed-qr-loading">
-        <text>加载中...</text>
-      </view>
-    </view>
-  </view>
+
 
   <!-- 模式选择弹窗（v1.3.0 AI智能跳级） -->
   <view wx:if="{{showModeModal}}" class="resume-modal-mask" bindtap="handleCloseModeModal">

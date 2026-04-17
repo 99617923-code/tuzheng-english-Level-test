@@ -4,7 +4,7 @@
   核心流程：
   1. 测评结束后显示本次测评结果（等级、得分、报告）
   2. 用户可以选择"重新测评"（不满意当前结果）
-  3. 用户点击"确认最终评级"后，锁定结果，显示班级群二维码
+  3. 用户点击"确认最终评级"后，锁定结果
   4. 确认后不可更改
   
   布局优化：
@@ -141,12 +141,8 @@
         </view>
       </view>
 
-      <!-- 已确认状态：显示群二维码入口 + 分享 -->
+      <!-- 已确认状态：显示分享等操作 -->
       <view wx:if="{{confirmed}}">
-        <button wx:if="{{qrcodeEnabled}}" class="action-btn-full join-group-btn" bindtap="handleJoinGroup">
-          <image class="action-btn-icon" src="/assets/icons/users-white.svg" mode="aspectFit" />
-          <text>加入{{levelName}}学习群</text>
-        </button>
         <view class="action-row-three">
           <button class="action-btn-third share-btn-mini" open-type="share">
             <text>分享</text>
@@ -499,25 +495,5 @@
   <!-- 离屏Canvas用于绘制海报 -->
   <canvas type="2d" id="posterCanvas" style="position: fixed; left: -9999px; top: -9999px; width: 750px; height: 1200px;"></canvas>
 
-  <!-- 群二维码弹窗（仅确认后可见） -->
-  <view wx:if="{{showQrModal && confirmed}}" class="modal-mask" bindtap="closeQrModal">
-    <view class="modal-content" catchtap="preventClose">
-      <view class="modal-header">
-        <text class="modal-title">加入学习群</text>
-        <view class="modal-close" bindtap="closeQrModal">
-          <image class="modal-close-icon" src="/assets/icons/x.svg" mode="aspectFit" />
-        </view>
-      </view>
-      <view class="modal-body">
-        <text class="modal-desc">扫描下方二维码，加入{{levelName}}学习群</text>
-        <view wx:if="{{qrcodeUrl}}" class="qrcode-wrap">
-          <image class="qrcode-img" src="{{qrcodeUrl}}" mode="aspectFit" show-menu-by-longpress />
-        </view>
-        <view wx:else class="qrcode-placeholder">
-          <text class="qrcode-placeholder-text">二维码即将上线</text>
-        </view>
-        <text class="modal-hint">长按图片可保存到相册</text>
-      </view>
-    </view>
-  </view>
+
 </view>

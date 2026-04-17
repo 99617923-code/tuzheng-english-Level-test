@@ -2613,9 +2613,15 @@ Page({
       
       if (this._showingModal || this._isPageUnloaded) return
       this._showingModal = true
+      // 区分网络错误和业务错误，显示友好提示
+      var errMsg = err.message || ''
+      var isNetErr = errMsg.indexOf('网络') !== -1 || errMsg.indexOf('network') !== -1 || errMsg.indexOf('net::') !== -1 || errMsg.indexOf('timeout') !== -1 || errMsg.indexOf('uploadFile:fail') !== -1
+      var displayContent = isNetErr
+        ? '网络连接不稳定，建议检查网络后重新录制，或跳过直接开始测评'
+        : (errMsg || '自我介绍分析失败，是否跳过直接开始测评？')
       wx.showModal({
-        title: '分析失败',
-        content: err.message || '自我介绍分析失败，是否跳过直接开始测评？',
+        title: isNetErr ? '网络不稳定' : '分析失败',
+        content: displayContent,
         confirmText: '跳过开始',
         cancelText: '重新录制',
         success: (res) => {

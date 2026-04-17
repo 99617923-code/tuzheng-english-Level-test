@@ -315,30 +315,44 @@ function tryRefreshToken() {
  * @returns {Promise<object>} 响应数据
  */
 function uploadFile(url, filePath, name = 'file', formData = {}) {
+  var MAX_NETWORK_RETRIES = 3
+  var RETRY_DELAY_MS = 1500
+
+  /**
+   * 判断是否为网络错误（可重试）
+   */
+  function isNetworkError(err) {
+    if (!err) return false
+    var msg = (err.errMsg || err.message || '').toLowerCase()
+    return msg.indexOf('network') !== -1 ||
+           msg.indexOf('net::') !== -1 ||
+           msg.indexOf('timeout') !== -1 ||
+           msg.indexOf('abort') !== -1 ||
+           msg.indexOf('fail') !== -1 && msg.indexOf('auth') === -1
+  }
 
   function doUpload() {
-    const token = getToken()
-    const headers = { 'X-App-Key': APP_KEY }
+    var token = getToken()
+    var headers = { 'X-App-Key': APP_KEY }
     if (token) {
-      headers['Authorization'] = `Bearer ${token}`
+      headers['Authorization'] = 'Bearer ' + token
     }
 
-    return new Promise((resolve, reject) => {
+    return new Promise(function(resolve, reject) {
       wx.uploadFile({
-        url: `${BASE_URL}${url}`,
-        filePath,
-        name,
-        formData,
+        url: BASE_URL + url,
+        filePath: filePath,
+        name: name,
+        formData: formData,
         header: headers,
         timeout: LONG_TIMEOUT,
-        success(res) {
+        success: function(res) {
           try {
-            const data = JSON.parse(res.data)
+            var data = JSON.parse(res.data)
             if (res.statusCode === 401) {
-              // Token过期，触发刷新后重试
-              reject({ isAuthError: true, data })
+              reject({ isAuthError: true, data: data })
             } else if (res.statusCode >= 400) {
-              reject(new Error(data.msg || `上传失败(${res.statusCode})`))
+              reject(new Error(data.msg || '上传失败(' + res.statusCode + ')'))
             } else {
               resolve(data)
             }
@@ -347,40 +361,64 @@ function uploadFile(url, filePath, name = 'file', formData = {}) {
             reject(new Error('解析响应失败'))
           }
         },
-        fail(err) {
+        fail: function(err) {
           console.error('[Upload] Failed:', url, err)
-          if (err.errMsg && err.errMsg.includes('timeout')) {
-            reject(new Error('上传超时，请检查网络后重试'))
-          } else {
-            reject(new Error(err.errMsg || '上传失败'))
-          }
+          reject(err)
         }
       })
     })
   }
 
-  // 第一次尝试上传
-  return doUpload().catch(err => {
+  /**
+   * 带网络重试的上传，最多重试 MAX_NETWORK_RETRIES 次
+   */
+  function doUploadWithRetry(attempt) {
+    if (attempt === undefined) attempt = 1
+    return doUpload().catch(function(err) {
+      // 网络错误且未超过重试次数
+      if (isNetworkError(err) && attempt < MAX_NETWORK_RETRIES) {
+        console.warn('[Upload] Network error on attempt ' + attempt + '/' + MAX_NETWORK_RETRIES + ', retrying in ' + RETRY_DELAY_MS + 'ms...', err.errMsg || err.message)
+        wx.showToast({
+          title: '网络不稳定，正在重试(' + attempt + '/' + MAX_NETWORK_RETRIES + ')...',
+          icon: 'none',
+          duration: 1500
+        })
+        return new Promise(function(resolve) {
+          setTimeout(resolve, RETRY_DELAY_MS)
+        }).then(function() {
+          return doUploadWithRetry(attempt + 1)
+        })
+      }
+      // 超过重试次数或非网络错误，招出友好提示
+      if (isNetworkError(err)) {
+        throw new Error('网络连接不稳定，请检查网络后重试')
+      }
+      // 非网络错误透传
+      throw err
+    })
+  }
+
+  // 主流程：带重试的上传 + 401 Token刷新
+  return doUploadWithRetry().catch(function(err) {
     // 如果是401 Token过期，刷新后重试一次
     if (err && err.isAuthError) {
-      console.warn(`[Upload] Auth expired for ${url}, attempting refresh and retry...`)
+      console.warn('[Upload] Auth expired for ' + url + ', attempting refresh and retry...')
 
       if (!isRefreshing) {
         isRefreshing = true
-        tryRefreshToken().then(refreshed => {
+        tryRefreshToken().then(function(refreshed) {
           isRefreshing = false
           onTokenRefreshed(refreshed)
-        }).catch(() => {
+        }).catch(function() {
           isRefreshing = false
           onTokenRefreshed(false)
         })
       }
 
-      return new Promise((resolve, reject) => {
-        subscribeTokenRefresh((refreshed) => {
+      return new Promise(function(resolve, reject) {
+        subscribeTokenRefresh(function(refreshed) {
           if (refreshed) {
-            doUpload().then(resolve).catch(retryErr => {
-              // 重试失败，不再刷新
+            doUploadWithRetry().then(resolve).catch(function(retryErr) {
               if (retryErr && retryErr.isAuthError) {
                 reject(new Error('未认证或Token已过期'))
               } else {

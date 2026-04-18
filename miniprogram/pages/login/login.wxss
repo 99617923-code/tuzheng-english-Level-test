@@ -214,13 +214,17 @@
 }
 
 /* 协议勾选 */
-.agreement {
+.agreement-wrap {
   display: flex;
-  align-items: center;
   justify-content: center;
   margin-top: 48rpx;
   padding: 0 8rpx;
-  gap: 12rpx;
+}
+
+.agreement {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
 }
 
 .agreement-checkbox {
@@ -249,17 +253,14 @@
   height: 20rpx;
 }
 
-.agreement-content {
-  flex: 1;
-  line-height: 1.6;
-}
-
 .agreement-text {
   font-size: 22rpx;
   color: var(--text-placeholder);
+  line-height: 1.6;
 }
 
 .agreement-link {
   font-size: 22rpx;
   color: var(--brand-blue);
+  line-height: 1.6;
 }

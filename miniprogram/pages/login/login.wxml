@@ -98,13 +98,13 @@
     </view>
 
     <!-- 协议勾选 -->
-    <view class="agreement">
-      <view class="agreement-checkbox" bindtap="toggleAgreement">
-        <view class="checkbox-icon {{agreedPolicy ? 'checked' : ''}}">
-          <image wx:if="{{agreedPolicy}}" class="check-mark" src="/assets/icons/check-white.svg" mode="aspectFit" />
+    <view class="agreement-wrap">
+      <view class="agreement">
+        <view class="agreement-checkbox" bindtap="toggleAgreement">
+          <view class="checkbox-icon {{agreedPolicy ? 'checked' : ''}}">
+            <image wx:if="{{agreedPolicy}}" class="check-mark" src="/assets/icons/check-white.svg" mode="aspectFit" />
+          </view>
         </view>
-      </view>
-      <view class="agreement-content">
         <text class="agreement-text">我已阅读并同意</text>
         <text class="agreement-link" bindtap="viewUserAgreement">《用户服务协议》</text>
         <text class="agreement-text">和</text>

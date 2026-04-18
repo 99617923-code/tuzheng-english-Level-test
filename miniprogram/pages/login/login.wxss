@@ -216,7 +216,8 @@
 /* 协议勾选 */
 .agreement {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: center;
   margin-top: 48rpx;
   padding: 0 8rpx;
   gap: 12rpx;

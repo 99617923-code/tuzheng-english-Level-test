@@ -7,8 +7,8 @@ const app = getApp()
 // 用户服务协议内容
 const USER_AGREEMENT = {
   title: '用户服务协议',
-  updateDate: '2025年4月1日',
-  effectiveDate: '2025年4月1日',
+  updateDate: '2026年4月18日',
+  effectiveDate: '2026年4月18日',
   sections: [
     {
       title: '一、总则',
@@ -75,8 +75,8 @@ const USER_AGREEMENT = {
 // 隐私政策内容
 const PRIVACY_POLICY = {
   title: '隐私政策',
-  updateDate: '2025年4月1日',
-  effectiveDate: '2025年4月1日',
+  updateDate: '2026年4月18日',
+  effectiveDate: '2026年4月18日',
   sections: [
     {
       title: '一、引言',

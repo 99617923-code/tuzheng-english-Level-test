@@ -213,14 +213,44 @@
   color: #ffffff;
 }
 
-/* 协议 */
+/* 协议勾选 */
 .agreement {
+  display: flex;
+  align-items: flex-start;
+  margin-top: 48rpx;
+  padding: 0 8rpx;
+  gap: 12rpx;
+}
+
+.agreement-checkbox {
+  flex-shrink: 0;
+  padding-top: 4rpx;
+}
+
+.checkbox-icon {
+  width: 32rpx;
+  height: 32rpx;
+  border-radius: 50%;
+  border: 2rpx solid rgba(27,63,145,0.25);
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-wrap: wrap;
-  margin-top: 48rpx;
-  gap: 0;
+  transition: all 0.2s ease;
+}
+
+.checkbox-icon.checked {
+  background: var(--brand-blue);
+  border-color: var(--brand-blue);
+}
+
+.check-mark {
+  width: 20rpx;
+  height: 20rpx;
+}
+
+.agreement-content {
+  flex: 1;
+  line-height: 1.6;
 }
 
 .agreement-text {

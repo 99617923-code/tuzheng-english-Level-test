@@ -20,7 +20,10 @@ Page({
     smsCode: '',
     loading: false,
     sendingCode: false,
-    countdown: 0
+    countdown: 0,
+
+    // 协议同意状态（默认未勾选，微信审核要求）
+    agreedPolicy: false
   },
 
   _countdownTimer: null,
@@ -49,6 +52,30 @@ Page({
     }})
   },
 
+  /** 切换协议勾选状态 */
+  toggleAgreement() {
+    this.setData({ agreedPolicy: !this.data.agreedPolicy })
+  },
+
+  /** 查看用户服务协议 */
+  viewUserAgreement() {
+    wx.navigateTo({ url: '/pages/agreement/agreement?type=user' })
+  },
+
+  /** 查看隐私政策 */
+  viewPrivacyPolicy() {
+    wx.navigateTo({ url: '/pages/agreement/agreement?type=privacy' })
+  },
+
+  /** 检查是否已同意协议 */
+  _checkAgreement() {
+    if (!this.data.agreedPolicy) {
+      showToast('请先阅读并同意用户服务协议和隐私政策')
+      return false
+    }
+    return true
+  },
+
   /** 微信手机号快捷登录 */
   onGetPhoneNumber(e) {
     if (e.detail.errMsg !== 'getPhoneNumber:ok') {
@@ -57,6 +84,9 @@ Page({
       this.setData({ showSmsForm: true })
       return
     }
+
+    // 检查协议同意状态
+    if (!this._checkAgreement()) return
 
     const code = e.detail.code
     if (!code) {
@@ -168,6 +198,9 @@ Page({
   handleSmsLogin() {
     const { phone, smsCode, loading } = this.data
     if (loading) return
+
+    // 检查协议同意状态
+    if (!this._checkAgreement()) return
 
     if (!phone.trim()) {
       showToast('请输入手机号')

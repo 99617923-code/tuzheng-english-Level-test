@@ -848,3 +848,11 @@
 - [x] 前端handleSkip改为调用skipQuestion接口，复用_autoNextQuestion处理返回结果
 - [x] 弹窗提示文案更新：“跳过此题将记为0分，可能影响最终定级”
 - [x] 保留shouldForceContinue保护（不夨6题强制继续）
+
+## 第九十九轮 - 登录页增加用户协议和隐私政策同意选项（微信审核要求）
+- [x] 登录页增加未勾选的复选框 + 《用户服务协议》和《隐私政策》可点击链接
+- [x] 未勾选时点击登录/授权按钮需提示用户先阅读并同意协议
+- [x] 不得默认勾选，必须用户主动勾选（agreedPolicy默认false）
+- [x] 协议链接可跳转到协议详情页面（新增agreement页面）
+- [x] 新增agreement页面：支持type=user/privacy参数，展示完整协议内容
+- [x] 在app.json中注册agreement页面

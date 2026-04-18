@@ -1,0 +1,31 @@
+<!--
+  途正英语AI分级测评 - 协议详情页
+  根据type参数展示《用户服务协议》或《隐私政策》
+-->
+<view class="page">
+  <!-- 自定义导航栏 -->
+  <view class="custom-nav" style="height: {{navBarHeight}}px;">
+    <view class="custom-nav-content" style="margin-top: {{navContentTop}}px; height: {{navContentHeight}}px;">
+      <view class="nav-back-btn" bindtap="goBack">
+        <image class="nav-back-icon" src="/assets/icons/chevron-left.svg" mode="aspectFit" />
+      </view>
+      <text class="nav-title-center">{{title}}</text>
+      <view class="nav-right-placeholder"></view>
+    </view>
+  </view>
+
+  <!-- 协议内容 -->
+  <scroll-view class="content" scroll-y style="padding-top: {{navBarHeight}}px;">
+    <view class="agreement-body">
+      <view class="section" wx:for="{{sections}}" wx:key="title">
+        <text class="section-title">{{item.title}}</text>
+        <text class="section-text" wx:for="{{item.paragraphs}}" wx:for-item="para" wx:key="*this">{{para}}</text>
+      </view>
+
+      <view class="update-info">
+        <text class="update-text">更新日期：{{updateDate}}</text>
+        <text class="update-text">生效日期：{{effectiveDate}}</text>
+      </view>
+    </view>
+  </scroll-view>
+</view>

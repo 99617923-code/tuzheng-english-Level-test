@@ -1,0 +1,49 @@
+/* 途正英语 - 协议详情页样式 */
+.page {
+  min-height: 100vh;
+  background: var(--bg-gradient);
+}
+
+.content {
+  height: calc(100vh - var(--nav-bar-height, 88px));
+  padding: 0 40rpx;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 48rpx);
+}
+
+.agreement-body {
+  padding: 24rpx 0 80rpx;
+}
+
+.section {
+  margin-bottom: 40rpx;
+}
+
+.section-title {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 16rpx;
+  line-height: 1.5;
+}
+
+.section-text {
+  display: block;
+  font-size: 26rpx;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  margin-bottom: 12rpx;
+}
+
+.update-info {
+  margin-top: 60rpx;
+  padding-top: 32rpx;
+  border-top: 2rpx solid rgba(27,63,145,0.06);
+}
+
+.update-text {
+  display: block;
+  font-size: 24rpx;
+  color: var(--text-placeholder);
+  line-height: 1.8;
+}

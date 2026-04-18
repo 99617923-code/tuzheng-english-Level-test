@@ -97,12 +97,19 @@
       </view>
     </view>
 
-    <!-- 协议 -->
+    <!-- 协议勾选 -->
     <view class="agreement">
-      <text class="agreement-text">登录即表示同意</text>
-      <text class="agreement-link">《用户服务协议》</text>
-      <text class="agreement-text">和</text>
-      <text class="agreement-link">《隐私政策》</text>
+      <view class="agreement-checkbox" bindtap="toggleAgreement">
+        <view class="checkbox-icon {{agreedPolicy ? 'checked' : ''}}">
+          <image wx:if="{{agreedPolicy}}" class="check-mark" src="/assets/icons/check-white.svg" mode="aspectFit" />
+        </view>
+      </view>
+      <view class="agreement-content">
+        <text class="agreement-text">我已阅读并同意</text>
+        <text class="agreement-link" bindtap="viewUserAgreement">《用户服务协议》</text>
+        <text class="agreement-text">和</text>
+        <text class="agreement-link" bindtap="viewPrivacyPolicy">《隐私政策》</text>
+      </view>
     </view>
   </view>
 </view>

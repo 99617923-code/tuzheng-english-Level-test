@@ -1726,7 +1726,9 @@ Page({
             const newTotalAnswered = this._frontendQuestionCount
 
             // 返回格式与evaluate完全一致，复用_autoNextQuestion处理逻辑
-            const shouldForceContinue = (evalRes.status === 'finished' && newTotalAnswered < MIN_QUESTIONS_BEFORE_FINISH)
+            const isFinished = evalRes.status === 'finished'
+            const shouldForceContinue = (isFinished && newTotalAnswered < MIN_QUESTIONS_BEFORE_FINISH)
+            console.log('[Skip] 决策参数: status=', evalRes.status, 'newTotalAnswered=', newTotalAnswered, 'MIN=', MIN_QUESTIONS_BEFORE_FINISH, 'isFinished=', isFinished, 'shouldForceContinue=', shouldForceContinue, 'hasNextQuestion=', !!evalRes.question)
             await this._autoNextQuestion(evalRes, newTotalAnswered, shouldForceContinue)
 
           } catch (err) {

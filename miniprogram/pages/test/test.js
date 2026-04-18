@@ -327,6 +327,11 @@ Page({
       clearInterval(this._analysisProgressTimer)
       this._analysisProgressTimer = null
     }
+    // 清除分析进度超时保护定时器
+    if (this._analysisProgressTimeout) {
+      clearTimeout(this._analysisProgressTimeout)
+      this._analysisProgressTimeout = null
+    }
     // 清除自我介绍五维度分析进度定时器
     if (this._introAnalysisTimer) {
       clearInterval(this._introAnalysisTimer)
@@ -1548,6 +1553,8 @@ Page({
       // 3次重试都失败 → 不跳下一题，提示用户重新提交
       if (!evalRes) {
         console.error('[Evaluate] All retries failed:', lastError?.message)
+        // 【修复】关闭分析进度条，防止进度条卡在90%
+        this._stopAnalysisProgress()
         // 使用弹窗互斥锁防止叠加
         if (this._showingModal) {
           this.setData({ phase: 'answering', aiStatusText: '请重新录音回答' })
@@ -1556,17 +1563,17 @@ Page({
         this._showingModal = true
         wx.showModal({
           title: '网络异常',
-          content: '评估请求失败，请检查网络后点击“重新提交”',
+          content: '评估请求失败，请检查网络后点击"重新提交"',
           confirmText: '重新提交',
           cancelText: '跳过此题',
           success: (res) => {
             this._showingModal = false
             if (res.confirm) {
-              // 用户点“重新提交”→ 重新调用submitAnswer
+              // 用户点"重新提交"→ 重新调用submitAnswer
               this._isSubmitting = false
               this.submitAnswer()
             } else {
-              // 用户点“跳过此题”→ 回到answering状态，不跳下一题
+              // 用户点"跳过此题"→ 回到answering状态，不跳下一题
               this.setData({ phase: 'answering', aiStatusText: '请重新录音回答' })
             }
           },
@@ -1623,7 +1630,7 @@ Page({
         this._completeAnalysisProgress(analysisStepsData)
       } else {
         // 没有analysisSteps时也要关闭进度条
-        this.setData({ showAnalysisProgress: false })
+        this._stopAnalysisProgress()
       }
 
       // v4.0: AI智能模式下更新模式标签
@@ -1635,7 +1642,8 @@ Page({
       this._lastEvalResponse = evalRes
 
       if (isFinished && !shouldForceContinue) {
-        // 真正结束 → 清除缓存 + 跳转结果页
+        // 真正结束 → 关闭进度条 + 清除缓存 + 跳转结果页
+        this._stopAnalysisProgress()
         if (this._isNavigating) return
         this._isNavigating = true
         this._clearTestSession()
@@ -1652,6 +1660,8 @@ Page({
 
     } catch (err) {
       console.error('[Evaluate] Error:', err)
+      // 【修复】异常时关闭分析进度条
+      this._stopAnalysisProgress()
       showError(err.message || '评估失败')
       this.setData({ phase: 'answering', aiStatusText: '请重新回答' })
     } finally {
@@ -1733,6 +1743,8 @@ Page({
 
           } catch (err) {
             console.error('[Skip] skip-question failed:', err)
+            // 【修复】跳过失败时关闭分析进度条
+            this._stopAnalysisProgress()
             // 跳过失败时提供恢复选项
             this._handleSkipFailure(err)
           }
@@ -1775,6 +1787,9 @@ Page({
    * 供submitAnswer和handleSkip复用
    */
   async _autoNextQuestion(evalRes, totalAnswered, shouldForceContinue) {
+    // 【修复】进入下一题前统一关闭分析进度条
+    this._stopAnalysisProgress()
+
     if (shouldForceContinue) {
       // 后端说finished但不够最少题数 → 强制创建new session继续
       this.setData({ phase: 'loading', aiStatusText: '继续测评中...' })
@@ -1867,6 +1882,8 @@ Page({
     // 安全处理：question为null
     if (!nextQuestion || !nextQuestion.questionId) {
       console.error('[AutoNext] Backend returned continue but question is null/invalid! evalRes:', JSON.stringify(evalRes).substring(0, 500))
+      // 【修复】关闭分析进度条，防止进度条和弹窗叠加
+      this._stopAnalysisProgress()
       if (this._showingModal) return
       this._showingModal = true
       wx.showModal({
@@ -1994,6 +2011,9 @@ Page({
    */
   _resetToSafeState(message) {
     console.warn('[Recovery] Resetting to safe state:', message)
+    
+    // 【修复】关闭分析进度条
+    this._stopAnalysisProgress()
     
     // 释放录音资源
     this._isSubmitting = false
@@ -3178,6 +3198,31 @@ Page({
         analysisCurrentStep: currentStepIdx
       })
     }, INTERVAL)
+
+    // 【修复】超时保护：30秒后自动关闭进度条，防止永久卡死
+    if (this._analysisProgressTimeout) {
+      clearTimeout(this._analysisProgressTimeout)
+    }
+    this._analysisProgressTimeout = setTimeout(() => {
+      console.warn('[AnalysisProgress] Timeout 30s, force closing')
+      this._stopAnalysisProgress()
+    }, 30000)
+  },
+
+  /**
+   * 【新增】强制关闭分析进度条（统一入口）
+   * 清除定时器 + 超时定时器 + 隐藏浮层
+   */
+  _stopAnalysisProgress() {
+    if (this._analysisProgressTimer) {
+      clearInterval(this._analysisProgressTimer)
+      this._analysisProgressTimer = null
+    }
+    if (this._analysisProgressTimeout) {
+      clearTimeout(this._analysisProgressTimeout)
+      this._analysisProgressTimeout = null
+    }
+    this.setData({ showAnalysisProgress: false })
   },
 
   /**
@@ -3188,6 +3233,11 @@ Page({
     if (this._analysisProgressTimer) {
       clearInterval(this._analysisProgressTimer)
       this._analysisProgressTimer = null
+    }
+    // 【修复】清除超时保护定时器
+    if (this._analysisProgressTimeout) {
+      clearTimeout(this._analysisProgressTimeout)
+      this._analysisProgressTimeout = null
     }
 
     // 缓存实际耗时用于下次校准
@@ -3211,7 +3261,7 @@ Page({
         // 最后一个步骤完成后，500ms后隐藏进度条
         if (idx === steps.length - 1) {
           setTimeout(() => {
-            this.setData({ showAnalysisProgress: false })
+            this._stopAnalysisProgress()
           }, 500)
         }
       }, idx * STEP_DELAY)

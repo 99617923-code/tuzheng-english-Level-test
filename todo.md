@@ -856,3 +856,11 @@
 - [x] 协议链接可跳转到协议详情页面（新增agreement页面）
 - [x] 新增agreement页面：支持type=user/privacy参数，展示完整协议内容
 - [x] 在app.json中注册agreement页面
+
+## 第100轮 - 修复第6题未做题就弹出结束弹窗 + 重做匁90%
+- [x] 修复第6题到达时用户还没做题就弹出"出题异常"弹窗（后端处理）
+- [x] 修复重做后卡在90%"AI正在分析你的回答"无法关闭的问题（前端修复）
+- [x] 分析根因：后端skip-question在第6题（第3题0分+第6题跳过）触发连续放弃规则导致session结束
+- [x] 新增_stopAnalysisProgress()统一入口，所有错误/异常路径都关闭进度条
+- [x] 增加30秒超时保护，防止进度条永久卡死
+- [x] 修复12个关键路径：evaluate失败、catch块、isFinished跳转、autoNextQuestion、skipFail、resetToSafeState等

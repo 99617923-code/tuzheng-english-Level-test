@@ -328,8 +328,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #3B82F6, #2563EB);
-  box-shadow: 0 8rpx 24rpx rgba(59,130,246,0.30);
+  background: rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.15);
+  backdrop-filter: blur(8rpx);
 }
 
 .play-triangle {
@@ -337,7 +338,7 @@
   height: 0;
   border-style: solid;
   border-width: 16rpx 0 16rpx 28rpx;
-  border-color: transparent transparent transparent #ffffff;
+  border-color: transparent transparent transparent rgba(255, 255, 255, 0.9);
   margin-left: 6rpx;
 }
 

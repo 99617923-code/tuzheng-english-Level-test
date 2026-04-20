@@ -864,3 +864,6 @@
 - [x] 新增_stopAnalysisProgress()统一入口，所有错误/异常路径都关闭进度条
 - [x] 增加30秒超时保护，防止进度条永久卡死
 - [x] 修复12个关键路径：evaluate失败、catch块、isFinished跳转、autoNextQuestion、skipFail、resetToSafeState等
+
+## 第101轮 - 视频播放图标改为半透明
+- [x] 将首页视频封面上的播放图标改为半透明样式，不遮挡封面内容
